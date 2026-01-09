@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title or "VeloSite AI" }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <div class="app-shell">
+        {% if not hide_site_nav %}
+        <nav class="site-nav">
+            <a href="/" class="brand-lockup">
+                <span class="brand">VeloSite AI</span>
+                <span class="brand-note">Generator + Studio</span>
+            </a>
+            <div class="nav-meta">
+                {% if current_user.is_authenticated %}
+                <p class="nav-user">{{ current_user.display_name or current_user.email }}</p>
+                {% endif %}
+                <div class="nav-actions">
+                    {% block nav_actions %}
+                    {% if current_user.is_authenticated %}
+                    <a class="btn" href="{{ url_for('main.settings') }}">Settings</a>
+                    <form action="{{ url_for('main.logout') }}" method="post">
+                        <button class="btn" type="submit">Logout</button>
+                    </form>
+                    {% else %}
+                    <a class="btn" href="{{ url_for('main.login') }}">Login</a>
+                    <a class="btn btn-primary" href="{{ url_for('main.signup') }}">Sign Up</a>
+                    {% endif %}
+                    {% endblock %}
+                </div>
+            </div>
+        </nav>
+        {% endif %}
+        <main class="page-shell {% if hide_site_nav %}page-shell-workspace{% endif %} {% block main_class %}{% endblock %}">
+        {% with flashes = get_flashed_messages(with_categories=true) %}
+        {% if flashes %}
+        <section class="flash-stack">
+            {% for category, message in flashes %}
+            <article class="flash flash-{{ category }}">{{ message }}</article>
+            {% endfor %}
+        </section>
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+        </main>
+        {% if not hide_site_nav %}
+        <footer class="site-footer">
+            Taste-driven routing, structured variants, and section-based rendering.
+        </footer>
+        {% endif %}
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
