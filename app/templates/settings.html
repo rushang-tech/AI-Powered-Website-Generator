@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block nav_actions %}
+<a class="btn" href="{{ url_for('main.index') }}">Dashboard</a>
+<form action="{{ url_for('main.logout') }}" method="post">
+    <button class="btn" type="submit">Logout</button>
+</form>
+{% endblock %}
+
+{% block content %}
+<section class="settings-shell">
+    <article class="settings-card">
+        <div class="settings-heading">
+            <div>
+                <p class="eyebrow">Account</p>
+                <h1>Profile and defaults</h1>
+            </div>
+            <p class="settings-copy">You currently have {{ conversation_count }} conversation{% if conversation_count != 1 %}s{% endif %} saved.</p>
+        </div>
+        <form class="settings-form" method="post">
+            <input type="hidden" name="action" value="profile">
+            <div class="brief-grid">
+                <label class="field">
+                    <span>Display name</span>
+                    <input name="display_name" type="text" value="{{ current_user.display_name }}">
+                </label>
+                <label class="field">
+                    <span>Email</span>
+                    <input name="email" type="email" value="{{ current_user.email }}" required>
+                </label>
+                <label class="field">
+                    <span>Default brand tone</span>
+                    <input name="default_brand_tone" type="text" value="{{ current_user.default_brand_tone }}">
+                </label>
+                <label class="field">
+                    <span>Default content density</span>
+                    <select name="default_content_density">
+                        {% for option in density_options %}
+                        <option value="{{ option }}" {% if option == current_user.default_content_density %}selected{% endif %}>{{ option|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Default motion level</span>
+                    <select name="default_motion_level">
+                        {% for option in motion_options %}
+                        <option value="{{ option }}" {% if option == current_user.default_motion_level %}selected{% endif %}>{{ option|capitalize }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field field-large">
+                    <span>Default icon style notes</span>
+                    <textarea name="default_icon_style">{{ current_user.default_icon_style }}</textarea>
+                </label>
+            </div>
+            <button class="btn btn-primary" type="submit">Save Settings</button>
+        </form>
+    </article>
+
+    <article class="settings-card settings-card-split">
+        <section>
+            <p class="eyebrow">Security</p>
+            <h2>Change password</h2>
+            <form class="settings-form" method="post">
+                <input type="hidden" name="action" value="password">
+                <div class="brief-grid">
+                    <label class="field">
+                        <span>Current password</span>
+                        <input name="current_password" type="password" autocomplete="current-password" required>
+                    </label>
+                    <label class="field">
+                        <span>New password</span>
+                        <input name="new_password" type="password" autocomplete="new-password" minlength="8" required>
+                    </label>
+                    <label class="field">
+                        <span>Confirm new password</span>
+                        <input name="confirm_password" type="password" autocomplete="new-password" minlength="8" required>
+                    </label>
+                </div>
+                <button class="btn btn-primary" type="submit">Update Password</button>
+            </form>
+        </section>
+
+        <section class="danger-zone">
+            <p class="eyebrow">Danger zone</p>
+            <h2>Delete account</h2>
+            <p class="settings-copy">This permanently removes your user, conversations, and chat history.</p>
+            <form class="settings-form" method="post">
+                <input type="hidden" name="action" value="delete">
+                <label class="field">
+                    <span>Current password</span>
+                    <input name="current_password" type="password" autocomplete="current-password" required>
+                </label>
+                <button class="btn danger-btn" type="submit">Delete Account</button>
+            </form>
+        </section>
+    </article>
+</section>
+{% endblock %}

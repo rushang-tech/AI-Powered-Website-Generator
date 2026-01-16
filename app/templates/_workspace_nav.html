@@ -1,0 +1,74 @@
+<button class="workspace-nav-overlay" type="button" data-nav-overlay aria-label="Close navigation"></button>
+
+<aside class="workspace-nav" data-workspace-nav aria-label="Workspace navigation">
+    <div class="workspace-nav-section">
+        <div class="workspace-nav-brand-row">
+            <button class="workspace-nav-brand" type="button" data-nav-toggle aria-label="Toggle navigation">
+                <span class="workspace-nav-mark">V</span>
+                <span class="workspace-nav-brand-copy">
+                    <strong>VeloSite AI</strong>
+                    <span>Generator + Studio</span>
+                </span>
+            </button>
+            <button class="workspace-nav-close" type="button" data-nav-close aria-label="Close navigation">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+
+        <a class="workspace-nav-new" href="{{ url_for('main.index') }}" data-nav-close-on-select>
+            <span class="workspace-nav-new-icon">+</span>
+            <span class="workspace-nav-text">New Chat</span>
+        </a>
+    </div>
+
+    <div class="workspace-nav-section workspace-nav-scroll">
+        <p class="workspace-nav-label">Recent chats</p>
+        <div class="workspace-nav-list" id="workspace-conversation-list">
+            {% if recent_conversations %}
+            {% for conversation in recent_conversations %}
+            <article
+                class="workspace-nav-card {% if conversation.is_active %}is-active{% endif %}"
+                data-conversation-item
+                data-conversation-id="{{ conversation.id }}"
+            >
+                <a
+                    class="workspace-nav-entry"
+                    href="{{ conversation.preview_url }}"
+                    {% if conversation.is_active %}aria-current="page"{% endif %}
+                    data-nav-close-on-select
+                >
+                    <span class="workspace-nav-avatar">{{ (conversation.title or "U")[0]|upper }}</span>
+                    <span class="workspace-nav-copy">
+                        <strong data-conversation-title>{{ conversation.title }}</strong>
+                        <span>{{ "Current workspace" if conversation.is_active else "Open conversation" }}</span>
+                    </span>
+                </a>
+                <div class="workspace-nav-actions">
+                    <button class="workspace-nav-action" type="button" data-rename-conversation="{{ conversation.id }}">Rename</button>
+                    <button class="workspace-nav-action" type="button" data-delete-conversation="{{ conversation.id }}">Delete</button>
+                </div>
+            </article>
+            {% endfor %}
+            {% else %}
+            <p class="workspace-nav-empty">No saved conversations yet. Start a new chat to build one.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="workspace-nav-section">
+        <p class="workspace-nav-label">Account</p>
+        <div class="workspace-nav-account">
+            <span class="workspace-nav-avatar workspace-nav-avatar-user">{{ (current_user.display_name or current_user.email or "V")[0]|upper }}</span>
+            <span class="workspace-nav-account-copy">
+                <strong>{{ current_user.display_name or "Workspace user" }}</strong>
+                <span>{{ current_user.email }}</span>
+            </span>
+        </div>
+        <div class="workspace-nav-links">
+            <a class="workspace-nav-link" href="{{ url_for('main.settings') }}" data-nav-close-on-select>Settings</a>
+            <form action="{{ url_for('main.logout') }}" method="post">
+                <button class="workspace-nav-link" type="submit">Logout</button>
+            </form>
+        </div>
+    </div>
+</aside>
