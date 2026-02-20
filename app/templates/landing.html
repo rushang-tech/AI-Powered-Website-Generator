@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Main Container using Dynamic Theme Classes -->
+<div class="min-h-screen {{ data.theme.bg_classes }} {{ data.theme.font }} transition-colors duration-500 p-8 rounded-xl shadow-inner my-6">
+    
+    <!-- Header -->
+    <nav class="flex justify-between items-center mb-16 border-b border-gray-500/20 pb-4">
+        <h1 class="text-2xl font-bold {{ data.theme.text_classes }}">
+            VeloSite <span class="opacity-50 text-sm font-normal">| {{ data.theme.name }}</span>
+        </h1>
+        <div class="text-sm {{ data.theme.text_classes }} opacity-70">AI Generated Preview</div>
+    </nav>
+
+    <!-- Input Section (Persistent) -->
+    <div class="max-w-2xl mx-auto mb-20">
+        <form method="POST" class="flex gap-3 shadow-2xl rounded-lg overflow-hidden">
+            <input type="text" name="prompt" placeholder="Try: 'A spooky gym' or 'A playful candy shop'..." 
+                   class="flex-grow px-6 py-4 outline-none text-gray-800 bg-white" required>
+            <button type="submit" class="bg-indigo-600 text-white px-8 font-bold hover:bg-indigo-700 transition">
+                Generate
+            </button>
+        </form>
+    </div>
+
+    <!-- Generated Hero Section -->
+    <div class="max-w-5xl mx-auto text-center animate-fade-in-up">
+        <h1 class="text-5xl md:text-7xl font-extrabold mb-8 {{ data.theme.text_classes }}">
+            {{ data.content.hero_title }}
+        </h1>
+        <p class="text-xl md:text-2xl mb-12 opacity-90 max-w-3xl mx-auto {{ data.theme.text_classes }}">
+            {{ data.content.hero_subtitle }}
+        </p>
+        
+        <button class="px-10 py-4 text-lg transform hover:scale-105 transition-all duration-300 {{ data.theme.button_classes }}">
+            {{ data.content.cta_text }}
+        </button>
+    </div>
+
+    <!-- Generated Features -->
+    {% if data.content.features %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 max-w-6xl mx-auto">
+        {% for feature in data.content.features %}
+        <div class="p-8 {{ data.theme.card_classes }} rounded-xl transition hover:-translate-y-1">
+            <h3 class="font-bold text-xl mb-4 {{ data.theme.text_classes }}">
+                {{ feature.title }}
+            </h3>
+            <p class="opacity-75 leading-relaxed {{ data.theme.text_classes }}">
+                {{ feature.desc }}
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Simple Fade Animation -->
+<style>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+        animation: fadeInUp 0.8s ease-out forwards;
+    }
+</style>
+{% endblock %}

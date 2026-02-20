@@ -1,0 +1,122 @@
+<article class="generated-site product-site">
+    <header class="product-hero" data-section="hero">
+        <p class="eyebrow {{ data.theme.accent_classes }}">Product launch</p>
+        <h2 class="hero-title {{ data.theme.text_classes }}">{{ data.content.hero_title }}</h2>
+        <p class="hero-subtitle {{ data.theme.muted_text_classes }}">{{ data.content.hero_subtitle }}</p>
+        <div class="hero-meta">
+            <span class="price-chip {{ data.theme.text_classes }}">{{ data.content.price_badge }}</span>
+            <button class="cta {{ data.theme.button_classes }}">{{ data.content.cta_text }}</button>
+        </div>
+    </header>
+
+    <section class="benefit-grid" data-section="highlights">
+        {% for benefit in data.content.benefits %}
+        <article class="benefit-card {{ data.theme.card_classes }}">
+            <h3 class="{{ data.theme.text_classes }}">{{ benefit.title }}</h3>
+            <p class="{{ data.theme.muted_text_classes }}">{{ benefit.desc }}</p>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="social-proof" data-section="details">
+        <div class="quote-card {{ data.theme.card_classes }}">
+            <p class="quote {{ data.theme.text_classes }}">"The generated structure maps directly to a high-converting product launch funnel."</p>
+            <p class="quote-by {{ data.theme.muted_text_classes }}">Growth Team Review</p>
+        </div>
+    </section>
+</article>
+
+<style>
+    .generated-site {
+        max-width: 1060px;
+        margin: 0 auto;
+    }
+    .product-site {
+        display: grid;
+        gap: 22px;
+    }
+    .product-hero {
+        border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+        border-radius: 16px;
+        padding: clamp(20px, 3.2vw, 34px);
+        background:
+            linear-gradient(130deg, color-mix(in srgb, currentColor 8%, transparent), transparent 50%),
+            transparent;
+    }
+    .eyebrow {
+        margin: 0;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+    }
+    .hero-title {
+        margin: 12px 0 10px;
+        font-family: "Source Serif 4", serif;
+        font-size: clamp(2.15rem, 4.8vw, 4.2rem);
+        line-height: 1.03;
+        max-width: 920px;
+    }
+    .hero-subtitle {
+        margin: 0;
+        max-width: 760px;
+        line-height: 1.65;
+        font-size: clamp(1rem, 1.7vw, 1.18rem);
+    }
+    .hero-meta {
+        margin-top: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+    }
+    .price-chip {
+        display: inline-block;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+        padding: 8px 13px;
+        font-size: 0.88rem;
+    }
+    .cta {
+        border: 0;
+        padding: 12px 20px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .benefit-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .benefit-card {
+        border-radius: 14px;
+        padding: 16px;
+    }
+    .benefit-card h3 {
+        margin: 0 0 8px;
+        font-size: 1.04rem;
+    }
+    .benefit-card p {
+        margin: 0;
+        line-height: 1.58;
+        font-size: 0.93rem;
+    }
+    .social-proof {
+        padding-bottom: 4px;
+    }
+    .quote-card {
+        border-radius: 14px;
+        padding: 16px;
+    }
+    .quote {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.58;
+    }
+    .quote-by {
+        margin: 10px 0 0;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+    }
+</style>
