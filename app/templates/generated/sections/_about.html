@@ -1,0 +1,24 @@
+{% set is_consumer = consumer_mode|default(false) %}
+{% set about_title = selected_variant.content.about_title or ("About this work" if is_consumer else "A practice with enough shape to feel personal.") %}
+{% set about_intro = selected_variant.content.about_intro or ("A short note about the perspective behind the work." if is_consumer else "The supporting narrative should add authorship and perspective, not just restate the hero.") %}
+<section
+    id="section-about"
+    class="preview-section section-about"
+    data-section="about"
+    data-node-id="section-about"
+    data-node-type="section"
+    data-section-name="about"
+>
+    <div class="section-pad">
+        <div class="about-shell">
+            <div class="section-header-copy">
+                <p class="section-overline">About</p>
+                <h3 class="section-title" data-node-id="about-title" data-node-type="text" data-edit-path="about_title" data-section="about">{{ about_title }}</h3>
+                <p class="section-copy" data-node-id="about-intro" data-node-type="text" data-edit-path="about_intro" data-section="about">{{ about_intro }}</p>
+            </div>
+            <div class="signal-card">
+                <p class="body-copy" data-node-id="about-text" data-node-type="text" data-edit-path="about_text" data-section="about">{{ selected_variant.content.about_text }}</p>
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,43 @@
+{% set is_consumer = consumer_mode|default(false) %}
+{% set metrics_title = selected_variant.content.metrics_title or ("Performance at a glance" if is_consumer else "Numbers that support the point, not distract from it.") %}
+{% set metrics_intro = selected_variant.content.metrics_intro or ("A few signals that make the promise easier to trust." if is_consumer else "") %}
+<section
+    id="section-metrics"
+    class="preview-section metrics-section"
+    data-section="metrics"
+    data-node-id="section-metrics"
+    data-node-type="section"
+    data-section-name="metrics"
+>
+    <div class="section-pad">
+        <div class="section-header">
+            <div class="section-header-copy">
+                <p class="section-overline">{{ "Key metrics" if is_consumer else "Signal board" }}</p>
+                <h3 class="section-title" data-node-id="metrics-title" data-node-type="text" data-edit-path="metrics_title" data-section="metrics">{{ metrics_title }}</h3>
+                {% if metrics_intro %}
+                <p class="section-copy" data-node-id="metrics-intro" data-node-type="text" data-edit-path="metrics_intro" data-section="metrics">{{ metrics_intro }}</p>
+                {% endif %}
+            </div>
+            {% if not is_consumer %}
+            <span class="section-chip">{{ selected_variant.render_plan.layout_mode|replace("_", " ")|title }}</span>
+            {% endif %}
+        </div>
+        <div class="metric-grid">
+            <article class="metric-card">
+                <span class="section-index">01</span>
+                <strong class="metric-value" data-node-id="metric-1-value" data-node-type="text" data-edit-path="stat_1_value" data-section="metrics">{{ selected_variant.content.stat_1_value }}</strong>
+                <p class="metric-label" data-node-id="metric-1-label" data-node-type="text" data-edit-path="stat_1_label" data-section="metrics">{{ selected_variant.content.stat_1_label }}</p>
+            </article>
+            <article class="metric-card">
+                <span class="section-index">02</span>
+                <strong class="metric-value" data-node-id="metric-2-value" data-node-type="text" data-edit-path="stat_2_value" data-section="metrics">{{ selected_variant.content.stat_2_value }}</strong>
+                <p class="metric-label" data-node-id="metric-2-label" data-node-type="text" data-edit-path="stat_2_label" data-section="metrics">{{ selected_variant.content.stat_2_label }}</p>
+            </article>
+            <article class="metric-card">
+                <span class="section-index">03</span>
+                <strong class="metric-value" data-node-id="metric-3-value" data-node-type="text" data-edit-path="stat_3_value" data-section="metrics">{{ selected_variant.content.stat_3_value }}</strong>
+                <p class="metric-label" data-node-id="metric-3-label" data-node-type="text" data-edit-path="stat_3_label" data-section="metrics">{{ selected_variant.content.stat_3_label }}</p>
+            </article>
+        </div>
+    </div>
+</section>

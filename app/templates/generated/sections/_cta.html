@@ -1,0 +1,28 @@
+{% set is_consumer = consumer_mode|default(false) %}
+<section
+    id="section-cta"
+    class="preview-section section-emphasis"
+    data-section="cta"
+    data-node-id="section-cta"
+    data-node-type="section"
+    data-section-name="cta"
+>
+    <div class="section-pad">
+        <div class="cta-band">
+            <div>
+                <p class="section-overline">{{ "Get started" if is_consumer else "Next move" }}</p>
+                <h3 class="display-title cta-title" data-node-id="cta-title" data-node-type="text" data-edit-path="cta_text" data-section="cta">{{ selected_variant.content.cta_text }}</h3>
+                <p class="body-copy cta-note" data-node-id="cta-note" data-node-type="text" data-edit-path="cta_note" data-section="cta">{{ selected_variant.content.cta_note }}</p>
+            </div>
+            <div class="cta-actions">
+                {% if is_consumer %}
+                <button class="cta-btn" type="button">{{ selected_variant.content.cta_text }}</button>
+                <button class="cta-btn ghost" type="button">Contact</button>
+                {% else %}
+                <button class="cta-btn" type="button">Open Project</button>
+                <button class="cta-btn ghost" type="button">Share Concept</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>

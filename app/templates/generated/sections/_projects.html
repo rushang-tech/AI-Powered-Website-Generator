@@ -1,0 +1,51 @@
+{% set is_consumer = consumer_mode|default(false) %}
+{% set projects_title = selected_variant.content.projects_title or ("Selected projects" if is_consumer else "Projects arranged like a body of work, not a checklist.") %}
+{% set projects_intro = selected_variant.content.projects_intro or ("A few featured projects with enough framing to feel memorable." if is_consumer else "The mix of metadata, narrative, and layout gives each case study enough separation to feel memorable.") %}
+<section
+    id="section-projects"
+    class="preview-section section-projects"
+    data-section="projects"
+    data-node-id="section-projects"
+    data-node-type="section"
+    data-section-name="projects"
+>
+    <div class="section-pad">
+        <div class="section-header">
+            <div class="section-header-copy">
+                <p class="section-overline">Selected work</p>
+                <h3 class="section-title" data-node-id="projects-title" data-node-type="text" data-edit-path="projects_title" data-section="projects">{{ projects_title }}</h3>
+                <p class="section-copy" data-node-id="projects-intro" data-node-type="text" data-edit-path="projects_intro" data-section="projects">{{ projects_intro }}</p>
+            </div>
+            {% if not is_consumer %}
+            <span class="section-chip">{{ selected_variant.render_plan.vibe|replace("_", " ")|title }}</span>
+            {% endif %}
+        </div>
+        <div class="projects-grid">
+            {% for project in selected_variant.content.projects %}
+            <article
+                class="project-card"
+                data-node-id="projects-{{ loop.index0 }}"
+                data-node-type="list-item"
+                data-edit-path="projects.{{ loop.index0 }}"
+                data-list-key="projects"
+                data-item-index="{{ loop.index0 }}"
+                data-edit-fields="meta,title,desc"
+                data-section="projects"
+            >
+                <div class="project-card-head">
+                    <div>
+                        <span class="project-meta" data-node-id="projects-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.meta" data-item-field="meta" data-section="projects">{{ project.meta }}</span>
+                        <h3 data-node-id="projects-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.title" data-item-field="title" data-section="projects">{{ project.title }}</h3>
+                    </div>
+                    <span class="section-index">{{ "%02d"|format(loop.index) }}</span>
+                </div>
+                <p class="project-copy" data-node-id="projects-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.desc" data-item-field="desc" data-section="projects">{{ project.desc }}</p>
+                <div class="project-footer">
+                    <span class="section-chip">{{ selected_variant.render_plan.layout_mode|replace("_", " ")|title }}</span>
+                    <span class="meta-note">Case study</span>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>

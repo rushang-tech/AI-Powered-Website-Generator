@@ -1,0 +1,149 @@
+{% set plan = selected_variant.render_plan %}
+{% set is_consumer = consumer_mode|default(false) %}
+<section
+    id="section-hero"
+    class="preview-section section-emphasis hero-section hero-section-{{ plan.art_direction }} hero-template-{{ plan.template_key }}"
+    data-section="hero"
+    data-node-id="section-hero"
+    data-node-type="section"
+    data-section-name="hero"
+>
+    <div class="section-pad hero-layout">
+        <div class="hero-copy">
+            <div class="hero-copy-inner">
+                <p class="section-overline" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                <h2 class="display-title hero-title" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                <p class="body-copy hero-subtitle" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+                <div class="hero-detail-strip">
+                    {% if plan.template_key == "product" %}
+                        {% if selected_variant.content.price_badge %}
+                        <span class="detail-pill">{{ selected_variant.content.price_badge }}</span>
+                        {% endif %}
+                        <span class="detail-pill">{{ selected_variant.content.stat_1_label }}</span>
+                        <span class="detail-pill">{{ selected_variant.content.stat_2_label }}</span>
+                    {% elif plan.template_key == "portfolio" %}
+                        {% for project in selected_variant.content.projects[:2] %}
+                        <span class="detail-pill">{{ project.meta }}</span>
+                        {% endfor %}
+                        {% if selected_variant.content.capabilities %}
+                        <span class="detail-pill">{{ selected_variant.content.capabilities[0].title }}</span>
+                        {% endif %}
+                    {% else %}
+                        {% for feature in selected_variant.content.features[:3] %}
+                        <span class="detail-pill">{{ feature.title }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                {% if brief.brand_assets %}
+                <div class="brand-asset-strip">
+                    {% for asset in brief.brand_assets[:3] %}
+                    <figure class="brand-asset-tile">
+                        <img src="{{ asset.data_url }}" alt="{{ asset.alt }}">
+                        <figcaption>{{ asset.name }}</figcaption>
+                    </figure>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            <div>
+                <div class="action-row">
+                    <button class="cta-btn" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                    {% if is_consumer %}
+                    <button class="cta-btn ghost" type="button">Contact</button>
+                    {% else %}
+                    <button class="cta-btn ghost" type="button">Explore Flow</button>
+                    {% endif %}
+                </div>
+                <p class="meta-note" style="margin-top: 12px;" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</p>
+            </div>
+            {% if not is_consumer %}
+            <div class="hero-keyword-row">
+                {% for keyword in plan.keywords[:3] %}
+                <span class="accent-pill">{{ keyword|replace("_", " ")|title }}</span>
+                {% endfor %}
+                <span class="accent-pill">{{ plan.vibe|replace("_", " ")|title }}</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="hero-stage hero-stage-{{ plan.art_direction }}">
+            <article class="hero-stage-card hero-stage-card-primary">
+                {% if plan.template_key == "product" %}
+                <p class="hero-stage-label">{{ "Pricing" if is_consumer else "Launch pricing" }}</p>
+                <h3 class="stage-title" data-node-id="hero-price-badge" data-node-type="text" data-edit-path="price_badge" data-section="hero">{{ selected_variant.content.price_badge }}</h3>
+                {% if not is_consumer %}
+                <p class="stage-caption">The first screen sets the promise, the pricing frames the decision, and the page keeps momentum all the way through proof.</p>
+                {% endif %}
+                <div class="hero-stage-stack">
+                    <div class="stack-card">
+                        <span class="hero-stage-label">Signal</span>
+                        <strong>{{ selected_variant.content.stat_1_value }}</strong>
+                        <span class="micro-copy">{{ selected_variant.content.stat_1_label }}</span>
+                    </div>
+                    <div class="stack-card">
+                        <span class="hero-stage-label">Speed</span>
+                        <strong>{{ selected_variant.content.stat_2_value }}</strong>
+                        <span class="micro-copy">{{ selected_variant.content.stat_2_label }}</span>
+                    </div>
+                </div>
+                {% elif plan.template_key == "portfolio" %}
+                <p class="hero-stage-label">{{ "Selected projects" if is_consumer else "Casebook preview" }}</p>
+                <div class="hero-stage-stack">
+                    {% for project in selected_variant.content.projects[:2] %}
+                    <div class="stack-card">
+                        <span class="project-meta">{{ project.meta }}</span>
+                        <strong>{{ project.title }}</strong>
+                        <span class="micro-copy">{{ project.desc }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if not is_consumer %}
+                <p class="stage-caption">A good portfolio should feel curated in the first ten seconds, before anyone scrolls into the details.</p>
+                {% endif %}
+                {% else %}
+                <p class="hero-stage-label">{{ "Highlights" if is_consumer else "Narrative stack" }}</p>
+                <div class="hero-stage-stack">
+                    {% for feature in selected_variant.content.features[:3] %}
+                    <div class="stack-card">
+                        <span class="hero-stage-label">{{ "%02d"|format(loop.index) }}</span>
+                        <strong>{{ feature.title }}</strong>
+                        <span class="micro-copy">{{ feature.desc }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if not is_consumer %}
+                <p class="stage-caption">The page should feel like one coherent argument, not a series of disconnected cards.</p>
+                {% endif %}
+                {% endif %}
+            </article>
+            <article class="hero-stage-card hero-stage-card-secondary">
+                {% if plan.template_key == "portfolio" %}
+                <p class="hero-stage-label">{{ "About" if is_consumer else "Practice note" }}</p>
+                <p class="body-copy" data-node-id="hero-about-text" data-node-type="text" data-edit-path="about_text" data-section="hero">{{ selected_variant.content.about_text }}</p>
+                {% else %}
+                <p class="hero-stage-label">{{ "Testimonial" if is_consumer else "Proof note" }}</p>
+                <p class="proof-quote">"{{ selected_variant.content.proof_quote }}"</p>
+                <span class="proof-author">{{ selected_variant.content.proof_author }}</span>
+                {% endif %}
+                {% if not is_consumer %}
+                <div class="micro-grid">
+                    <div>
+                        <span class="micro-label">Audience</span>
+                        <strong>{{ brief.audience or "General audience" }}</strong>
+                    </div>
+                    <div>
+                        <span class="micro-label">Density</span>
+                        <strong>{{ plan.density|capitalize }}</strong>
+                    </div>
+                    <div>
+                        <span class="micro-label">Motion</span>
+                        <strong>{{ plan.motion_level|capitalize }}</strong>
+                    </div>
+                </div>
+                {% endif %}
+                {% if brief.icon_style %}
+                <p class="stage-caption">{{ brief.icon_style }}</p>
+                {% endif %}
+            </article>
+        </div>
+    </div>
+</section>
