@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block body_class %}workspace-body{% endblock %}
+{% block main_class %}studio-page{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/studio.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="workspace-layout" data-workspace-nav-shell>
+    {% include "_workspace_nav.html" %}
+
+    <div class="workspace-stage">
+        <header class="workspace-stage-bar">
+            <button class="workspace-stage-toggle" type="button" data-nav-toggle aria-label="Open navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="workspace-stage-title">
+                <p>Studio</p>
+                <strong>{{ conversation.title }}</strong>
+            </div>
+        </header>
+
+        <section
+            class="studio-grid"
+            data-preview-id="{{ preview_id }}"
+            data-conversation-id="{{ conversation_id }}"
+            data-selected-variant="{{ selected_variant_id }}"
+            data-frame-url="{{ frame_url }}"
+        >
+            <aside class="studio-panel">
+                <section class="panel-block panel-compact">
+                    <p class="panel-kicker">Project</p>
+                    <h1>{{ conversation.title }}</h1>
+                    <p class="muted-copy">Hover anything in the canvas to edit in place. The preview is now the primary workspace.</p>
+                    <div
+                        id="generation-warning"
+                        class="generation-warning{% if not selected_variant.validation.fallback_used %} is-hidden{% endif %}"
+                    >
+                        <strong>AI output partially fell back to defaults.</strong>
+                        <p id="generation-warning-copy">
+                            {% if selected_variant.validation.fallback_used %}
+                            Some copy blocks did not come back cleanly from the model, so Studio filled them with backup text.
+                            {% endif %}
+                        </p>
+                        <ul id="generation-warning-list">
+                            {% if selected_variant.validation.fallback_used %}
+                            {% for warning in selected_variant.validation.warnings %}
+                            <li>{{ warning }}</li>
+                            {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </div>
+                    <div class="brief-facts">
+                        <span>Audience: {{ brief.audience or "General audience" }}</span>
+                        <span>Tone: {{ brief.brand_tone or "Clear and modern" }}</span>
+                        <span>Density: {{ brief.content_density or "balanced" }}</span>
+                        <span>Motion: {{ brief.motion_level or "moderate" }}</span>
+                    </div>
+                    <p id="override-status" class="status">Hover the canvas to reveal direct edit actions.</p>
+                </section>
+
+                <section class="panel-block">
+                    <div class="section-heading-row">
+                        <div>
+                            <p class="panel-kicker">Conversation</p>
+                            <p class="muted-copy compact-copy">Continue the same thread and keep the current variant in context.</p>
+                        </div>
+                    </div>
+                    <div id="conversation-messages" class="conversation-messages">
+                        {% for message in conversation_messages %}
+                        <article class="message-card message-{{ message.role }}">
+                            <span class="message-role">{{ message.role|title }}</span>
+                            <p>{{ message.body }}</p>
+                        </article>
+                        {% endfor %}
+                    </div>
+                    <form id="conversation-form" class="conversation-form">
+                        <label class="field">
+                            <span>Follow-up prompt</span>
+                            <textarea id="conversation-input" rows="4" placeholder="Refine the hero, change the tone, or continue the design direction."></textarea>
+                        </label>
+                        <button id="send-message-btn" class="btn btn-primary" type="submit">Send Prompt</button>
+                    </form>
+                </section>
+
+                <details class="panel-block advanced-panel" id="advanced-panel">
+                    <summary>
+                        <span>
+                            <span class="panel-kicker">Advanced</span>
+                            <strong>Layout and style controls</strong>
+                        </span>
+                        <span class="advanced-summary">Open</span>
+                    </summary>
+                    <div class="advanced-body">
+                        <div class="control-grid">
+                            <label>
+                                Template intent
+                                <select id="template-select">
+                                    {% for key in template_keys %}
+                                    <option value="{{ key }}" {% if key == selected_variant.render_plan.template_key %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>
+                                Art direction
+                                <select id="art-direction-select">
+                                    {% for key in art_direction_keys %}
+                                    <option value="{{ key }}" {% if key == selected_variant.render_plan.art_direction %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>
+                                Layout mode
+                                <select id="layout-mode-select">
+                                    {% for key in layout_modes %}
+                                    <option value="{{ key }}" {% if key == selected_variant.render_plan.layout_mode %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>
+                                Density
+                                <select id="density-select">
+                                    {% for option in density_options %}
+                                    <option value="{{ option }}" {% if option == selected_variant.render_plan.density %}selected{% endif %}>{{ option|capitalize }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>
+                                Motion
+                                <select id="motion-select">
+                                    {% for option in motion_options %}
+                                    <option value="{{ option }}" {% if option == selected_variant.render_plan.motion_level %}selected{% endif %}>{{ option|capitalize }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                        </div>
+                        <div class="button-stack">
+                            <button id="apply-style-btn" class="btn btn-primary" type="button">Apply Studio Changes</button>
+                            <div class="mini-actions">
+                                <button id="regen-all-btn" class="btn" type="button">Regenerate All</button>
+                                <button id="regen-copy-btn" class="btn" type="button">Regenerate Copy</button>
+                            </div>
+                        </div>
+                        <div class="remix-actions">
+                            <button id="style-remix-btn" class="btn" type="button">Style Remix x3</button>
+                            <p class="muted-copy">Generate three visual remixes instantly and apply your favorite in one click.</p>
+                        </div>
+                    </div>
+                </details>
+
+                <section class="panel-block">
+                    <p class="panel-kicker">Generation states</p>
+                    <div class="status-stack">
+                        {% for stage in statuses %}
+                        <article class="status-card status-{{ stage.state }}" data-stage-key="{{ stage.key }}">
+                            <strong>{{ stage.label }}</strong>
+                            <span>{{ stage.detail }}</span>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="panel-block">
+                    <p class="panel-kicker">Branding</p>
+                    <p class="muted-copy">Upload logos or reference images, then set the icon direction you want the site to echo.</p>
+                    <div class="control-grid">
+                        <label>
+                            Brand images
+                            <input
+                                id="brand-assets-input"
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                                multiple
+                            >
+                        </label>
+                        <div id="brand-assets-preview" class="asset-preview-grid">
+                            {% for asset in brief.brand_assets %}
+                            <figure class="asset-preview-card">
+                                <img src="{{ asset.data_url }}" alt="{{ asset.alt }}">
+                                <figcaption>{{ asset.name }}</figcaption>
+                            </figure>
+                            {% endfor %}
+                        </div>
+                        <label>
+                            Icon style notes
+                            <textarea id="icon-style-input" rows="4" placeholder="Rounded interface icons, luxury monograms, sharp geometric symbols, and so on.">{{ brief.icon_style }}</textarea>
+                        </label>
+                        <button id="apply-branding-btn" class="btn btn-primary" type="button">Apply Branding</button>
+                    </div>
+                </section>
+            </aside>
+
+            <section class="studio-main">
+                <header class="canvas-topbar">
+                    <div>
+                        <p class="panel-kicker">Preview canvas</p>
+                        <h2 id="canvas-variant-title">{{ selected_variant.label }}</h2>
+                        <p class="muted-copy" id="canvas-variant-summary">{{ selected_variant.summary }}</p>
+                    </div>
+                    <div class="canvas-actions">
+                        <div class="canvas-command-row">
+                            <button class="btn" id="nav-publish-btn" type="button">Publish Link</button>
+                            <button class="btn" id="nav-export-btn" type="button">Export ZIP</button>
+                            <button id="fullscreen-btn" class="btn" type="button">Fullscreen</button>
+                        </div>
+                        <div class="device-switch" role="tablist" aria-label="Device preview">
+                            <button class="device-btn is-active" type="button" data-device="desktop">Desktop</button>
+                            <button class="device-btn" type="button" data-device="tablet">Tablet</button>
+                            <button class="device-btn" type="button" data-device="mobile">Mobile</button>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="canvas-shell device-desktop" id="canvas-shell">
+                    <iframe
+                        id="preview-frame"
+                        class="preview-frame"
+                        src="{{ frame_url }}?studio=1"
+                        title="VeloSite preview"
+                        sandbox="allow-same-origin allow-scripts"
+                    ></iframe>
+                </div>
+
+                <section class="panel-block">
+                    <div class="section-heading-row">
+                        <div>
+                            <p class="panel-kicker">Variants</p>
+                            <p class="muted-copy compact-copy">Switch directions without leaving the canvas workflow.</p>
+                        </div>
+                    </div>
+                    <div class="variant-list">
+                        {% for variant in variants %}
+                        <button
+                            class="variant-card {% if variant.variant_id == selected_variant_id %}is-selected{% endif %}"
+                            type="button"
+                            data-variant-id="{{ variant.variant_id }}"
+                        >
+                            <span class="variant-title">{{ variant.label }}</span>
+                            <span class="variant-meta">{{ variant.render_plan.art_direction|replace("_", " ")|title }} / {{ variant.render_plan.layout_mode|replace("_", " ")|title }}</span>
+                            <span class="variant-copy">{{ variant.summary }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="panel-block">
+                    <div class="section-heading-row">
+                        <div>
+                            <p class="panel-kicker">Section layers</p>
+                            <p class="muted-copy compact-copy">Hover actions persist here too, so the advanced panel stays optional.</p>
+                        </div>
+                    </div>
+                    <div class="layer-list" id="layer-list">
+                        {% for section in selected_variant.render_plan.section_order %}
+                        <div class="layer-row">
+                            <span class="layer-order">{{ "%02d"|format(loop.index) }}</span>
+                            <span class="layer-name">{{ section|replace("_", " ")|title }}</span>
+                            <span class="layer-actions">
+                                <button class="layer-regen" type="button" data-regenerate-section="{{ section }}">Regenerate</button>
+                                <input type="checkbox" data-layer-section="{{ section }}" {% if selected_variant.render_plan.section_visibility[section] %}checked{% endif %}>
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="panel-block">
+                    <p class="panel-kicker">Remix previews</p>
+                    <div id="remix-grid" class="remix-grid">
+                        <p class="muted-copy">Click "Style Remix x3" to load side-by-side previews.</p>
+                    </div>
+                </section>
+            </section>
+        </section>
+    </div>
+</section>
+
+<script id="studio-config" type="application/json">
+{{ {
+    "layoutLibrary": layout_library,
+    "artDirectionKeys": art_direction_keys,
+    "previewId": preview_id,
+    "conversationId": conversation_id,
+    "selectedVariantId": selected_variant_id,
+    "selectedVariant": selected_variant,
+    "brief": brief,
+    "conversationMessages": conversation_messages,
+    "recentConversations": recent_conversations
+}|tojson }}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/workspace_nav.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/studio.js') }}" defer></script>
+{% endblock %}
