@@ -42,6 +42,18 @@
     max-width: 44ch;
 }
 
+.demo-block {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.demo-block p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
 .intro-points {
     margin: 0;
     padding-left: 18px;
@@ -124,6 +136,54 @@
 .brief-actions {
     display: grid;
     gap: 14px;
+}
+
+.pipeline-row {
+    display: grid;
+    gap: 8px;
+}
+
+.pipeline-row span {
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.pipeline-steps {
+    display: grid;
+    gap: 8px;
+}
+
+.pipeline-step {
+    display: grid;
+    gap: 3px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+    padding: 9px 10px;
+}
+
+.pipeline-step strong {
+    font-size: 0.83rem;
+}
+
+.pipeline-step span {
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+.pipeline-active {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    box-shadow: inset 0 0 0 1px rgba(31, 111, 235, 0.15);
+}
+
+.pipeline-complete {
+    border-color: #c3e6cf;
+    background: #effaf2;
+}
+
+.pipeline-error {
+    border-color: #f0b6b6;
+    background: #fdf0f0;
 }
 
 .example-row {

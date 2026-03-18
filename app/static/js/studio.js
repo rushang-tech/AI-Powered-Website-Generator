@@ -13,10 +13,14 @@ if (shell) {
     const densitySelect = document.getElementById("density-select");
     const motionSelect = document.getElementById("motion-select");
     const applyStyleBtn = document.getElementById("apply-style-btn");
+    const styleRemixBtn = document.getElementById("style-remix-btn");
     const statusEl = document.getElementById("override-status");
     const canvasShell = document.getElementById("canvas-shell");
     const previewFrame = document.getElementById("preview-frame");
+    const remixGrid = document.getElementById("remix-grid");
+    const frameBaseUrl = shell.getAttribute("data-frame-url") || `/preview/${previewId}/frame`;
     const layoutLibrary = config.layoutLibrary || {};
+    const artDirectionKeys = Array.isArray(config.artDirectionKeys) ? config.artDirectionKeys : [];
 
     const navExportBtn = document.getElementById("nav-export-btn");
     const regenAllBtn = document.getElementById("regen-all-btn");
@@ -31,7 +35,7 @@ if (shell) {
 
     function setBusy(isBusy, label) {
         busy = isBusy;
-        [applyStyleBtn, regenAllBtn, regenCopyBtn, navExportBtn].forEach((button) => {
+        [applyStyleBtn, styleRemixBtn, regenAllBtn, regenCopyBtn, navExportBtn].forEach((button) => {
             if (button) {
                 button.disabled = isBusy;
                 button.classList.toggle("btn-disabled", isBusy);
@@ -76,6 +80,121 @@ if (shell) {
         if (!layouts.includes(currentValue) && layouts.length) {
             layoutModeSelect.value = layouts[0];
         }
+    }
+
+    function collectSectionVisibility() {
+        const sectionVisibility = {};
+        document.querySelectorAll("[data-layer-section]").forEach((checkbox) => {
+            sectionVisibility[checkbox.getAttribute("data-layer-section")] = checkbox.checked;
+        });
+        return sectionVisibility;
+    }
+
+    function formatLabel(value) {
+        return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    function remixFrameUrl(candidate) {
+        const params = new URLSearchParams({
+            variant_id: selectedVariantId,
+            template_key: candidate.template_key,
+            art_direction: candidate.art_direction,
+            layout_mode: candidate.layout_mode,
+            density: candidate.density,
+            motion_level: candidate.motion_level,
+            remix_label: candidate.label,
+        });
+        return `${frameBaseUrl}?${params.toString()}`;
+    }
+
+    function buildRemixCandidates() {
+        const templateKey = templateSelect.value;
+        const layouts = layoutLibrary[templateKey] || [layoutModeSelect.value];
+        const currentLayout = layoutModeSelect.value;
+        const currentLayoutIndex = Math.max(0, layouts.indexOf(currentLayout));
+        const currentArt = artDirectionSelect.value;
+        const artPool = artDirectionKeys.filter((key) => key !== currentArt);
+        const densityScale = ["airy", "balanced", "dense"];
+        const motionScale = ["calm", "moderate", "energetic"];
+        const densityPool = [densitySelect.value, ...densityScale.filter((value) => value !== densitySelect.value)];
+        const motionPool = [motionSelect.value, ...motionScale.filter((value) => value !== motionSelect.value)];
+        const candidates = [];
+
+        for (let index = 0; index < 3; index += 1) {
+            const layout = layouts[(currentLayoutIndex + index + 1) % layouts.length] || currentLayout;
+            const artDirection = artPool.length ? artPool[index % artPool.length] : currentArt;
+            candidates.push({
+                label: `Remix ${index + 1}`,
+                template_key: templateKey,
+                art_direction: artDirection,
+                layout_mode: layout,
+                density: densityPool[(index + 1) % densityPool.length] || densitySelect.value,
+                motion_level: motionPool[(index + 1) % motionPool.length] || motionSelect.value,
+            });
+        }
+        return candidates;
+    }
+
+    async function applyRemix(candidate) {
+        if (busy) {
+            return;
+        }
+        setBusy(true, "Applying remix...");
+        setStatus(`Applying ${candidate.label}...`);
+        try {
+            const data = await postJson(`/preview/${previewId}/override`, {
+                variant_id: selectedVariantId,
+                template_key: candidate.template_key,
+                art_direction: candidate.art_direction,
+                layout_mode: candidate.layout_mode,
+                density: candidate.density,
+                motion_level: candidate.motion_level,
+                section_visibility: collectSectionVisibility(),
+            });
+            window.location.href = data.preview_url;
+        } catch (error) {
+            setStatus(error.message || "Failed to apply remix.");
+            setBusy(false);
+        }
+    }
+
+    function renderRemixGrid(candidates) {
+        if (!remixGrid) {
+            return;
+        }
+        remixGrid.innerHTML = "";
+        candidates.forEach((candidate) => {
+            const card = document.createElement("article");
+            card.className = "remix-card";
+
+            const heading = document.createElement("h3");
+            heading.textContent = candidate.label;
+            card.appendChild(heading);
+
+            const meta = document.createElement("p");
+            meta.className = "remix-meta";
+            meta.textContent = `${formatLabel(candidate.art_direction)} / ${formatLabel(candidate.layout_mode)}`;
+            card.appendChild(meta);
+
+            const frame = document.createElement("iframe");
+            frame.className = "remix-frame";
+            frame.src = remixFrameUrl(candidate);
+            frame.title = `${candidate.label} preview`;
+            frame.loading = "lazy";
+            frame.sandbox = "allow-same-origin allow-scripts";
+            card.appendChild(frame);
+
+            const applyBtn = document.createElement("button");
+            applyBtn.type = "button";
+            applyBtn.className = "btn";
+            applyBtn.textContent = `Apply ${candidate.label}`;
+            applyBtn.addEventListener("click", () => {
+                applyRemix(candidate);
+            });
+            card.appendChild(applyBtn);
+
+            remixGrid.appendChild(card);
+        });
     }
 
     async function postJson(url, body) {
@@ -124,11 +243,6 @@ if (shell) {
         setBusy(true, "Applying...");
         setStatus("Applying design changes...");
 
-        const sectionVisibility = {};
-        document.querySelectorAll("[data-layer-section]").forEach((checkbox) => {
-            sectionVisibility[checkbox.getAttribute("data-layer-section")] = checkbox.checked;
-        });
-
         try {
             const data = await postJson(`/preview/${previewId}/override`, {
                 variant_id: selectedVariantId,
@@ -137,7 +251,7 @@ if (shell) {
                 layout_mode: layoutModeSelect.value,
                 density: densitySelect.value,
                 motion_level: motionSelect.value,
-                section_visibility: sectionVisibility,
+                section_visibility: collectSectionVisibility(),
             });
             window.location.href = data.preview_url;
         } catch (error) {
@@ -167,6 +281,16 @@ if (shell) {
 
     templateSelect.addEventListener("change", refreshLayoutOptions);
     applyStyleBtn.addEventListener("click", applyOverride);
+    if (styleRemixBtn) {
+        styleRemixBtn.addEventListener("click", () => {
+            if (busy) {
+                return;
+            }
+            const candidates = buildRemixCandidates();
+            renderRemixGrid(candidates);
+            setStatus("Remix previews are ready. Apply one to update the studio.");
+        });
+    }
     regenAllBtn.addEventListener("click", () => regenerate("all"));
     regenCopyBtn.addEventListener("click", () => regenerate("copy"));
     navExportBtn.addEventListener("click", async () => {

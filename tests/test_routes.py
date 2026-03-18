@@ -95,12 +95,20 @@ def _payload(preview_id: str):
             _variant("variant-2", template_key="landing", art_direction="warm_gradient", layout_mode="immersive_layers"),
             _variant("variant-3", template_key="landing", art_direction="brutalist_poster", layout_mode="proof_first"),
         ],
+        "statuses": [
+            {"key": "validate", "label": "Validating prompt", "state": "complete", "detail": "Brief normalized and request sanitized."},
+            {"key": "classify", "label": "Classifying intent", "state": "complete", "detail": "Choosing deterministic structure and layout candidates."},
+            {"key": "generate", "label": "Generating content", "state": "complete", "detail": "Requesting structured JSON content for selected render plans."},
+            {"key": "validate_schema", "label": "Validating schema", "state": "complete", "detail": "Filling defaults and recording fallbacks."},
+            {"key": "render", "label": "Rendering preview", "state": "complete", "detail": "Preparing iframe-ready HTML and studio metadata."},
+            {"key": "export", "label": "Export ready", "state": "complete", "detail": "Project can be exported at any time."},
+        ],
     }
 
 
 class RouteTests(unittest.TestCase):
     def setUp(self):
-        PREVIEW_STORE._items.clear()  # noqa: SLF001
+        PREVIEW_STORE.clear()
         self.app = create_app()
         self.client = self.app.test_client()
 
@@ -110,6 +118,8 @@ class RouteTests(unittest.TestCase):
         body = response.get_data(as_text=True)
         self.assertIn("Guided brief", body)
         self.assertIn("Generate Studio", body)
+        self.assertIn("Try Demo Prompt", body)
+        self.assertIn("Pipeline progress", body)
 
     @patch("app.routes.generate_project_manifest")
     def test_generate_returns_variant_metadata(self, mocked_generate):
@@ -147,6 +157,7 @@ class RouteTests(unittest.TestCase):
         data = response.get_json()
         self.assertEqual(len(data["variants"]), 3)
         self.assertTrue(data["selected_variant_id"])
+        self.assertGreaterEqual(len(data["statuses"]), 5)
 
     def test_override_can_switch_selected_variant(self):
         PREVIEW_STORE.set(preview_id="preview-456", prompt="Some prompt", payload=_payload("preview-456"))
@@ -179,6 +190,15 @@ class RouteTests(unittest.TestCase):
     def test_preview_404_when_id_missing(self):
         response = self.client.get("/preview/does-not-exist")
         self.assertEqual(response.status_code, 404)
+
+    def test_preview_frame_accepts_query_overrides_for_remix(self):
+        PREVIEW_STORE.set(preview_id="preview-frame", prompt="Some prompt", payload=_payload("preview-frame"))
+        response = self.client.get(
+            "/preview/preview-frame/frame?variant_id=variant-1&layout_mode=proof_first&art_direction=warm_gradient&remix_label=Remix+1"
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertIn("Remix 1", body)
 
     def test_export_returns_zip(self):
         PREVIEW_STORE.set(preview_id="preview-export", prompt="Some prompt", payload=_payload("preview-export"))

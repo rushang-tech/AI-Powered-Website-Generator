@@ -16,6 +16,10 @@
         <p class="intro">
             Keep the inputs focused, compare variants in studio, and tune structure without rewriting everything.
         </p>
+        <div class="demo-block">
+            <button id="demo-brief-btn" class="btn btn-primary" type="button">Try Demo Prompt</button>
+            <p>Loads a complete demo brief so first-time users can generate instantly.</p>
+        </div>
         <ul class="intro-points">
             <li>Goal, audience, and tone define generation intent.</li>
             <li>Density and motion set presentation style.</li>
@@ -72,6 +76,17 @@
 
         <div class="brief-actions">
             <button id="generate-btn" class="btn btn-primary" type="submit">Generate Studio</button>
+            <div class="pipeline-row">
+                <span>Pipeline progress</span>
+                <div id="pipeline-steps" class="pipeline-steps">
+                    {% for stage in status_blueprint %}
+                    <article class="pipeline-step pipeline-pending" data-stage-key="{{ stage.key }}">
+                        <strong>{{ stage.label }}</strong>
+                        <span>{{ stage.detail }}</span>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
             <div class="example-row">
                 <span>Quick starts</span>
                 <div class="chip-list">
@@ -83,6 +98,13 @@
         </div>
     </form>
 </section>
+
+<script id="home-config" type="application/json">
+{{ {
+    "demoBrief": demo_brief,
+    "statusBlueprint": status_blueprint
+}|tojson }}
+</script>
 {% endblock %}
 
 {% block scripts %}

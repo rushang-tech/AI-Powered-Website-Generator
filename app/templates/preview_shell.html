@@ -85,6 +85,10 @@
                     <button id="regen-copy-btn" class="btn" type="button">Regenerate Copy</button>
                 </div>
             </div>
+            <div class="remix-actions">
+                <button id="style-remix-btn" class="btn" type="button">Style Remix x3</button>
+                <p class="muted-copy">Generate three visual remixes instantly and apply your favorite in one click.</p>
+            </div>
             <p id="override-status" class="status"></p>
         </section>
 
@@ -92,7 +96,7 @@
             <p class="panel-kicker">Generation states</p>
             <div class="status-stack">
                 {% for stage in statuses %}
-                <article class="status-card status-{{ stage.state }}">
+                <article class="status-card status-{{ stage.state }}" data-stage-key="{{ stage.key }}">
                     <strong>{{ stage.label }}</strong>
                     <span>{{ stage.detail }}</span>
                 </article>
@@ -160,12 +164,20 @@
                 {% endfor %}
             </div>
         </section>
+
+        <section class="panel-block">
+            <p class="panel-kicker">Remix previews</p>
+            <div id="remix-grid" class="remix-grid">
+                <p class="muted-copy">Click "Style Remix x3" to load side-by-side previews.</p>
+            </div>
+        </section>
     </section>
 </section>
 
 <script id="studio-config" type="application/json">
 {{ {
     "layoutLibrary": layout_library,
+    "artDirectionKeys": art_direction_keys,
     "previewId": preview_id,
     "selectedVariantId": selected_variant_id
 }|tojson }}

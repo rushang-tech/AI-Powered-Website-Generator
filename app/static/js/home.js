@@ -1,8 +1,14 @@
 const form = document.getElementById("generate-form");
 
 if (form) {
+    const configEl = document.getElementById("home-config");
+    const config = configEl ? JSON.parse(configEl.textContent) : {};
+
     const generateBtn = document.getElementById("generate-btn");
     const statusText = document.getElementById("status-text");
+    const demoBriefBtn = document.getElementById("demo-brief-btn");
+    const pipelineSteps = Array.from(document.querySelectorAll("[data-stage-key]"));
+    const statusBlueprint = Array.isArray(config.statusBlueprint) ? config.statusBlueprint : [];
 
     const goalInput = document.getElementById("goal-input");
     const audienceInput = document.getElementById("audience-input");
@@ -11,6 +17,96 @@ if (form) {
     const motionInput = document.getElementById("motion-input");
     const nameInput = document.getElementById("name-input");
     const notesInput = document.getElementById("notes-input");
+    const demoBrief = config.demoBrief || {};
+
+    let pipelineTicker = null;
+    let pipelineIndex = 0;
+
+    function setStageState(stageEl, state) {
+        stageEl.classList.remove("pipeline-pending", "pipeline-active", "pipeline-complete", "pipeline-error");
+        stageEl.classList.add(`pipeline-${state}`);
+    }
+
+    function resetPipeline() {
+        pipelineSteps.forEach((stageEl, index) => {
+            setStageState(stageEl, "pending");
+            const detail = statusBlueprint[index]?.detail;
+            const detailEl = stageEl.querySelector("span");
+            if (detail && detailEl) {
+                detailEl.textContent = detail;
+            }
+        });
+    }
+
+    function stopPipelineTicker() {
+        if (!pipelineTicker) {
+            return;
+        }
+        window.clearInterval(pipelineTicker);
+        pipelineTicker = null;
+    }
+
+    function renderPipelineProgress(activeIndex) {
+        pipelineSteps.forEach((stageEl, index) => {
+            if (index < activeIndex) {
+                setStageState(stageEl, "complete");
+                return;
+            }
+            if (index === activeIndex) {
+                setStageState(stageEl, "active");
+                return;
+            }
+            setStageState(stageEl, "pending");
+        });
+    }
+
+    function startPipelineTicker() {
+        resetPipeline();
+        if (!pipelineSteps.length) {
+            return;
+        }
+        pipelineIndex = 0;
+        renderPipelineProgress(pipelineIndex);
+        pipelineTicker = window.setInterval(() => {
+            pipelineIndex = Math.min(pipelineIndex + 1, pipelineSteps.length - 1);
+            renderPipelineProgress(pipelineIndex);
+        }, 950);
+    }
+
+    function markPipelineError() {
+        if (!pipelineSteps.length) {
+            return;
+        }
+        const index = Math.max(0, Math.min(pipelineIndex, pipelineSteps.length - 1));
+        setStageState(pipelineSteps[index], "error");
+    }
+
+    function applyServerStatuses(statuses) {
+        if (!Array.isArray(statuses) || !statuses.length) {
+            pipelineSteps.forEach((stageEl) => setStageState(stageEl, "complete"));
+            return;
+        }
+        const statesByKey = new Map();
+        statuses.forEach((item) => {
+            if (item && item.key) {
+                statesByKey.set(item.key, item);
+            }
+        });
+        pipelineSteps.forEach((stageEl) => {
+            const key = stageEl.getAttribute("data-stage-key");
+            const stage = statesByKey.get(key);
+            const mappedState = stage?.state === "complete" || stage?.state === "active" || stage?.state === "error"
+                ? stage.state
+                : "pending";
+            setStageState(stageEl, mappedState);
+            if (stage?.detail) {
+                const detailEl = stageEl.querySelector("span");
+                if (detailEl) {
+                    detailEl.textContent = stage.detail;
+                }
+            }
+        });
+    }
 
     function setBusy(isBusy, message) {
         generateBtn.disabled = isBusy;
@@ -32,6 +128,20 @@ if (form) {
         });
     });
 
+    if (demoBriefBtn) {
+        demoBriefBtn.addEventListener("click", () => {
+            goalInput.value = demoBrief.goal || goalInput.value;
+            audienceInput.value = demoBrief.audience || audienceInput.value;
+            toneInput.value = demoBrief.brand_tone || toneInput.value;
+            densityInput.value = demoBrief.content_density || densityInput.value;
+            motionInput.value = demoBrief.motion_level || motionInput.value;
+            nameInput.value = demoBrief.name || nameInput.value;
+            notesInput.value = demoBrief.notes || notesInput.value;
+            setBusy(false, "Demo prompt loaded. Click Generate Studio.");
+            notesInput.focus();
+        });
+    }
+
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const brief = {
@@ -48,7 +158,8 @@ if (form) {
             return;
         }
 
-        setBusy(true, "Generating variants, layouts, and copy...");
+        setBusy(true, "Starting generation pipeline...");
+        startPipelineTicker();
         try {
             const response = await fetch("/generate", {
                 method: "POST",
@@ -59,9 +170,16 @@ if (form) {
             if (!response.ok || !data.preview_url) {
                 throw new Error(data.error || "Generation failed.");
             }
+            stopPipelineTicker();
+            applyServerStatuses(data.statuses);
+            setBusy(true, "Generation complete. Opening Studio...");
             window.location.href = data.preview_url;
         } catch (error) {
+            stopPipelineTicker();
+            markPipelineError();
             setBusy(false, error.message || "Something went wrong.");
         }
     });
+
+    resetPipeline();
 }

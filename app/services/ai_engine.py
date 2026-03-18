@@ -381,6 +381,13 @@ def _default_statuses() -> list[GenerationStage]:
     ]
 
 
+def status_blueprint() -> list[dict[str, str]]:
+    return [
+        {"key": key, "label": label, "detail": detail}
+        for key, label, detail in STATUS_BLUEPRINT
+    ]
+
+
 def generate_project_manifest(
     user_prompt: str,
     *,
@@ -558,3 +565,43 @@ def selected_preview_data(payload: dict[str, object] | ProjectManifest) -> dict[
         "variants": [variant.to_dict() for variant in manifest.variants],
         "statuses": [stage.to_dict() for stage in manifest.statuses],
     }
+
+
+def build_preview_variant(
+    manifest: ProjectManifest,
+    *,
+    variant_id: str | None = None,
+    overrides: dict[str, object] | None = None,
+    remix_label: str | None = None,
+) -> dict[str, object]:
+    if not manifest.variants:
+        return {}
+
+    target_variant_id = variant_id or manifest.selected_variant_id
+    target_variant = next((item for item in manifest.variants if item.variant_id == target_variant_id), manifest.variants[0])
+    plan = target_variant.render_plan
+    if overrides:
+        try:
+            plan = remix_render_plan(
+                target_variant.render_plan,
+                overrides=overrides,
+                theme_catalog=THEME_MAP,
+                template_catalog=TEMPLATE_CATALOG,
+            )
+        except Exception:
+            plan = target_variant.render_plan
+
+    content = _validate_content(
+        target_variant.content.data,
+        brief=manifest.brief,
+        render_plan=plan,
+    )
+    variant_payload = _variant_payload(
+        index=manifest.variants.index(target_variant) + 1,
+        render_plan=plan,
+        content=content,
+        variant_id=target_variant.variant_id,
+    ).to_dict()
+    if remix_label:
+        variant_payload["label"] = remix_label
+    return variant_payload
