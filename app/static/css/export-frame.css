@@ -1,0 +1,73 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    color: #171614;
+    font-family: "Manrope", sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(220, 180, 114, 0.18), transparent 28%),
+        radial-gradient(circle at right, rgba(232, 122, 87, 0.12), transparent 24%),
+        linear-gradient(180deg, #f3efe8 0%, #ece6db 100%);
+}
+
+.frame-shell {
+    min-height: 100vh;
+    padding: 24px;
+}
+
+.frame-shell.is-export {
+    padding: 40px 24px;
+}
+
+.frame-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+.frame-brand {
+    display: grid;
+    gap: 4px;
+}
+
+.frame-brand strong {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: -0.03em;
+}
+
+.frame-brand span,
+.frame-status {
+    color: #645d52;
+    font-size: 0.88rem;
+}
+
+.frame-canvas {
+    width: min(1200px, 100%);
+    margin: 0 auto;
+}
+
+.frame-shell.is-export .frame-canvas {
+    width: 100%;
+}
+
+@media (max-width: 760px) {
+    .frame-shell,
+    .frame-shell.is-export {
+        padding: 12px;
+    }
+
+    .frame-meta {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

@@ -1,0 +1,30 @@
+<section class="preview-section section-emphasis" data-section="hero">
+    <div class="section-pad hero-layout">
+        <div>
+            <p class="section-overline">{{ selected_variant.content.hero_eyebrow }}</p>
+            <h2 class="display-title hero-title">{{ selected_variant.content.hero_title }}</h2>
+            <p class="body-copy hero-subtitle">{{ selected_variant.content.hero_subtitle }}</p>
+            <div class="action-row">
+                <button class="cta-btn" type="button">{{ selected_variant.content.cta_text }}</button>
+                <span class="meta-note">{{ selected_variant.content.cta_note }}</span>
+            </div>
+        </div>
+        <div class="hero-meta-panel">
+            <div class="pill-row">
+                <span class="accent-pill">{{ selected_variant.render_plan.art_direction|replace("_", " ")|title }}</span>
+                <span class="accent-pill">{{ selected_variant.render_plan.layout_mode|replace("_", " ")|title }}</span>
+                <span class="accent-pill">{{ selected_variant.render_plan.template_key|title }}</span>
+            </div>
+            <p class="body-copy" style="margin-top: 18px;">
+                Built for {{ brief.audience or "general audiences" }} with a {{ selected_variant.render_plan.density }} information rhythm and {{ selected_variant.render_plan.motion_level }} motion treatment.
+            </p>
+            {% if selected_variant.render_plan.template_key == "product" %}
+            <p class="section-overline" style="margin-top: 24px;">Pricing cue</p>
+            <h3 class="display-title" style="font-size: 2.1rem;">{{ selected_variant.content.price_badge }}</h3>
+            {% elif selected_variant.render_plan.template_key == "portfolio" %}
+            <p class="section-overline" style="margin-top: 24px;">Practice</p>
+            <p class="body-copy">{{ selected_variant.content.about_text }}</p>
+            {% endif %}
+        </div>
+    </div>
+</section>

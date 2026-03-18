@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block nav_actions %}
+<a class="btn" href="/">New Brief</a>
+<button class="btn" id="nav-export-btn" type="button">Export ZIP</button>
+{% endblock %}
+
+{% block main_class %}studio-page{% endblock %}
+
+{% block content %}
+<section
+    class="studio-grid"
+    data-preview-id="{{ preview_id }}"
+    data-selected-variant="{{ selected_variant_id }}"
+    data-frame-url="{{ frame_url }}"
+>
+    <aside class="studio-rail">
+        <details class="rail-group" open>
+            <summary>Brief</summary>
+            <div class="rail-card">
+                <p class="rail-label">Current brief</p>
+                <h1>{{ brief.name or brief.goal or prompt }}</h1>
+                <p class="prompt-quote">"{{ prompt or brief.goal }}"</p>
+                <div class="brief-facts">
+                    <span>Audience: {{ brief.audience or "General audience" }}</span>
+                    <span>Tone: {{ brief.brand_tone or "Clear and modern" }}</span>
+                    <span>Density: {{ brief.content_density or "balanced" }}</span>
+                    <span>Motion: {{ brief.motion_level or "moderate" }}</span>
+                </div>
+                <p class="notes-copy">{{ brief.notes or "No extra notes were provided. Use the command-centre controls to reshape layout, regenerate copy, and export source." }}</p>
+            </div>
+        </details>
+
+        <details class="rail-group" open>
+            <summary>Pipeline</summary>
+            <div class="rail-card">
+                <p class="rail-label">Generation states</p>
+                <div class="status-stack">
+                    {% for stage in statuses %}
+                    <article class="status-card status-{{ stage.state }}">
+                        <strong>{{ stage.label }}</strong>
+                        <span>{{ stage.detail }}</span>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+        </details>
+
+        <details class="rail-group" open>
+            <summary>Controls</summary>
+            <div class="rail-card">
+                <p class="rail-label">Design controls</p>
+                <div class="control-grid">
+                    <label>
+                        Template intent
+                        <select id="template-select">
+                            {% for key in template_keys %}
+                            <option value="{{ key }}" {% if key == selected_variant.render_plan.template_key %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        Art direction
+                        <select id="art-direction-select">
+                            {% for key in art_direction_keys %}
+                            <option value="{{ key }}" {% if key == selected_variant.render_plan.art_direction %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        Layout mode
+                        <select id="layout-mode-select">
+                            {% for key in layout_modes %}
+                            <option value="{{ key }}" {% if key == selected_variant.render_plan.layout_mode %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        Density
+                        <select id="density-select">
+                            {% for option in density_options %}
+                            <option value="{{ option }}" {% if option == selected_variant.render_plan.density %}selected{% endif %}>{{ option|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <label>
+                        Motion
+                        <select id="motion-select">
+                            {% for option in motion_options %}
+                            <option value="{{ option }}" {% if option == selected_variant.render_plan.motion_level %}selected{% endif %}>{{ option|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                </div>
+                <div class="button-stack">
+                    <button id="apply-style-btn" class="btn btn-primary" type="button">Apply Studio Changes</button>
+                    <div class="mini-actions">
+                        <button id="regen-all-btn" class="btn" type="button">Regenerate All</button>
+                        <button id="regen-copy-btn" class="btn" type="button">Regenerate Copy</button>
+                    </div>
+                </div>
+                <p id="override-status" class="status"></p>
+            </div>
+        </details>
+    </aside>
+
+    <section class="studio-canvas">
+        <div class="canvas-topbar">
+            <div>
+                <p class="rail-label">Preview canvas</p>
+                <h2>{{ selected_variant.label }}</h2>
+                <p class="canvas-summary">{{ selected_variant.summary }}</p>
+            </div>
+            <div class="canvas-actions">
+                <div class="device-switch" role="tablist" aria-label="Device preview">
+                    <button class="device-btn is-active" type="button" data-device="desktop">Desktop</button>
+                    <button class="device-btn" type="button" data-device="tablet">Tablet</button>
+                    <button class="device-btn" type="button" data-device="mobile">Mobile</button>
+                </div>
+                <button id="fullscreen-btn" class="btn" type="button">Fullscreen</button>
+            </div>
+        </div>
+
+        <div class="canvas-shell device-desktop" id="canvas-shell">
+            <iframe
+                id="preview-frame"
+                class="preview-frame"
+                src="{{ frame_url }}"
+                title="VeloSite preview"
+                sandbox="allow-same-origin allow-scripts"
+            ></iframe>
+        </div>
+    </section>
+
+    <aside class="studio-rail right-rail">
+        <details class="rail-group" open>
+            <summary>Variants</summary>
+            <div class="rail-card">
+                <p class="rail-label">Compare directions</p>
+                <div class="variant-list">
+                    {% for variant in variants %}
+                    <button
+                        class="variant-card {% if variant.variant_id == selected_variant_id %}is-selected{% endif %}"
+                        type="button"
+                        data-variant-id="{{ variant.variant_id }}"
+                    >
+                        <span class="variant-title">{{ variant.label }}</span>
+                        <span class="variant-meta">{{ variant.render_plan.art_direction|replace("_", " ")|title }} / {{ variant.render_plan.layout_mode|replace("_", " ")|title }}</span>
+                        <span class="variant-copy">{{ variant.summary }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </details>
+
+        <details class="rail-group" open>
+            <summary>Layers</summary>
+            <div class="rail-card">
+                <p class="rail-label">Section layers</p>
+                <div class="layer-list">
+                    {% for section in selected_variant.render_plan.section_order %}
+                    <label class="layer-row">
+                        <span class="layer-order">{{ "%02d"|format(loop.index) }}</span>
+                        <span class="layer-name">{{ section|replace("_", " ")|title }}</span>
+                        <span class="layer-actions">
+                            <button class="layer-regen" type="button" data-regenerate-section="{{ section }}">Regenerate</button>
+                            <input type="checkbox" data-layer-section="{{ section }}" {% if selected_variant.render_plan.section_visibility[section] %}checked{% endif %}>
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </details>
+
+        <details class="rail-group" open>
+            <summary>Expansion Hooks</summary>
+            <div class="rail-card">
+                <p class="rail-label">Reserved hooks</p>
+                <div class="hook-list">
+                    <span class="hook-pill">Section reorder hook</span>
+                    <span class="hook-pill">Image-analysis hook</span>
+                    <span class="hook-pill">Saved-project hook</span>
+                    <span class="hook-pill">Auth ownership hook</span>
+                    <span class="hook-pill">Analytics hook</span>
+                </div>
+            </div>
+        </details>
+    </aside>
+</section>
+
+<script id="studio-config" type="application/json">
+{{ {
+    "layoutLibrary": layout_library,
+    "previewId": preview_id,
+    "selectedVariantId": selected_variant_id
+}|tojson }}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/studio.js') }}" defer></script>
+<style>
+    .studio-page {
+        padding-top: 4px;
+    }
+    .studio-grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 320px) minmax(0, 1fr) minmax(280px, 320px);
+        gap: 18px;
+        align-items: start;
+    }
+    .studio-rail {
+        display: grid;
+        gap: 14px;
+        position: sticky;
+        top: 14px;
+    }
+    .rail-group {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+    }
+    .rail-group summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 16px 18px;
+        font-family: "Bricolage Grotesque", sans-serif;
+        font-size: 0.96rem;
+        font-weight: 600;
+    }
+    .rail-group summary::-webkit-details-marker {
+        display: none;
+    }
+    .rail-card {
+        padding: 0 18px 18px;
+    }
+    .rail-label {
+        margin: 0 0 12px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 0.72rem;
+    }
+    .rail-card h1,
+    .canvas-topbar h2 {
+        margin: 0;
+        font-family: "Bricolage Grotesque", sans-serif;
+        letter-spacing: -0.04em;
+    }
+    .prompt-quote,
+    .notes-copy,
+    .canvas-summary,
+    .status {
+        color: var(--muted);
+        line-height: 1.6;
+    }
+    .brief-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 16px 0;
+    }
+    .brief-facts span,
+    .hook-pill {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.68);
+        padding: 8px 12px;
+        font-size: 0.82rem;
+    }
+    .status-stack,
+    .variant-list,
+    .hook-list {
+        display: grid;
+        gap: 10px;
+    }
+    .status-card {
+        display: grid;
+        gap: 4px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.68);
+        padding: 14px;
+    }
+    .status-card span {
+        color: var(--muted);
+        font-size: 0.88rem;
+    }
+    .status-complete {
+        border-color: rgba(30, 120, 71, 0.18);
+        background: rgba(240, 252, 245, 0.92);
+    }
+    .control-grid {
+        display: grid;
+        gap: 12px;
+    }
+    .control-grid label {
+        display: grid;
+        gap: 8px;
+        font-size: 0.92rem;
+    }
+    .control-grid select {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.88);
+        padding: 10px 12px;
+    }
+    .button-stack {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+    }
+    .mini-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .studio-canvas {
+        display: grid;
+        gap: 14px;
+    }
+    .canvas-topbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: start;
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--surface-strong);
+        box-shadow: var(--shadow);
+    }
+    .canvas-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    .device-switch {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px;
+        background: rgba(255, 255, 255, 0.7);
+    }
+    .device-btn {
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        padding: 9px 12px;
+        cursor: pointer;
+    }
+    .device-btn.is-active {
+        background: var(--ink);
+        color: #fff8ef;
+    }
+    .canvas-shell {
+        width: 100%;
+        min-height: 860px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.56);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        padding: 14px;
+        transition: max-width 180ms ease;
+    }
+    .canvas-shell.device-desktop {
+        max-width: 100%;
+    }
+    .canvas-shell.device-tablet {
+        max-width: 820px;
+        margin: 0 auto;
+    }
+    .canvas-shell.device-mobile {
+        max-width: 430px;
+        margin: 0 auto;
+    }
+    .preview-frame {
+        width: 100%;
+        min-height: 820px;
+        border: 0;
+        border-radius: 18px;
+        background: #ffffff;
+    }
+    .variant-card {
+        display: grid;
+        gap: 6px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.68);
+        padding: 14px;
+        text-align: left;
+        cursor: pointer;
+    }
+    .variant-card.is-selected {
+        border-color: rgba(196, 107, 53, 0.45);
+        box-shadow: inset 0 0 0 1px rgba(196, 107, 53, 0.18);
+    }
+    .variant-title {
+        font-weight: 700;
+    }
+    .variant-meta,
+    .variant-copy {
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.55;
+    }
+    .layer-list {
+        display: grid;
+        gap: 10px;
+    }
+    .layer-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.62);
+    }
+    .layer-order {
+        color: var(--muted);
+        font-size: 0.8rem;
+    }
+    .layer-actions {
+        display: inline-flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .layer-regen {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.78);
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 0.8rem;
+    }
+    .hook-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    @media (max-width: 1220px) {
+        .studio-grid {
+            grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+        }
+        .right-rail {
+            grid-column: 1 / -1;
+            position: static;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 940px) {
+        .studio-grid {
+            grid-template-columns: 1fr;
+        }
+        .studio-rail,
+        .right-rail {
+            position: static;
+        }
+        .right-rail,
+        .hook-list,
+        .mini-actions {
+            grid-template-columns: 1fr;
+        }
+        .canvas-topbar {
+            flex-direction: column;
+        }
+        .canvas-actions {
+            width: 100%;
+            justify-content: space-between;
+        }
+    }
+</style>
+{% endblock %}

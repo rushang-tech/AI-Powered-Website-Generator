@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title or "VeloSite Export" }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Cormorant+Garamond:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/export-frame.css">
+</head>
+<body>
+    <main class="frame-shell is-export">
+        <div class="frame-meta">
+            <div class="frame-brand">
+                <strong>{{ brief.name or "VeloSite Export" }}</strong>
+                <span>{{ selected_variant.label }}</span>
+            </div>
+            <div class="frame-status">{{ selected_variant.summary }}</div>
+        </div>
+        <div class="frame-canvas">
+            {% include selected_variant.render_plan.template_file %}
+        </div>
+    </main>
+</body>
+</html>

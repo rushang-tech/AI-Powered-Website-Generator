@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block nav_actions %}
+<button class="btn btn-disabled" type="button" title="Coming soon">Export</button>
+{% endblock %}
+
+{% block content %}
+<section class="home-hero">
+    <div class="hero-copy">
+        <p class="eyebrow">Design studio workflow</p>
+        <h1>Brief once. Compare real directions. Refine the layers.</h1>
+        <p class="intro">
+            The generator now builds multiple design directions up front. Guide the system with audience, tone, density, and motion instead of hoping one prompt lands on a useful page.
+        </p>
+        <div class="hero-metrics">
+            <div class="metric-card">
+                <span>01</span>
+                <strong>Guided brief</strong>
+                <p>Capture intent, audience, and art direction constraints.</p>
+            </div>
+            <div class="metric-card">
+                <span>02</span>
+                <strong>Three variants</strong>
+                <p>Compare layout systems before editing the selected version.</p>
+            </div>
+            <div class="metric-card">
+                <span>03</span>
+                <strong>Layer controls</strong>
+                <p>Toggle sections and reshape the page without leaving preview.</p>
+            </div>
+        </div>
+    </div>
+
+    <form id="generate-form" class="brief-shell">
+        <div class="brief-header">
+            <div>
+                <p class="brief-kicker">Guided brief</p>
+                <h2>Build a sharper starting point</h2>
+            </div>
+            <p id="status-text" class="status-text"></p>
+        </div>
+
+        <div class="brief-grid">
+            <label class="field field-large">
+                <span>Goal</span>
+                <input id="goal-input" name="goal" type="text" placeholder="Launch a product landing page for founders" required>
+            </label>
+            <label class="field">
+                <span>Audience</span>
+                <input id="audience-input" name="audience" type="text" placeholder="Seed-stage founders" required>
+            </label>
+            <label class="field">
+                <span>Brand tone</span>
+                <input id="tone-input" name="brand_tone" type="text" placeholder="Confident, warm, premium" required>
+            </label>
+            <label class="field">
+                <span>Content density</span>
+                <select id="density-input" name="content_density">
+                    {% for option in density_options %}
+                    <option value="{{ option }}">{{ option|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="field">
+                <span>Motion level</span>
+                <select id="motion-input" name="motion_level">
+                    {% for option in motion_options %}
+                    <option value="{{ option }}">{{ option|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="field">
+                <span>Project name</span>
+                <input id="name-input" name="name" type="text" placeholder="Northstar AI">
+            </label>
+            <label class="field field-large">
+                <span>Extra notes</span>
+                <textarea id="notes-input" name="notes" placeholder="Include pricing context, proof angle, visual references, constraints, or anything the taste engine should honor."></textarea>
+            </label>
+        </div>
+
+        <div class="brief-actions">
+            <button id="generate-btn" class="btn btn-primary" type="submit">Generate Studio</button>
+            <div class="example-row">
+                <span>Try a seed brief</span>
+                <div class="chip-list">
+                    {% for sample in examples %}
+                    <button class="chip" type="button" data-sample="{{ sample }}">{{ sample }}</button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/home.js') }}" defer></script>
+<style>
+    .home-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+        gap: 22px;
+        align-items: start;
+    }
+    .hero-copy,
+    .brief-shell {
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: var(--surface);
+        backdrop-filter: blur(16px);
+        box-shadow: var(--shadow);
+    }
+    .hero-copy {
+        padding: clamp(24px, 5vw, 46px);
+    }
+    .eyebrow,
+    .brief-kicker {
+        margin: 0 0 12px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.76rem;
+    }
+    .hero-copy h1 {
+        margin: 0;
+        font-family: "Bricolage Grotesque", sans-serif;
+        font-size: clamp(2.8rem, 6vw, 5.4rem);
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+        max-width: 10ch;
+    }
+    .intro {
+        margin: 18px 0 28px;
+        color: var(--muted);
+        font-size: 1.04rem;
+        line-height: 1.75;
+        max-width: 58ch;
+    }
+    .hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+    .metric-card {
+        padding: 16px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid var(--line);
+    }
+    .metric-card span {
+        display: inline-block;
+        margin-bottom: 18px;
+        color: var(--accent);
+        font-size: 0.74rem;
+        letter-spacing: 0.18em;
+    }
+    .metric-card strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 1rem;
+    }
+    .metric-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.55;
+        font-size: 0.92rem;
+    }
+    .brief-shell {
+        padding: 22px;
+        display: grid;
+        gap: 18px;
+    }
+    .brief-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: start;
+    }
+    .brief-header h2 {
+        margin: 0;
+        font-family: "Fraunces", serif;
+        font-size: 1.85rem;
+        font-weight: 600;
+    }
+    .status-text {
+        margin: 0;
+        min-height: 1.3em;
+        color: var(--muted);
+        font-size: 0.9rem;
+        text-align: right;
+    }
+    .brief-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+    .field {
+        display: grid;
+        gap: 8px;
+    }
+    .field-large {
+        grid-column: 1 / -1;
+    }
+    .field span {
+        color: var(--muted);
+        font-size: 0.88rem;
+    }
+    .field input,
+    .field select,
+    .field textarea {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 14px 15px;
+        background: rgba(255, 255, 255, 0.86);
+        color: var(--ink);
+        outline: none;
+    }
+    .field textarea {
+        min-height: 148px;
+        resize: vertical;
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+        border-color: rgba(196, 107, 53, 0.4);
+        box-shadow: 0 0 0 4px rgba(196, 107, 53, 0.08);
+    }
+    .brief-actions {
+        display: grid;
+        gap: 16px;
+    }
+    .example-row {
+        display: grid;
+        gap: 10px;
+    }
+    .example-row span {
+        color: var(--muted);
+        font-size: 0.86rem;
+    }
+    .chip-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .chip {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.74);
+        color: var(--ink);
+        cursor: pointer;
+    }
+    @media (max-width: 1100px) {
+        .home-hero {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 720px) {
+        .brief-grid,
+        .hero-metrics {
+            grid-template-columns: 1fr;
+        }
+        .brief-header {
+            flex-direction: column;
+        }
+        .status-text {
+            text-align: left;
+        }
+        .hero-copy h1 {
+            max-width: none;
+        }
+    }
+</style>
+{% endblock %}

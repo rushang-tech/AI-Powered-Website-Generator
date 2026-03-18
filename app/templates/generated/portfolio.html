@@ -1,0 +1,110 @@
+<article class="generated-site portfolio-site">
+    <header class="portfolio-hero" data-section="hero">
+        <p class="eyebrow {{ data.theme.accent_classes }}">Portfolio</p>
+        <h2 class="hero-title {{ data.theme.text_classes }}">{{ data.content.hero_title }}</h2>
+        <p class="hero-subtitle {{ data.theme.muted_text_classes }}">{{ data.content.hero_subtitle }}</p>
+    </header>
+
+    <section class="portfolio-detail" data-section="details">
+        <div class="about-card {{ data.theme.card_classes }}">
+            <h3 class="{{ data.theme.text_classes }}">About</h3>
+            <p class="{{ data.theme.muted_text_classes }}">{{ data.content.about_text }}</p>
+        </div>
+    </section>
+
+    <section class="project-grid" data-section="highlights">
+        {% for project in data.content.projects %}
+        <article class="project-card {{ data.theme.card_classes }}">
+            <p class="project-index {{ data.theme.accent_classes }}">0{{ loop.index }}</p>
+            <h3 class="{{ data.theme.text_classes }}">{{ project.title }}</h3>
+            <p class="{{ data.theme.muted_text_classes }}">{{ project.desc }}</p>
+        </article>
+        {% endfor %}
+    </section>
+
+    <section class="portfolio-cta" data-section="details">
+        <button class="cta {{ data.theme.button_classes }}">{{ data.content.cta_text }}</button>
+    </section>
+</article>
+
+<style>
+    .generated-site {
+        max-width: 1060px;
+        margin: 0 auto;
+    }
+    .portfolio-site {
+        display: grid;
+        gap: 22px;
+    }
+    .portfolio-hero {
+        padding: clamp(16px, 2.5vw, 24px) 0 6px;
+    }
+    .eyebrow {
+        margin: 0;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+    }
+    .hero-title {
+        margin: 12px 0 8px;
+        font-family: "Source Serif 4", serif;
+        font-size: clamp(2.15rem, 4.8vw, 4rem);
+        line-height: 1.04;
+        max-width: 900px;
+    }
+    .hero-subtitle {
+        margin: 0;
+        max-width: 740px;
+        line-height: 1.64;
+        font-size: clamp(1rem, 1.7vw, 1.15rem);
+    }
+    .about-card {
+        border-radius: 16px;
+        padding: 16px;
+    }
+    .about-card h3 {
+        margin: 0 0 10px;
+        font-size: 1rem;
+    }
+    .about-card p {
+        margin: 0;
+        line-height: 1.62;
+        font-size: 0.94rem;
+    }
+    .project-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .project-card {
+        border-radius: 16px;
+        padding: 16px;
+    }
+    .project-index {
+        margin: 0 0 10px;
+        font-size: 0.78rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+    }
+    .project-card h3 {
+        margin: 0 0 8px;
+        font-size: 1.03rem;
+    }
+    .project-card p {
+        margin: 0;
+        line-height: 1.58;
+        font-size: 0.92rem;
+    }
+    .portfolio-cta {
+        display: flex;
+        justify-content: flex-start;
+        padding-bottom: 6px;
+    }
+    .cta {
+        border: 0;
+        padding: 12px 20px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+    }
+</style>

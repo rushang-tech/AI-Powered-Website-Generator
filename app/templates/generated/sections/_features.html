@@ -1,0 +1,13 @@
+<section class="preview-section" data-section="features">
+    <div class="section-pad">
+        <p class="section-overline">Features</p>
+        <div class="section-grid-3">
+            {% for feature in selected_variant.content.features %}
+            <article class="grid-card">
+                <h3>{{ feature.title }}</h3>
+                <p>{{ feature.desc }}</p>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>

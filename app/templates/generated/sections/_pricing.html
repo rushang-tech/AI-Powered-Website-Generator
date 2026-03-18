@@ -1,0 +1,14 @@
+<section class="preview-section" data-section="pricing">
+    <div class="section-pad">
+        <p class="section-overline">Offers</p>
+        <div class="section-grid-3">
+            {% for offer in selected_variant.content.offers %}
+            <article class="pricing-card">
+                <span class="pricing-meta">{{ offer.meta }}</span>
+                <h3>{{ offer.title }}</h3>
+                <p>{{ offer.desc }}</p>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
