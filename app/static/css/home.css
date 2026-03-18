@@ -1,0 +1,177 @@
+.home-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.intro-panel,
+.brief-shell {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+}
+
+.intro-panel {
+    padding: clamp(20px, 4vw, 34px);
+}
+
+.eyebrow,
+.brief-kicker {
+    margin: 0 0 10px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+}
+
+.intro-panel h1 {
+    margin: 0;
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: clamp(2rem, 4.4vw, 3.3rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    max-width: 16ch;
+}
+
+.intro {
+    margin: 16px 0 22px;
+    color: var(--muted);
+    line-height: 1.65;
+    max-width: 44ch;
+}
+
+.intro-points {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 10px;
+    color: var(--muted);
+}
+
+.brief-shell {
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+}
+
+.brief-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 16px;
+}
+
+.brief-header h2 {
+    margin: 0;
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 1.45rem;
+    letter-spacing: -0.02em;
+}
+
+.status-text {
+    margin: 0;
+    min-height: 1.3em;
+    color: var(--muted);
+    font-size: 0.88rem;
+    text-align: right;
+}
+
+.brief-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.field {
+    display: grid;
+    gap: 6px;
+}
+
+.field-large {
+    grid-column: 1 / -1;
+}
+
+.field span {
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+    color: var(--ink);
+    padding: 11px 12px;
+    outline: 0;
+}
+
+.field textarea {
+    min-height: 132px;
+    resize: vertical;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    box-shadow: 0 0 0 4px rgba(31, 111, 235, 0.12);
+}
+
+.brief-actions {
+    display: grid;
+    gap: 14px;
+}
+
+.example-row {
+    display: grid;
+    gap: 8px;
+}
+
+.example-row span {
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.chip-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.chip {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-soft);
+    color: var(--ink);
+    padding: 7px 11px;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+.chip:hover {
+    border-color: #bec6d5;
+}
+
+@media (max-width: 1050px) {
+    .home-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .brief-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .brief-header {
+        flex-direction: column;
+    }
+
+    .status-text {
+        text-align: left;
+    }
+}
