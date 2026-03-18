@@ -24,6 +24,11 @@
     padding: 16px;
 }
 
+.panel-compact {
+    display: grid;
+    gap: 6px;
+}
+
 .panel-kicker {
     margin: 0 0 10px;
     font-size: 0.72rem;
@@ -60,6 +65,36 @@
     background: var(--surface-soft);
     padding: 7px 10px;
     font-size: 0.8rem;
+}
+
+.advanced-panel summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.advanced-panel summary::-webkit-details-marker {
+    display: none;
+}
+
+.advanced-panel strong {
+    display: block;
+    font-family: "Bricolage Grotesque", sans-serif;
+    letter-spacing: -0.02em;
+}
+
+.advanced-summary {
+    color: var(--muted);
+    font-size: 0.84rem;
+}
+
+.advanced-body {
+    display: grid;
+    gap: 14px;
+    margin-top: 14px;
 }
 
 .control-grid {
@@ -170,6 +205,19 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 10px;
+}
+
+.section-heading-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.compact-copy {
+    margin-top: 4px;
+    font-size: 0.84rem;
 }
 
 .device-switch {

@@ -1,11 +1,26 @@
-<section class="preview-section" data-section="features">
+<section
+    class="preview-section"
+    data-section="features"
+    data-node-id="section-features"
+    data-node-type="section"
+    data-section-name="features"
+>
     <div class="section-pad">
         <p class="section-overline">Features</p>
         <div class="section-grid-3">
             {% for feature in selected_variant.content.features %}
-            <article class="grid-card">
-                <h3>{{ feature.title }}</h3>
-                <p>{{ feature.desc }}</p>
+            <article
+                class="grid-card"
+                data-node-id="features-{{ loop.index0 }}"
+                data-node-type="list-item"
+                data-edit-path="features.{{ loop.index0 }}"
+                data-list-key="features"
+                data-item-index="{{ loop.index0 }}"
+                data-edit-fields="title,desc"
+                data-section="features"
+            >
+                <h3 data-node-id="features-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.title" data-item-field="title" data-section="features">{{ feature.title }}</h3>
+                <p data-node-id="features-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.desc" data-item-field="desc" data-section="features">{{ feature.desc }}</p>
             </article>
             {% endfor %}
         </div>

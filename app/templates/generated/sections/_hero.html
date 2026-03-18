@@ -1,12 +1,18 @@
-<section class="preview-section section-emphasis" data-section="hero">
+<section
+    class="preview-section section-emphasis"
+    data-section="hero"
+    data-node-id="section-hero"
+    data-node-type="section"
+    data-section-name="hero"
+>
     <div class="section-pad hero-layout">
         <div>
-            <p class="section-overline">{{ selected_variant.content.hero_eyebrow }}</p>
-            <h2 class="display-title hero-title">{{ selected_variant.content.hero_title }}</h2>
-            <p class="body-copy hero-subtitle">{{ selected_variant.content.hero_subtitle }}</p>
+            <p class="section-overline" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+            <h2 class="display-title hero-title" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+            <p class="body-copy hero-subtitle" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
             <div class="action-row">
-                <button class="cta-btn" type="button">{{ selected_variant.content.cta_text }}</button>
-                <span class="meta-note">{{ selected_variant.content.cta_note }}</span>
+                <button class="cta-btn" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                <span class="meta-note" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</span>
             </div>
         </div>
         <div class="hero-meta-panel">
@@ -20,10 +26,10 @@
             </p>
             {% if selected_variant.render_plan.template_key == "product" %}
             <p class="section-overline" style="margin-top: 24px;">Pricing cue</p>
-            <h3 class="display-title" style="font-size: 2.1rem;">{{ selected_variant.content.price_badge }}</h3>
+            <h3 class="display-title" style="font-size: 2.1rem;" data-node-id="hero-price-badge" data-node-type="text" data-edit-path="price_badge" data-section="hero">{{ selected_variant.content.price_badge }}</h3>
             {% elif selected_variant.render_plan.template_key == "portfolio" %}
             <p class="section-overline" style="margin-top: 24px;">Practice</p>
-            <p class="body-copy">{{ selected_variant.content.about_text }}</p>
+            <p class="body-copy" data-node-id="hero-about-text" data-node-type="text" data-edit-path="about_text" data-section="hero">{{ selected_variant.content.about_text }}</p>
             {% endif %}
         </div>
     </div>

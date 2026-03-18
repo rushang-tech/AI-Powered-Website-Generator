@@ -1,12 +1,27 @@
-<section class="preview-section" data-section="pricing">
+<section
+    class="preview-section"
+    data-section="pricing"
+    data-node-id="section-pricing"
+    data-node-type="section"
+    data-section-name="pricing"
+>
     <div class="section-pad">
         <p class="section-overline">Offers</p>
         <div class="section-grid-3">
             {% for offer in selected_variant.content.offers %}
-            <article class="pricing-card">
-                <span class="pricing-meta">{{ offer.meta }}</span>
-                <h3>{{ offer.title }}</h3>
-                <p>{{ offer.desc }}</p>
+            <article
+                class="pricing-card"
+                data-node-id="offers-{{ loop.index0 }}"
+                data-node-type="list-item"
+                data-edit-path="offers.{{ loop.index0 }}"
+                data-list-key="offers"
+                data-item-index="{{ loop.index0 }}"
+                data-edit-fields="meta,title,desc"
+                data-section="pricing"
+            >
+                <span class="pricing-meta" data-node-id="offers-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.meta" data-item-field="meta" data-section="pricing">{{ offer.meta }}</span>
+                <h3 data-node-id="offers-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.title" data-item-field="title" data-section="pricing">{{ offer.title }}</h3>
+                <p data-node-id="offers-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.desc" data-item-field="desc" data-section="pricing">{{ offer.desc }}</p>
             </article>
             {% endfor %}
         </div>

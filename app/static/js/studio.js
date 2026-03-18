@@ -6,6 +6,7 @@ if (shell) {
 
     const previewId = shell.getAttribute("data-preview-id");
     let selectedVariantId = config.selectedVariantId || shell.getAttribute("data-selected-variant");
+    let selectedVariant = config.selectedVariant || {};
 
     const templateSelect = document.getElementById("template-select");
     const artDirectionSelect = document.getElementById("art-direction-select");
@@ -18,6 +19,7 @@ if (shell) {
     const canvasShell = document.getElementById("canvas-shell");
     const previewFrame = document.getElementById("preview-frame");
     const remixGrid = document.getElementById("remix-grid");
+    const layerList = document.getElementById("layer-list");
     const frameBaseUrl = shell.getAttribute("data-frame-url") || `/preview/${previewId}/frame`;
     const layoutLibrary = config.layoutLibrary || {};
     const artDirectionKeys = Array.isArray(config.artDirectionKeys) ? config.artDirectionKeys : [];
@@ -26,6 +28,8 @@ if (shell) {
     const regenAllBtn = document.getElementById("regen-all-btn");
     const regenCopyBtn = document.getElementById("regen-copy-btn");
     const fullscreenBtn = document.getElementById("fullscreen-btn");
+    const canvasVariantTitle = document.getElementById("canvas-variant-title");
+    const canvasVariantSummary = document.getElementById("canvas-variant-summary");
 
     let busy = false;
 
@@ -41,28 +45,27 @@ if (shell) {
                 button.classList.toggle("btn-disabled", isBusy);
             }
         });
-        applyStyleBtn.textContent = isBusy && label ? label : "Apply Studio Changes";
-    }
-
-    function frameDocument() {
-        try {
-            return previewFrame.contentDocument || previewFrame.contentWindow.document;
-        } catch (error) {
-            return null;
+        if (applyStyleBtn) {
+            applyStyleBtn.textContent = isBusy && label ? label : "Apply Studio Changes";
         }
     }
 
-    function syncLayerVisibility() {
-        const doc = frameDocument();
-        if (!doc) {
-            return;
-        }
-        document.querySelectorAll("[data-layer-section]").forEach((checkbox) => {
-            const sectionName = checkbox.getAttribute("data-layer-section");
-            doc.querySelectorAll(`[data-section="${sectionName}"]`).forEach((section) => {
-                section.style.display = checkbox.checked ? "" : "none";
-            });
+    function buildFrameUrl(extraParams = {}, studioMode = false) {
+        const url = new URL(frameBaseUrl, window.location.origin);
+        Object.entries(extraParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                url.searchParams.set(key, value);
+            }
         });
+        if (studioMode) {
+            url.searchParams.set("studio", "1");
+            url.searchParams.set("_", Date.now().toString());
+        }
+        return `${url.pathname}${url.search}`;
+    }
+
+    function refreshStudioFrame() {
+        previewFrame.src = buildFrameUrl({}, true);
     }
 
     function refreshLayoutOptions() {
@@ -73,7 +76,7 @@ if (shell) {
         layouts.forEach((layoutKey) => {
             const option = document.createElement("option");
             option.value = layoutKey;
-            option.textContent = layoutKey.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+            option.textContent = formatLabel(layoutKey);
             option.selected = layoutKey === currentValue;
             layoutModeSelect.appendChild(option);
         });
@@ -91,11 +94,11 @@ if (shell) {
     }
 
     function formatLabel(value) {
-        return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+        return String(value || "").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
     }
 
     function remixFrameUrl(candidate) {
-        const params = new URLSearchParams({
+        const params = {
             variant_id: selectedVariantId,
             template_key: candidate.template_key,
             art_direction: candidate.art_direction,
@@ -103,8 +106,8 @@ if (shell) {
             density: candidate.density,
             motion_level: candidate.motion_level,
             remix_label: candidate.label,
-        });
-        return `${frameBaseUrl}?${params.toString()}`;
+        };
+        return buildFrameUrl(params, false);
     }
 
     function buildRemixCandidates() {
@@ -133,6 +136,127 @@ if (shell) {
             });
         }
         return candidates;
+    }
+
+    function updateCanvasMeta(variant) {
+        selectedVariant = variant || selectedVariant;
+        if (!selectedVariant) {
+            return;
+        }
+        if (canvasVariantTitle) {
+            canvasVariantTitle.textContent = selectedVariant.label || "Variant";
+        }
+        if (canvasVariantSummary) {
+            canvasVariantSummary.textContent = selectedVariant.summary || "";
+        }
+    }
+
+    function bindLayerControls() {
+        document.querySelectorAll("[data-layer-section]").forEach((checkbox) => {
+            checkbox.addEventListener("change", async () => {
+                try {
+                    await runCanvasCommand({
+                        action: "toggle_section",
+                        section_name: checkbox.getAttribute("data-layer-section"),
+                        value: checkbox.checked,
+                    }, `Toggling ${checkbox.getAttribute("data-layer-section")}...`);
+                } catch (error) {
+                    checkbox.checked = !checkbox.checked;
+                    setStatus(error.message || "Failed to update section visibility.");
+                }
+            });
+        });
+
+        document.querySelectorAll("[data-regenerate-section]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const sectionName = button.getAttribute("data-regenerate-section");
+                regenerate("section", sectionName);
+            });
+        });
+    }
+
+    function renderLayerList(variant) {
+        if (!layerList || !variant || !variant.render_plan) {
+            return;
+        }
+        const order = variant.render_plan.section_order || [];
+        const visibility = variant.render_plan.section_visibility || {};
+        layerList.innerHTML = "";
+        order.forEach((sectionName, index) => {
+            const row = document.createElement("label");
+            row.className = "layer-row";
+            row.innerHTML = `
+                <span class="layer-order">${String(index + 1).padStart(2, "0")}</span>
+                <span class="layer-name">${formatLabel(sectionName)}</span>
+                <span class="layer-actions">
+                    <button class="layer-regen" type="button" data-regenerate-section="${sectionName}">Regenerate</button>
+                    <input type="checkbox" data-layer-section="${sectionName}" ${visibility[sectionName] ? "checked" : ""}>
+                </span>
+            `;
+            layerList.appendChild(row);
+        });
+        bindLayerControls();
+    }
+
+    async function postJson(url, body) {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body || {}),
+        });
+        const data = await response.json();
+        if (!response.ok || data.ok === false) {
+            throw new Error(data.error || "Request failed.");
+        }
+        return data;
+    }
+
+    async function postExport() {
+        const response = await fetch(`/preview/${previewId}/export`, { method: "POST" });
+        if (!response.ok) {
+            let error = "Export failed.";
+            try {
+                const data = await response.json();
+                error = data.error || error;
+            } catch (ignored) {
+                // Keep the generic message if JSON decoding fails.
+            }
+            throw new Error(error);
+        }
+        const blob = await response.blob();
+        const disposition = response.headers.get("Content-Disposition") || "";
+        const match = disposition.match(/filename=\"?([^\"]+)\"?/);
+        const filename = match ? match[1] : `velosite-${previewId}.zip`;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    async function runCanvasCommand(payload, busyLabel = "Applying canvas edit...") {
+        if (busy) {
+            return null;
+        }
+        setBusy(true, busyLabel);
+        setStatus(busyLabel);
+        try {
+            const data = await postJson(`/preview/${previewId}/command`, {
+                variant_id: selectedVariantId,
+                ...payload,
+            });
+            selectedVariantId = data.selected_variant_id || selectedVariantId;
+            updateCanvasMeta(data.selected_variant);
+            renderLayerList(data.selected_variant);
+            refreshStudioFrame();
+            setStatus("Canvas updated.");
+            return data;
+        } finally {
+            setBusy(false);
+        }
     }
 
     async function applyRemix(candidate) {
@@ -195,45 +319,6 @@ if (shell) {
 
             remixGrid.appendChild(card);
         });
-    }
-
-    async function postJson(url, body) {
-        const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body || {}),
-        });
-        const data = await response.json();
-        if (!response.ok || data.ok === false) {
-            throw new Error(data.error || "Request failed.");
-        }
-        return data;
-    }
-
-    async function postExport() {
-        const response = await fetch(`/preview/${previewId}/export`, { method: "POST" });
-        if (!response.ok) {
-            let error = "Export failed.";
-            try {
-                const data = await response.json();
-                error = data.error || error;
-            } catch (ignored) {
-                // Keep the generic message if JSON decoding fails.
-            }
-            throw new Error(error);
-        }
-        const blob = await response.blob();
-        const disposition = response.headers.get("Content-Disposition") || "";
-        const match = disposition.match(/filename=\"?([^"]+)\"?/);
-        const filename = match ? match[1] : `velosite-${previewId}.zip`;
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
     }
 
     async function applyOverride() {
@@ -331,15 +416,29 @@ if (shell) {
         });
     });
 
-    document.querySelectorAll("[data-layer-section]").forEach((checkbox) => {
-        checkbox.addEventListener("change", syncLayerVisibility);
-    });
-
-    document.querySelectorAll("[data-regenerate-section]").forEach((button) => {
-        button.addEventListener("click", () => {
-            const sectionName = button.getAttribute("data-regenerate-section");
-            regenerate("section", sectionName);
-        });
+    window.addEventListener("message", async (event) => {
+        const data = event.data || {};
+        if (data.type !== "velosite:command") {
+            return;
+        }
+        if (event.origin !== window.location.origin) {
+            return;
+        }
+        const isFrameSource = event.source === previewFrame.contentWindow;
+        const isTrustedBridge = data.source === "velosite-frame-editor";
+        if (!isFrameSource && !isTrustedBridge) {
+            return;
+        }
+        const payload = data.payload || {};
+        try {
+            if (payload.action === "regenerate_section") {
+                await regenerate("section", payload.section_name || "");
+                return;
+            }
+            await runCanvasCommand(payload, payload.status_label || "Applying canvas edit...");
+        } catch (error) {
+            setStatus(error.message || "Canvas action failed.");
+        }
     });
 
     if (fullscreenBtn) {
@@ -354,6 +453,11 @@ if (shell) {
         });
     }
 
-    previewFrame.addEventListener("load", syncLayerVisibility);
+    previewFrame.addEventListener("load", () => {
+        setStatus(statusEl.textContent || "Hover the canvas to reveal direct edit actions.");
+    });
+
     refreshLayoutOptions();
+    renderLayerList(selectedVariant);
+    updateCanvasMeta(selectedVariant);
 }

@@ -1,5 +1,7 @@
 import unittest
+from io import BytesIO
 from unittest.mock import patch
+from zipfile import ZipFile
 
 from app import create_app
 from app.services.contracts import ProjectManifest
@@ -217,6 +219,104 @@ class RouteTests(unittest.TestCase):
         data = response.get_json()
         self.assertTrue(data["ok"])
         self.assertEqual(data["selected_variant_id"], "variant-1")
+
+    def test_canvas_command_can_update_text_override(self):
+        PREVIEW_STORE.set(preview_id="preview-command", prompt="Some prompt", payload=_payload("preview-command"))
+        response = self.client.post(
+            "/preview/preview-command/command",
+            json={
+                "variant_id": "variant-1",
+                "action": "set_text",
+                "node_id": "hero-title",
+                "edit_path": "hero_title",
+                "value": "A sharper hero headline",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["selected_variant"]["content"]["hero_title"], "A sharper hero headline")
+        updated = PREVIEW_STORE.get("preview-command")
+        variant = updated["payload"]["variants"][0]
+        self.assertEqual(variant["content_overrides"]["hero_title"], "A sharper hero headline")
+
+    def test_canvas_command_can_move_and_toggle_section(self):
+        PREVIEW_STORE.set(preview_id="preview-layout", prompt="Some prompt", payload=_payload("preview-layout"))
+        move_response = self.client.post(
+            "/preview/preview-layout/command",
+            json={
+                "variant_id": "variant-1",
+                "action": "move_section",
+                "section_name": "proof",
+                "direction": "up",
+            },
+        )
+        self.assertEqual(move_response.status_code, 200)
+        toggle_response = self.client.post(
+            "/preview/preview-layout/command",
+            json={
+                "variant_id": "variant-1",
+                "action": "toggle_section",
+                "section_name": "proof",
+                "value": False,
+            },
+        )
+        self.assertEqual(toggle_response.status_code, 200)
+        updated = PREVIEW_STORE.get("preview-layout")
+        variant = updated["payload"]["variants"][0]
+        self.assertEqual(variant["layout_overrides"]["section_order"][1], "proof")
+        self.assertFalse(variant["layout_overrides"]["section_visibility"]["proof"])
+
+    def test_canvas_command_rejects_invalid_path(self):
+        PREVIEW_STORE.set(preview_id="preview-invalid", prompt="Some prompt", payload=_payload("preview-invalid"))
+        response = self.client.post(
+            "/preview/preview-invalid/command",
+            json={
+                "variant_id": "variant-1",
+                "action": "set_text",
+                "edit_path": "nonexistent_slot",
+                "value": "Nope",
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_export_applies_saved_overrides(self):
+        PREVIEW_STORE.set(preview_id="preview-export-edit", prompt="Some prompt", payload=_payload("preview-export-edit"))
+        self.client.post(
+            "/preview/preview-export-edit/command",
+            json={
+                "variant_id": "variant-1",
+                "action": "set_text",
+                "node_id": "hero-title",
+                "edit_path": "hero_title",
+                "value": "Exported headline",
+            },
+        )
+        response = self.client.post("/preview/preview-export-edit/export")
+        self.assertEqual(response.status_code, 200)
+        archive = ZipFile(BytesIO(response.data))
+        index_html = archive.read("index.html").decode("utf-8")
+        self.assertIn("Exported headline", index_html)
+
+    def test_regenerate_all_preserves_content_overrides(self):
+        PREVIEW_STORE.set(preview_id="preview-regen-all", prompt="Some prompt", payload=_payload("preview-regen-all"))
+        self.client.post(
+            "/preview/preview-regen-all/command",
+            json={
+                "variant_id": "variant-1",
+                "action": "set_text",
+                "node_id": "hero-title",
+                "edit_path": "hero_title",
+                "value": "Sticky override",
+            },
+        )
+        response = self.client.post(
+            "/preview/preview-regen-all/regenerate",
+            json={"scope": "all", "variant_id": "variant-1"},
+        )
+        self.assertEqual(response.status_code, 200)
+        updated = PREVIEW_STORE.get("preview-regen-all")
+        variant = updated["payload"]["variants"][0]
+        self.assertEqual(variant["content_overrides"]["hero_title"], "Sticky override")
 
     @patch("app.services.ai_engine.get_default_provider")
     def test_generate_handles_unavailable_ai_by_falling_back(self, mocked_provider):

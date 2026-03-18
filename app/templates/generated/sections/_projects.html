@@ -1,12 +1,27 @@
-<section class="preview-section" data-section="projects">
+<section
+    class="preview-section"
+    data-section="projects"
+    data-node-id="section-projects"
+    data-node-type="section"
+    data-section-name="projects"
+>
     <div class="section-pad">
         <p class="section-overline">Selected work</p>
         <div class="section-grid-3">
             {% for project in selected_variant.content.projects %}
-            <article class="grid-card">
-                <span class="section-overline" style="margin-bottom: 8px;">{{ project.meta }}</span>
-                <h3>{{ project.title }}</h3>
-                <p>{{ project.desc }}</p>
+            <article
+                class="grid-card"
+                data-node-id="projects-{{ loop.index0 }}"
+                data-node-type="list-item"
+                data-edit-path="projects.{{ loop.index0 }}"
+                data-list-key="projects"
+                data-item-index="{{ loop.index0 }}"
+                data-edit-fields="meta,title,desc"
+                data-section="projects"
+            >
+                <span class="section-overline" style="margin-bottom: 8px;" data-node-id="projects-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.meta" data-item-field="meta" data-section="projects">{{ project.meta }}</span>
+                <h3 data-node-id="projects-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.title" data-item-field="title" data-section="projects">{{ project.title }}</h3>
+                <p data-node-id="projects-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.desc" data-item-field="desc" data-section="projects">{{ project.desc }}</p>
             </article>
             {% endfor %}
         </div>

@@ -1,9 +1,15 @@
-<section class="preview-section section-emphasis" data-section="cta">
+<section
+    class="preview-section section-emphasis"
+    data-section="cta"
+    data-node-id="section-cta"
+    data-node-type="section"
+    data-section-name="cta"
+>
     <div class="section-pad cta-band">
         <div>
             <p class="section-overline">Next move</p>
-            <h3 class="display-title" style="font-size: clamp(2rem, 4vw, 3.2rem);">{{ selected_variant.content.cta_text }}</h3>
-            <p class="body-copy" style="margin-top: 10px;">{{ selected_variant.content.cta_note }}</p>
+            <h3 class="display-title" style="font-size: clamp(2rem, 4vw, 3.2rem);" data-node-id="cta-title" data-node-type="text" data-edit-path="cta_text" data-section="cta">{{ selected_variant.content.cta_text }}</h3>
+            <p class="body-copy" style="margin-top: 10px;" data-node-id="cta-note" data-node-type="text" data-edit-path="cta_note" data-section="cta">{{ selected_variant.content.cta_note }}</p>
         </div>
         <button class="cta-btn" type="button">Open Project</button>
     </div>

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from copy import deepcopy
 from types import SimpleNamespace
 from uuid import uuid4
@@ -146,6 +147,25 @@ STATUS_BLUEPRINT = (
     ("render", "Rendering preview", "Preparing iframe-ready HTML and studio metadata."),
     ("export", "Export ready", "Project can be exported as source ZIP at any time."),
 )
+
+SECTION_CONTENT_MAP: dict[str, tuple[str, ...]] = {
+    "hero": ("hero_eyebrow", "hero_title", "hero_subtitle", "cta_text", "cta_note", "price_badge", "about_text"),
+    "metrics": (
+        "stat_1_value",
+        "stat_1_label",
+        "stat_2_value",
+        "stat_2_label",
+        "stat_3_value",
+        "stat_3_label",
+    ),
+    "features": ("features",),
+    "projects": ("projects",),
+    "pricing": ("offers",),
+    "proof": ("proof_quote", "proof_author"),
+    "cta": ("cta_text", "cta_note"),
+    "about": ("about_text",),
+    "capabilities": ("capabilities",),
+}
 
 
 def _taste_model(provider: AIProvider | None) -> object | None:
@@ -356,6 +376,9 @@ def _variant_payload(
     render_plan: RenderPlan,
     content: GeneratedContent,
     variant_id: str | None = None,
+    content_overrides: dict[str, Any] | None = None,
+    layout_overrides: dict[str, Any] | None = None,
+    edited_nodes: list[str] | None = None,
 ) -> VariantPayload:
     return VariantPayload(
         variant_id=variant_id or f"variant-{index}",
@@ -364,6 +387,9 @@ def _variant_payload(
         render_plan=render_plan,
         content=content,
         theme=deepcopy(THEME_MAP.get(render_plan.art_direction, THEME_MAP["modern_editorial"])),
+        content_overrides=deepcopy(content_overrides or {}),
+        layout_overrides=deepcopy(layout_overrides or {}),
+        edited_nodes=list(edited_nodes or []),
     )
 
 
@@ -386,6 +412,304 @@ def status_blueprint() -> list[dict[str, str]]:
         {"key": key, "label": label, "detail": detail}
         for key, label, detail in STATUS_BLUEPRINT
     ]
+
+
+def _path_tokens(path: str) -> list[str | int]:
+    tokens: list[str | int] = []
+    for raw_part in str(path).split("."):
+        part = raw_part.strip()
+        if not part:
+            continue
+        tokens.append(int(part) if part.isdigit() else part)
+    return tokens
+
+
+def _path_root(path: str) -> str:
+    tokens = _path_tokens(path)
+    if not tokens:
+        return ""
+    head = tokens[0]
+    return str(head) if isinstance(head, str) else ""
+
+
+def _get_path_value(payload: Any, path: str) -> Any:
+    current = payload
+    for token in _path_tokens(path):
+        if isinstance(token, int):
+            if not isinstance(current, list) or token < 0 or token >= len(current):
+                raise ValueError(f"Invalid list path: {path}")
+            current = current[token]
+            continue
+        if not isinstance(current, dict) or token not in current:
+            raise ValueError(f"Invalid object path: {path}")
+        current = current[token]
+    return current
+
+
+def _set_path_value(payload: Any, path: str, value: Any) -> None:
+    tokens = _path_tokens(path)
+    if not tokens:
+        raise ValueError("Edit path is required.")
+
+    current = payload
+    for token in tokens[:-1]:
+        if isinstance(token, int):
+            if not isinstance(current, list) or token < 0 or token >= len(current):
+                raise ValueError(f"Invalid list path: {path}")
+            current = current[token]
+            continue
+        if not isinstance(current, dict) or token not in current:
+            raise ValueError(f"Invalid object path: {path}")
+        current = current[token]
+
+    last = tokens[-1]
+    if isinstance(last, int):
+        if not isinstance(current, list) or last < 0 or last >= len(current):
+            raise ValueError(f"Invalid list path: {path}")
+        current[last] = value
+        return
+    if not isinstance(current, dict):
+        raise ValueError(f"Invalid object path: {path}")
+    current[last] = value
+
+
+def _normalized_section_order(base_order: list[str], override: object) -> list[str]:
+    order = [str(item) for item in base_order if str(item).strip()]
+    if not isinstance(override, list):
+        return order
+
+    next_order: list[str] = []
+    seen: set[str] = set()
+    for raw_item in override:
+        item = str(raw_item).strip()
+        if item and item in order and item not in seen:
+            next_order.append(item)
+            seen.add(item)
+    for item in order:
+        if item not in seen:
+            next_order.append(item)
+    return next_order
+
+
+def _normalized_section_visibility(base_visibility: dict[str, bool], override: object) -> dict[str, bool]:
+    visibility = {str(key): bool(value) for key, value in base_visibility.items()}
+    if not isinstance(override, dict):
+        return visibility
+    for raw_key, raw_value in override.items():
+        key = str(raw_key).strip()
+        if key in visibility:
+            visibility[key] = bool(raw_value)
+    return visibility
+
+
+def _record_edited_node(existing: list[str], node_id: str | None) -> list[str]:
+    if not node_id:
+        return list(existing)
+    updated = [item for item in existing if item != node_id]
+    updated.append(node_id)
+    return updated[-60:]
+
+
+def _remove_override_prefix(overrides: dict[str, Any], path_prefix: str) -> dict[str, Any]:
+    cleaned: dict[str, Any] = {}
+    prefix = path_prefix.strip(".")
+    for key, value in overrides.items():
+        if key == prefix or key.startswith(f"{prefix}."):
+            continue
+        cleaned[key] = value
+    return cleaned
+
+
+def _resolved_render_plan(variant: VariantPayload) -> RenderPlan:
+    base_plan = variant.render_plan
+    section_order = _normalized_section_order(base_plan.section_order, variant.layout_overrides.get("section_order"))
+    section_visibility = _normalized_section_visibility(
+        base_plan.section_visibility,
+        variant.layout_overrides.get("section_visibility"),
+    )
+    return replace(base_plan, section_order=section_order, section_visibility=section_visibility)
+
+
+def _resolved_content(
+    variant: VariantPayload,
+    *,
+    brief: BriefInput,
+    render_plan: RenderPlan | None = None,
+) -> GeneratedContent:
+    effective_plan = render_plan or _resolved_render_plan(variant)
+    content_data = deepcopy(variant.content.data)
+    for path, value in variant.content_overrides.items():
+        try:
+            _set_path_value(content_data, path, deepcopy(value))
+        except ValueError:
+            continue
+    return _validate_content(content_data, brief=brief, render_plan=effective_plan)
+
+
+def _resolved_variant_payload(
+    variant: VariantPayload,
+    *,
+    brief: BriefInput,
+    remix_label: str | None = None,
+    override_plan: RenderPlan | None = None,
+) -> dict[str, object]:
+    effective_plan = override_plan or _resolved_render_plan(variant)
+    effective_content = _resolved_content(variant, brief=brief, render_plan=effective_plan)
+    payload = variant.to_dict()
+    payload["render_plan"] = effective_plan.to_dict()
+    payload["content"] = effective_content.data
+    payload["validation"] = effective_content.validation.to_dict()
+    payload["label"] = remix_label or variant.label
+    payload["summary"] = _variant_summary(effective_plan)
+    return payload
+
+
+def _section_paths(section_name: str) -> tuple[str, ...]:
+    return SECTION_CONTENT_MAP.get(section_name, ())
+
+
+def _prune_section_overrides(overrides: dict[str, Any], section_name: str) -> dict[str, Any]:
+    pruned = dict(overrides)
+    for path in _section_paths(section_name):
+        pruned = _remove_override_prefix(pruned, path)
+    return pruned
+
+
+def _fallback_text_rewrite(current_value: str, *, instruction: str = "", is_cta: bool = False) -> str:
+    source = " ".join(current_value.split()).strip()
+    if not source:
+        return current_value
+
+    instruction_lower = instruction.lower()
+    if is_cta:
+        action_words = source.replace(".", "").split()
+        if "short" in instruction_lower:
+            return " ".join(action_words[:2]) or source
+        return " ".join(word.capitalize() for word in action_words[:3]) or source
+
+    if "short" in instruction_lower:
+        words = source.split()
+        return " ".join(words[: max(4, len(words) // 2)])
+    if "improve" in instruction_lower:
+        return source.rstrip(".!") + " with a clearer, sharper angle."
+    if "punch" in instruction_lower:
+        return source.rstrip(".!") + "."
+    if "rewrite" in instruction_lower or "improve" in instruction_lower:
+        return source
+    return source
+
+
+def _rewrite_text_value(
+    *,
+    provider: AIProvider | None,
+    brief: BriefInput,
+    render_plan: RenderPlan,
+    current_value: str,
+    instruction: str,
+    is_cta: bool = False,
+) -> str:
+    safe_instruction = instruction.strip() or ("Rewrite this CTA" if is_cta else "Rewrite this website copy")
+    if provider is None:
+        return _fallback_text_rewrite(current_value, instruction=safe_instruction, is_cta=is_cta)
+
+    prompt = f"""
+Rewrite this website copy for the current generated page.
+
+Context:
+- audience: {brief.audience or "general audiences"}
+- tone: {brief.brand_tone or render_plan.art_direction.replace("_", " ")}
+- template: {render_plan.template_key}
+- art direction: {render_plan.art_direction}
+- layout: {render_plan.layout_mode}
+- instruction: {safe_instruction}
+
+Return only the rewritten copy.
+Current copy:
+{current_value}
+""".strip()
+    try:
+        rewritten = provider.generate_text(prompt).strip()
+    except Exception:
+        rewritten = ""
+    return rewritten or _fallback_text_rewrite(current_value, instruction=safe_instruction, is_cta=is_cta)
+
+
+def _improve_section_content(
+    *,
+    provider: AIProvider | None,
+    brief: BriefInput,
+    render_plan: RenderPlan,
+    section_name: str,
+    content: dict[str, Any],
+) -> dict[str, Any]:
+    section_paths = _section_paths(section_name)
+    if not section_paths:
+        return {}
+
+    current_slice: dict[str, Any] = {}
+    for path in section_paths:
+        if path in content:
+            current_slice[path] = deepcopy(content[path])
+
+    if provider is None:
+        improved: dict[str, Any] = {}
+        for path, value in current_slice.items():
+            if isinstance(value, str):
+                improved[path] = _fallback_text_rewrite(value, instruction="Improve this section")
+            elif isinstance(value, list):
+                improved[path] = deepcopy(value)
+        return improved
+
+    schema_blob = json.dumps(current_slice, indent=2)
+    prompt = f"""
+You are improving one section of a generated website. Return JSON only with the same keys as the input.
+
+Context:
+- section: {section_name}
+- template: {render_plan.template_key}
+- audience: {brief.audience or "general audiences"}
+- tone: {brief.brand_tone or render_plan.art_direction.replace("_", " ")}
+- motion: {render_plan.motion_level}
+- density: {render_plan.density}
+
+Current section JSON:
+{schema_blob}
+""".strip()
+    try:
+        raw = provider.generate_json(prompt)
+    except Exception:
+        raw = {}
+
+    improved = deepcopy(current_slice)
+    if isinstance(raw, dict):
+        for path in section_paths:
+            if path not in current_slice or path not in raw:
+                continue
+            candidate = raw[path]
+            if isinstance(current_slice[path], str) and isinstance(candidate, str) and candidate.strip():
+                improved[path] = candidate.strip()
+            elif isinstance(current_slice[path], list) and isinstance(candidate, list):
+                improved[path] = candidate
+    return improved
+
+
+def _replace_variant(
+    manifest: ProjectManifest,
+    *,
+    target_variant: VariantPayload,
+    next_variant: VariantPayload,
+    selected_variant_id: str | None = None,
+) -> ProjectManifest:
+    variants = list(manifest.variants)
+    variants[variants.index(target_variant)] = next_variant
+    return ProjectManifest(
+        preview_id=manifest.preview_id,
+        prompt=manifest.prompt,
+        brief=manifest.brief,
+        selected_variant_id=selected_variant_id or next_variant.variant_id,
+        variants=variants,
+        statuses=manifest.statuses,
+    )
 
 
 def generate_project_manifest(
@@ -470,24 +794,23 @@ def apply_variant_override_to_manifest(
         provider=provider,
         brief=manifest.brief,
         render_plan=remixed_plan,
-        seed_content=target_variant.content.data,
+        seed_content=_resolved_content(target_variant, brief=manifest.brief).data,
     )
 
-    variants = list(manifest.variants)
-    index = variants.index(target_variant)
-    variants[index] = _variant_payload(
-        index=index + 1,
+    next_variant = _variant_payload(
+        index=manifest.variants.index(target_variant) + 1,
         render_plan=remixed_plan,
         content=content,
         variant_id=selected_variant_id,
+        content_overrides=target_variant.content_overrides,
+        layout_overrides=target_variant.layout_overrides,
+        edited_nodes=target_variant.edited_nodes,
     )
-    return ProjectManifest(
-        preview_id=manifest.preview_id,
-        prompt=manifest.prompt,
-        brief=manifest.brief,
+    return _replace_variant(
+        manifest,
+        target_variant=target_variant,
+        next_variant=next_variant,
         selected_variant_id=selected_variant_id,
-        variants=variants,
-        statuses=manifest.statuses,
     )
 
 
@@ -511,11 +834,37 @@ def regenerate_manifest(
 ) -> ProjectManifest:
     provider = provider if provider is not None else get_default_provider()
     if scope == "all":
-        return generate_project_manifest(
+        fresh_manifest = generate_project_manifest(
             manifest.prompt,
             brief=manifest.brief,
             preview_id=manifest.preview_id,
             provider=provider,
+        )
+        old_variants = {variant.variant_id: variant for variant in manifest.variants}
+        merged_variants: list[VariantPayload] = []
+        for fresh_variant in fresh_manifest.variants:
+            old_variant = old_variants.get(fresh_variant.variant_id)
+            if not old_variant:
+                merged_variants.append(fresh_variant)
+                continue
+            merged_variants.append(
+                _variant_payload(
+                    index=fresh_manifest.variants.index(fresh_variant) + 1,
+                    render_plan=fresh_variant.render_plan,
+                    content=fresh_variant.content,
+                    variant_id=fresh_variant.variant_id,
+                    content_overrides=old_variant.content_overrides,
+                    layout_overrides=old_variant.layout_overrides,
+                    edited_nodes=old_variant.edited_nodes,
+                )
+            )
+        return ProjectManifest(
+            preview_id=fresh_manifest.preview_id,
+            prompt=fresh_manifest.prompt,
+            brief=fresh_manifest.brief,
+            selected_variant_id=manifest.selected_variant_id or fresh_manifest.selected_variant_id,
+            variants=merged_variants,
+            statuses=fresh_manifest.statuses,
         )
 
     if not manifest.variants:
@@ -523,35 +872,38 @@ def regenerate_manifest(
 
     target_variant_id = variant_id or manifest.selected_variant_id
     target_variant = next((item for item in manifest.variants if item.variant_id == target_variant_id), manifest.variants[0])
+    resolved_content = _resolved_content(target_variant, brief=manifest.brief).data
     fresh_content = _generate_content(
         provider=provider,
         brief=manifest.brief,
-        render_plan=target_variant.render_plan,
-        seed_content=target_variant.content.data,
+        render_plan=_resolved_render_plan(target_variant),
+        seed_content=resolved_content,
     )
     next_content = fresh_content.data
+    next_overrides = dict(target_variant.content_overrides)
 
     if scope == "section" and section_name:
         next_content = deepcopy(target_variant.content.data)
-        if section_name in fresh_content.data:
-            next_content[section_name] = fresh_content.data[section_name]
+        for path in _section_paths(section_name):
+            if path in fresh_content.data:
+                next_content[path] = deepcopy(fresh_content.data[path])
+        next_overrides = _prune_section_overrides(next_overrides, section_name)
         fresh_content = GeneratedContent(data=next_content, validation=fresh_content.validation)
 
-    variants = list(manifest.variants)
-    index = variants.index(target_variant)
-    variants[index] = _variant_payload(
-        index=index + 1,
+    next_variant = _variant_payload(
+        index=manifest.variants.index(target_variant) + 1,
         render_plan=target_variant.render_plan,
         content=fresh_content,
         variant_id=target_variant.variant_id,
+        content_overrides=next_overrides,
+        layout_overrides=target_variant.layout_overrides,
+        edited_nodes=target_variant.edited_nodes,
     )
-    return ProjectManifest(
-        preview_id=manifest.preview_id,
-        prompt=manifest.prompt,
-        brief=manifest.brief,
+    return _replace_variant(
+        manifest,
+        target_variant=target_variant,
+        next_variant=next_variant,
         selected_variant_id=target_variant.variant_id,
-        variants=variants,
-        statuses=manifest.statuses,
     )
 
 
@@ -561,8 +913,8 @@ def selected_preview_data(payload: dict[str, object] | ProjectManifest) -> dict[
     return {
         "brief": manifest.brief.to_dict(),
         "selected_variant_id": manifest.selected_variant_id,
-        "selected_variant": selected.to_dict() if selected else {},
-        "variants": [variant.to_dict() for variant in manifest.variants],
+        "selected_variant": _resolved_variant_payload(selected, brief=manifest.brief) if selected else {},
+        "variants": [_resolved_variant_payload(variant, brief=manifest.brief) for variant in manifest.variants],
         "statuses": [stage.to_dict() for stage in manifest.statuses],
     }
 
@@ -579,29 +931,183 @@ def build_preview_variant(
 
     target_variant_id = variant_id or manifest.selected_variant_id
     target_variant = next((item for item in manifest.variants if item.variant_id == target_variant_id), manifest.variants[0])
-    plan = target_variant.render_plan
+    plan = _resolved_render_plan(target_variant)
     if overrides:
         try:
             plan = remix_render_plan(
-                target_variant.render_plan,
+                plan,
                 overrides=overrides,
                 theme_catalog=THEME_MAP,
                 template_catalog=TEMPLATE_CATALOG,
             )
         except Exception:
-            plan = target_variant.render_plan
+            plan = _resolved_render_plan(target_variant)
 
-    content = _validate_content(
-        target_variant.content.data,
+    return _resolved_variant_payload(
+        target_variant,
         brief=manifest.brief,
-        render_plan=plan,
+        remix_label=remix_label,
+        override_plan=plan,
     )
-    variant_payload = _variant_payload(
+
+
+def apply_canvas_command_to_manifest(
+    manifest: ProjectManifest,
+    *,
+    action: str,
+    variant_id: str | None = None,
+    node_id: str | None = None,
+    edit_path: str | None = None,
+    section_name: str | None = None,
+    value: Any = None,
+    instruction: str = "",
+    direction: str = "",
+    provider: AIProvider | None = None,
+) -> tuple[ProjectManifest, list[str]]:
+    if not manifest.variants:
+        raise ValueError("Preview does not contain editable variants.")
+
+    target_variant_id = variant_id or manifest.selected_variant_id
+    target_variant = next((item for item in manifest.variants if item.variant_id == target_variant_id), manifest.variants[0])
+    effective_plan = _resolved_render_plan(target_variant)
+    resolved_content = _resolved_content(target_variant, brief=manifest.brief, render_plan=effective_plan).data
+    next_content_overrides = dict(target_variant.content_overrides)
+    next_layout_overrides = dict(target_variant.layout_overrides)
+    next_edited_nodes = _record_edited_node(target_variant.edited_nodes, node_id)
+    changed_paths: list[str] = []
+    provider = provider if provider is not None else get_default_provider()
+
+    if action == "set_text":
+        if not edit_path:
+            raise ValueError("Edit path is required.")
+        root = _path_root(edit_path)
+        if root not in effective_plan.slot_schema.get("text_slots", []) and root not in effective_plan.slot_schema.get("list_slots", {}):
+            raise ValueError("Unsupported edit path.")
+        next_content_overrides = _remove_override_prefix(next_content_overrides, edit_path)
+        if isinstance(value, dict):
+            sanitized = {str(key): " ".join(str(item).split())[:240] for key, item in value.items()}
+        else:
+            sanitized = " ".join(str(value or "").split())[:600]
+        next_content_overrides[edit_path] = sanitized
+        changed_paths = [edit_path]
+    elif action in {"rewrite_text", "rewrite_cta"}:
+        if not edit_path:
+            raise ValueError("Edit path is required.")
+        current_value = _get_path_value(resolved_content, edit_path)
+        if isinstance(current_value, str):
+            next_content_overrides[edit_path] = _rewrite_text_value(
+                provider=provider,
+                brief=manifest.brief,
+                render_plan=effective_plan,
+                current_value=current_value,
+                instruction=instruction,
+                is_cta=action == "rewrite_cta",
+            )
+        elif isinstance(current_value, dict):
+            rewritten_item: dict[str, Any] = {}
+            for key, item in current_value.items():
+                if isinstance(item, str):
+                    rewritten_item[key] = _rewrite_text_value(
+                        provider=provider,
+                        brief=manifest.brief,
+                        render_plan=effective_plan,
+                        current_value=item,
+                        instruction=instruction,
+                        is_cta=False,
+                    )
+            if not rewritten_item:
+                raise ValueError("Only text-based cards can be rewritten.")
+            next_content_overrides = _remove_override_prefix(next_content_overrides, edit_path)
+            next_content_overrides[edit_path] = rewritten_item
+        else:
+            raise ValueError("Only text nodes can be rewritten.")
+        changed_paths = [edit_path]
+    elif action == "improve_section":
+        if not section_name:
+            raise ValueError("Section name is required.")
+        improved = _improve_section_content(
+            provider=provider,
+            brief=manifest.brief,
+            render_plan=effective_plan,
+            section_name=section_name,
+            content=resolved_content,
+        )
+        if not improved:
+            raise ValueError("Section cannot be improved.")
+        for path, item in improved.items():
+            next_content_overrides = _remove_override_prefix(next_content_overrides, path)
+            next_content_overrides[path] = item
+            changed_paths.append(path)
+    elif action == "move_section":
+        if not section_name:
+            raise ValueError("Section name is required.")
+        section_order = list(effective_plan.section_order)
+        if section_name not in section_order:
+            raise ValueError("Section is not part of this layout.")
+        offset = -1 if direction == "up" else 1 if direction == "down" else 0
+        if offset == 0:
+            raise ValueError("Direction must be up or down.")
+        current_index = section_order.index(section_name)
+        next_index = current_index + offset
+        if next_index < 0 or next_index >= len(section_order):
+            raise ValueError("Section cannot move further.")
+        section_order[current_index], section_order[next_index] = section_order[next_index], section_order[current_index]
+        next_layout_overrides["section_order"] = section_order
+        changed_paths = ["render_plan.section_order"]
+    elif action == "toggle_section":
+        if not section_name:
+            raise ValueError("Section name is required.")
+        visibility = _normalized_section_visibility(
+            effective_plan.section_visibility,
+            next_layout_overrides.get("section_visibility"),
+        )
+        visibility[section_name] = bool(value) if isinstance(value, bool) else not bool(visibility.get(section_name, True))
+        next_layout_overrides["section_visibility"] = visibility
+        changed_paths = [f"render_plan.section_visibility.{section_name}"]
+    elif action in {"move_item", "delete_item"}:
+        if not edit_path:
+            raise ValueError("Edit path is required.")
+        tokens = _path_tokens(edit_path)
+        if len(tokens) < 2 or not isinstance(tokens[0], str) or not isinstance(tokens[1], int):
+            raise ValueError("List item edit path must target an item.")
+        list_name = tokens[0]
+        item_index = tokens[1]
+        items = deepcopy(resolved_content.get(list_name))
+        if not isinstance(items, list) or item_index < 0 or item_index >= len(items):
+            raise ValueError("List item not found.")
+        if action == "move_item":
+            offset = -1 if direction == "up" else 1 if direction == "down" else 0
+            if offset == 0:
+                raise ValueError("Direction must be up or down.")
+            target_index = item_index + offset
+            if target_index < 0 or target_index >= len(items):
+                raise ValueError("Item cannot move further.")
+            items[item_index], items[target_index] = items[target_index], items[item_index]
+        else:
+            list_cfg = effective_plan.slot_schema.get("list_slots", {}).get(list_name, {})
+            min_items = int(list_cfg.get("min_items", 1))
+            if len(items) <= min_items:
+                raise ValueError("This section needs at least one more item.")
+            items.pop(item_index)
+        next_content_overrides = _remove_override_prefix(next_content_overrides, list_name)
+        next_content_overrides[list_name] = items
+        changed_paths = [list_name]
+    else:
+        raise ValueError("Unsupported canvas action.")
+
+    next_variant = _variant_payload(
         index=manifest.variants.index(target_variant) + 1,
-        render_plan=plan,
-        content=content,
+        render_plan=target_variant.render_plan,
+        content=target_variant.content,
         variant_id=target_variant.variant_id,
-    ).to_dict()
-    if remix_label:
-        variant_payload["label"] = remix_label
-    return variant_payload
+        content_overrides=next_content_overrides,
+        layout_overrides=next_layout_overrides,
+        edited_nodes=next_edited_nodes,
+    )
+    updated_manifest = _replace_variant(
+        manifest,
+        target_variant=target_variant,
+        next_variant=next_variant,
+        selected_variant_id=target_variant.variant_id,
+    )
+    return updated_manifest, changed_paths

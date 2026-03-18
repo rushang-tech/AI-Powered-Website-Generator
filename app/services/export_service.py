@@ -9,6 +9,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from flask import render_template
 
+from app.services.ai_engine import build_preview_variant
 from app.services.contracts import ProjectManifest
 
 EXPORT_CSS_PATH = Path(__file__).resolve().parent.parent / "static" / "css" / "export-frame.css"
@@ -20,16 +21,13 @@ def _slugify(value: str) -> str:
 
 
 def build_export_bundle(manifest: ProjectManifest) -> tuple[BytesIO, str]:
-    selected_variant = next(
-        (variant for variant in manifest.variants if variant.variant_id == manifest.selected_variant_id),
-        manifest.variants[0],
-    )
+    selected_variant = build_preview_variant(manifest, variant_id=manifest.selected_variant_id)
     brief = manifest.brief.to_dict()
     rendered_html = render_template(
         "exported_site.html",
         page_title=brief.get("name") or "VeloSite Export",
         brief=brief,
-        selected_variant=selected_variant.to_dict(),
+        selected_variant=selected_variant,
     )
     css_text = EXPORT_CSS_PATH.read_text(encoding="utf-8")
     timestamp = datetime.now(UTC).isoformat()
@@ -41,9 +39,9 @@ def build_export_bundle(manifest: ProjectManifest) -> tuple[BytesIO, str]:
             "preview_id": manifest.preview_id,
             "exported_at": timestamp,
             "selected_variant_id": manifest.selected_variant_id,
-            "template_key": selected_variant.render_plan.template_key,
-            "layout_mode": selected_variant.render_plan.layout_mode,
-            "art_direction": selected_variant.render_plan.art_direction,
+            "template_key": selected_variant["render_plan"]["template_key"],
+            "layout_mode": selected_variant["render_plan"]["layout_mode"],
+            "art_direction": selected_variant["render_plan"]["art_direction"],
         },
         indent=2,
     )

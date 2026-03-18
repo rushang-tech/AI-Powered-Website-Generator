@@ -11,6 +11,7 @@ from flask import Blueprint, abort, current_app, g, jsonify, make_response, rend
 from app.services.ai_engine import (
     TEMPLATE_CATALOG,
     THEME_MAP,
+    apply_canvas_command_to_manifest,
     apply_variant_override_to_manifest,
     build_preview_variant,
     generate_project_manifest,
@@ -114,6 +115,18 @@ def _clean_text(value: object, *, max_length: int = 600) -> str:
     text = str(value).strip() if value is not None else ""
     text = " ".join(text.split())
     return text[:max_length]
+
+
+def _clean_bool(value: object) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+    return None
 
 
 def _normalized_brief(body: dict[str, object]) -> tuple[str, dict[str, object]]:
@@ -234,6 +247,7 @@ def preview_frame(preview_id: str):
         page_title=manifest.brief.name or "VeloSite Preview",
         brief=manifest.brief.to_dict(),
         selected_variant=selected_variant,
+        studio_mode=request.args.get("studio", "").strip() == "1",
     )
 
 
@@ -264,6 +278,60 @@ def override_preview(preview_id: str):
             "frame_url": url_for("main.preview_frame", preview_id=preview_id),
             "selected_variant_id": updated.selected_variant_id,
             "render_plan": selected.get("render_plan", {}),
+        }
+    )
+
+
+@main.route("/preview/<preview_id>/command", methods=["POST"])
+def canvas_command(preview_id: str):
+    manifest = MANIFEST_SERVICE.get(preview_id)
+    if not manifest:
+        return jsonify({"error": "Preview not found."}), 404
+
+    body = request.get_json(silent=True) or {}
+    action = _clean_text(body.get("action"), max_length=64).lower()
+    variant_id = _clean_text(body.get("variant_id"), max_length=64) or None
+    node_id = _clean_text(body.get("node_id"), max_length=120) or None
+    edit_path = _clean_text(body.get("edit_path"), max_length=160) or None
+    section_name = _clean_text(body.get("section_name"), max_length=64) or None
+    direction = _clean_text(body.get("direction"), max_length=12).lower()
+    instruction = _clean_text(body.get("instruction"), max_length=220)
+    value = body.get("value")
+
+    if isinstance(value, str):
+        value = _clean_text(value, max_length=600)
+    elif isinstance(value, dict):
+        value = {str(key): _clean_text(item, max_length=280) for key, item in value.items()}
+
+    bool_value = _clean_bool(value)
+    if action == "toggle_section" and bool_value is not None:
+        value = bool_value
+
+    try:
+        updated, changed_paths = apply_canvas_command_to_manifest(
+            manifest,
+            action=action,
+            variant_id=variant_id,
+            node_id=node_id,
+            edit_path=edit_path,
+            section_name=section_name,
+            value=value,
+            instruction=instruction,
+            direction=direction,
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    MANIFEST_SERVICE.save(updated)
+    selected = selected_preview_data(updated).get("selected_variant", {})
+    return jsonify(
+        {
+            "ok": True,
+            "preview_id": preview_id,
+            "selected_variant_id": updated.selected_variant_id,
+            "selected_variant": selected,
+            "frame_url": url_for("main.preview_frame", preview_id=preview_id),
+            "changed_paths": changed_paths,
         }
     )
 
