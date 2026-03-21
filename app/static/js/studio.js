@@ -15,10 +15,13 @@ if (shell) {
     const config = configEl ? JSON.parse(configEl.textContent) : {};
 
     const previewId = shell.getAttribute("data-preview-id");
+    const conversationId = config.conversationId || shell.getAttribute("data-conversation-id");
     let selectedVariantId = config.selectedVariantId || shell.getAttribute("data-selected-variant");
     let selectedVariant = config.selectedVariant || {};
     let currentBrief = config.brief || {};
     let currentBrandAssets = Array.isArray(currentBrief.brand_assets) ? currentBrief.brand_assets : [];
+    let conversationMessages = Array.isArray(config.conversationMessages) ? config.conversationMessages : [];
+    let recentConversations = Array.isArray(config.recentConversations) ? config.recentConversations : [];
 
     const templateSelect = document.getElementById("template-select");
     const artDirectionSelect = document.getElementById("art-direction-select");
@@ -50,6 +53,11 @@ if (shell) {
     const brandAssetsPreview = document.getElementById("brand-assets-preview");
     const iconStyleInput = document.getElementById("icon-style-input");
     const applyBrandingBtn = document.getElementById("apply-branding-btn");
+    const recentConversationList = document.getElementById("workspace-conversation-list");
+    const conversationMessagesEl = document.getElementById("conversation-messages");
+    const conversationForm = document.getElementById("conversation-form");
+    const conversationInput = document.getElementById("conversation-input");
+    const sendMessageBtn = document.getElementById("send-message-btn");
 
     let busy = false;
 
@@ -59,17 +67,23 @@ if (shell) {
 
     function setBusy(isBusy, label) {
         busy = isBusy;
-        [applyStyleBtn, styleRemixBtn, regenAllBtn, regenCopyBtn, navPublishBtn, navExportBtn, applyBrandingBtn].forEach((button) => {
+        [applyStyleBtn, styleRemixBtn, regenAllBtn, regenCopyBtn, navPublishBtn, navExportBtn, applyBrandingBtn, sendMessageBtn].forEach((button) => {
             if (button) {
                 button.disabled = isBusy;
                 button.classList.toggle("btn-disabled", isBusy);
             }
         });
+        if (conversationInput) {
+            conversationInput.disabled = isBusy;
+        }
         if (applyStyleBtn) {
             applyStyleBtn.textContent = isBusy && label ? label : "Apply Studio Changes";
         }
         if (applyBrandingBtn) {
             applyBrandingBtn.textContent = isBusy && label ? label : "Apply Branding";
+        }
+        if (sendMessageBtn) {
+            sendMessageBtn.textContent = isBusy && label ? label : "Send Prompt";
         }
     }
 
@@ -174,6 +188,48 @@ if (shell) {
             item.textContent = warning;
             generationWarningList.appendChild(item);
         });
+    }
+
+    function renderConversationMessages(messages) {
+        if (!conversationMessagesEl) {
+            return;
+        }
+        conversationMessagesEl.innerHTML = "";
+        const items = Array.isArray(messages) ? messages : [];
+        if (!items.length) {
+            const empty = document.createElement("p");
+            empty.className = "muted-copy";
+            empty.textContent = "No visible chat messages yet.";
+            conversationMessagesEl.appendChild(empty);
+            return;
+        }
+        items.forEach((message) => {
+            const card = document.createElement("article");
+            card.className = `message-card message-${message.role || "assistant"}`;
+
+            const role = document.createElement("span");
+            role.className = "message-role";
+            role.textContent = String(message.role || "assistant").replace(/\b\w/g, (char) => char.toUpperCase());
+            card.appendChild(role);
+
+            const body = document.createElement("p");
+            body.textContent = message.body || "";
+            card.appendChild(body);
+
+            conversationMessagesEl.appendChild(card);
+        });
+    }
+
+    function renderRecentConversations(items) {
+        if (!recentConversationList) {
+            return;
+        }
+        if (typeof window.renderWorkspaceConversationList === "function") {
+            window.renderWorkspaceConversationList(recentConversationList, items);
+            return;
+        }
+
+        recentConversationList.innerHTML = "";
     }
 
     function buildFrameUrl(extraParams = {}, studioMode = false) {
@@ -367,6 +423,17 @@ if (shell) {
         setBusy(false);
     }
 
+    function applyConversationData(data) {
+        if (Array.isArray(data.messages)) {
+            conversationMessages = data.messages;
+            renderConversationMessages(conversationMessages);
+        }
+        if (Array.isArray(data.recent_conversations)) {
+            recentConversations = data.recent_conversations;
+            renderRecentConversations(recentConversations);
+        }
+    }
+
     async function applyBranding() {
         if (busy) {
             return;
@@ -392,6 +459,33 @@ if (shell) {
         } catch (error) {
             setStatus(error.message || "Failed to update branding.");
         } finally {
+            setBusy(false);
+        }
+    }
+
+    async function sendConversationMessage(event) {
+        event.preventDefault();
+        if (busy || !conversationInput) {
+            return;
+        }
+        const message = conversationInput.value.trim();
+        if (!message) {
+            setStatus("Write a follow-up prompt first.");
+            return;
+        }
+
+        setBusy(true, "Sending...");
+        setStatus("Continuing this workspace...");
+        try {
+            const data = await postJson(`/conversations/${conversationId}/messages`, {
+                message,
+                variant_id: selectedVariantId,
+            });
+            conversationInput.value = "";
+            applyConversationData(data);
+            applyStudioResponse(data, "Conversation update applied.");
+        } catch (error) {
+            setStatus(error.message || "Could not continue the conversation.");
             setBusy(false);
         }
     }
@@ -609,6 +703,9 @@ if (shell) {
     if (applyBrandingBtn) {
         applyBrandingBtn.addEventListener("click", applyBranding);
     }
+    if (conversationForm) {
+        conversationForm.addEventListener("submit", sendConversationMessage);
+    }
     if (navPublishBtn) {
         navPublishBtn.addEventListener("click", async () => {
             if (busy) {
@@ -712,4 +809,6 @@ if (shell) {
     syncControlsFromVariant(selectedVariant);
     syncVariantSelection();
     renderAssetPreview(currentBrandAssets);
+    renderConversationMessages(conversationMessages);
+    renderRecentConversations(recentConversations);
 }
