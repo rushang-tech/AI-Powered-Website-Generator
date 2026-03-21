@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block nav_actions %}
+<a class="btn" href="{{ url_for('main.signup') }}">Create Account</a>
+{% endblock %}
+
+{% block content %}
+<section class="auth-shell">
+    <article class="auth-card">
+        <p class="eyebrow">Local access</p>
+        <h1>Log in to continue your workspace.</h1>
+        <p class="auth-copy">Your conversations, Studio state, and saved defaults all stay on this local database.</p>
+        <form class="auth-form" method="post">
+            <label class="field">
+                <span>Email</span>
+                <input name="email" type="email" autocomplete="email" required>
+            </label>
+            <label class="field">
+                <span>Password</span>
+                <input name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <button class="btn btn-primary" type="submit">Log In</button>
+        </form>
+        <p class="auth-meta">Need an account? <a href="{{ url_for('main.signup') }}">Sign up</a></p>
+    </article>
+</section>
+{% endblock %}
