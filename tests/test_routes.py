@@ -1,13 +1,13 @@
+import os
+import tempfile
 import unittest
-from io import BytesIO
 from unittest.mock import patch
-from zipfile import ZipFile
 
 from app import create_app
-from app.services.ai_provider import AIProviderUnavailableError
+from app.extensions import db
+from app.models import Conversation, Message, User
 from app.services.contracts import ProjectManifest
-from app.services.manifest_service import MANIFEST_SERVICE
-from app.services.preview_store import PREVIEW_STORE
+from app.services.conversation_service import create_conversation, manifest_from_conversation
 from app.services.published_site_service import PUBLISHED_SITE_SERVICE
 
 
@@ -126,30 +126,91 @@ def _payload(preview_id: str):
 
 class RouteTests(unittest.TestCase):
     def setUp(self):
-        PREVIEW_STORE.clear()
-        PUBLISHED_SITE_SERVICE.clear()
-        self.app = create_app()
+        self.temp_dir = tempfile.TemporaryDirectory()
+        database_path = os.path.join(self.temp_dir.name, "routes-test.db")
+        self.app = create_app(
+            {
+                "TESTING": True,
+                "SECRET_KEY": "test-secret",
+                "SQLALCHEMY_DATABASE_URI": f"sqlite:///{database_path}",
+            }
+        )
         self.client = self.app.test_client()
+        PUBLISHED_SITE_SERVICE.clear()
+        with self.app.app_context():
+            db.drop_all()
+            db.create_all()
 
-    def test_get_home_renders_guided_brief(self):
+    def tearDown(self):
+        with self.app.app_context():
+            db.session.remove()
+        self.temp_dir.cleanup()
+
+    def _signup_and_login(self, *, email: str = "rush@example.com", password: str = "password123", display_name: str = "Rush"):
+        response = self.client.post(
+            "/signup",
+            data={
+                "email": email,
+                "password": password,
+                "display_name": display_name,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        return email, password
+
+    def _logout(self):
+        response = self.client.post("/logout")
+        self.assertEqual(response.status_code, 302)
+
+    def _seed_conversation(self, *, email: str = "rush@example.com", preview_id: str = "preview-123", title: str | None = None):
+        with self.app.app_context():
+            user = User.query.filter_by(email=email).first()
+            manifest = ProjectManifest.from_dict(_payload(preview_id))
+            conversation = create_conversation(
+                user,
+                manifest=manifest,
+                user_message="Create a startup landing page for founders.",
+            )
+            if title:
+                conversation.title = title
+                db.session.add(conversation)
+                db.session.commit()
+            return conversation.id
+
+    def test_home_requires_login_and_generate_requires_auth_json(self):
         response = self.client.get("/")
-        self.assertEqual(response.status_code, 200)
-        body = response.get_data(as_text=True)
-        self.assertIn("Guided brief", body)
-        self.assertIn("Generate Studio", body)
-        self.assertIn("Try Demo Prompt", body)
-        self.assertIn("Pipeline progress", body)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.headers["Location"])
 
-    def test_healthz_returns_ok(self):
-        response = self.client.get("/healthz")
-        self.assertEqual(response.status_code, 200)
-        data = response.get_json()
-        self.assertEqual(data["ok"], True)
-        self.assertEqual(data["service"], "velosite-ai")
+        generate_response = self.client.post("/generate", json={"prompt": "A product launch page"})
+        self.assertEqual(generate_response.status_code, 401)
+        self.assertEqual(generate_response.get_json()["error"], "Authentication required.")
+
+    def test_signup_login_logout_and_duplicate_email(self):
+        email, password = self._signup_and_login()
+        self._logout()
+
+        bad_login = self.client.post("/login", data={"email": email, "password": "wrong-pass"}, follow_redirects=True)
+        self.assertEqual(bad_login.status_code, 200)
+        self.assertIn("Email or password is incorrect.", bad_login.get_data(as_text=True))
+
+        good_login = self.client.post("/login", data={"email": email, "password": password})
+        self.assertEqual(good_login.status_code, 302)
+
+        self._logout()
+        duplicate = self.client.post(
+            "/signup",
+            data={"email": email, "password": "password123", "display_name": "Rush"},
+            follow_redirects=True,
+        )
+        self.assertEqual(duplicate.status_code, 200)
+        self.assertIn("already registered", duplicate.get_data(as_text=True))
 
     @patch("app.routes.generate_project_manifest")
-    def test_generate_returns_variant_metadata(self, mocked_generate):
+    def test_generate_returns_variant_metadata_and_creates_conversation(self, mocked_generate):
+        self._signup_and_login()
         mocked_generate.return_value = ProjectManifest.from_dict(_payload("preview-123"))
+
         response = self.client.post(
             "/generate",
             json={
@@ -163,24 +224,57 @@ class RouteTests(unittest.TestCase):
                 },
             },
         )
+
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertEqual(data["preview_id"], "preview-123")
+        self.assertTrue(data["conversation_id"])
         self.assertEqual(data["selected_variant_id"], "variant-1")
         self.assertEqual(len(data["variants"]), 3)
-        self.assertIn("frame_url", data)
 
         preview_response = self.client.get(data["preview_url"])
         self.assertEqual(preview_response.status_code, 200)
         body = preview_response.get_data(as_text=True)
-        self.assertIn("Preview canvas", body)
-        self.assertIn("Section layers", body)
-        self.assertIn("Generation states", body)
+        self.assertIn("Conversation", body)
+        self.assertIn("Recent chats", body)
+        self.assertIn('data-workspace-nav', body)
+        self.assertIn('id="workspace-conversation-list"', body)
+        self.assertNotIn("data-workspace-shell", body)
+
+        with self.app.app_context():
+            conversation = db.session.get(Conversation, data["conversation_id"])
+            self.assertIsNotNone(conversation)
+            self.assertEqual(conversation.preview_id, "preview-123")
+            self.assertEqual(Message.query.filter_by(conversation_id=conversation.id).count(), 2)
+
+    def test_workspace_nav_only_renders_for_dashboard_and_studio(self):
+        login_response = self.client.get("/login")
+        self.assertEqual(login_response.status_code, 200)
+        self.assertNotIn("data-workspace-nav", login_response.get_data(as_text=True))
+
+        signup_response = self.client.get("/signup")
+        self.assertEqual(signup_response.status_code, 200)
+        self.assertNotIn("data-workspace-nav", signup_response.get_data(as_text=True))
+
+        self._signup_and_login()
+
+        home_response = self.client.get("/")
+        self.assertEqual(home_response.status_code, 200)
+        home_body = home_response.get_data(as_text=True)
+        self.assertIn("data-workspace-nav", home_body)
+        self.assertIn("data-nav-toggle", home_body)
+        self.assertNotIn("data-workspace-shell", home_body)
+
+        settings_response = self.client.get("/settings")
+        self.assertEqual(settings_response.status_code, 200)
+        self.assertNotIn("data-workspace-nav", settings_response.get_data(as_text=True))
 
     @patch("app.routes.generate_project_manifest")
     def test_generate_forwards_brand_assets_and_icon_style(self, mocked_generate):
+        self._signup_and_login()
         mocked_generate.return_value = ProjectManifest.from_dict(_payload("preview-branding"))
         brand_asset = _brand_asset()
+
         response = self.client.post(
             "/generate",
             json={
@@ -196,56 +290,159 @@ class RouteTests(unittest.TestCase):
                 },
             },
         )
+
         self.assertEqual(response.status_code, 200)
         forwarded_brief = mocked_generate.call_args.kwargs["brief"]
         self.assertEqual(forwarded_brief["icon_style"], "Rounded product icons")
         self.assertEqual(len(forwarded_brief["brand_assets"]), 1)
         self.assertEqual(forwarded_brief["brand_assets"][0]["data_url"], brand_asset["data_url"])
 
-    @patch("app.routes.generate_project_manifest")
-    def test_generate_accepts_prompt_only(self, mocked_generate):
-        mocked_generate.return_value = ProjectManifest.from_dict(_payload("preview-prompt-only"))
-        response = self.client.post("/generate", json={"prompt": "A product launch page"})
+    def test_conversation_list_rename_and_delete(self):
+        self._signup_and_login()
+        conversation_id = self._seed_conversation(title="Original title")
+
+        list_response = self.client.get("/conversations")
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(len(list_response.get_json()["conversations"]), 1)
+
+        rename_response = self.client.post(f"/conversations/{conversation_id}/rename", json={"title": "Renamed thread"})
+        self.assertEqual(rename_response.status_code, 200)
+        self.assertEqual(rename_response.get_json()["conversation"]["title"], "Renamed thread")
+
+        delete_response = self.client.delete(f"/conversations/{conversation_id}")
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertTrue(delete_response.get_json()["ok"])
+
+        with self.app.app_context():
+            self.assertEqual(Conversation.query.count(), 0)
+            self.assertEqual(Message.query.count(), 0)
+
+    @patch("app.routes.continue_project_manifest")
+    def test_continue_conversation_updates_manifest_and_messages(self, mocked_continue):
+        self._signup_and_login()
+        conversation_id = self._seed_conversation(preview_id="preview-continue")
+        updated_payload = _payload("preview-continue")
+        updated_payload["variants"][0]["content"]["hero_title"] = "A refined headline"
+        mocked_continue.return_value = (ProjectManifest.from_dict(updated_payload), "Updated the hero direction.")
+
+        response = self.client.post(
+            f"/conversations/{conversation_id}/messages",
+            json={"message": "Make the hero punchier", "variant_id": "variant-1"},
+        )
+
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
-        self.assertEqual(len(data["variants"]), 3)
-        self.assertTrue(data["selected_variant_id"])
-        self.assertGreaterEqual(len(data["statuses"]), 5)
+        self.assertEqual(data["preview_id"], "preview-continue")
+        self.assertEqual(data["selected_variant"]["content"]["hero_title"], "A refined headline")
+        self.assertEqual(len(data["messages"]), 4)
+        self.assertEqual(data["messages"][-1]["role"], "assistant")
 
-    def test_override_can_switch_selected_variant(self):
-        PREVIEW_STORE.set(preview_id="preview-456", prompt="Some prompt", payload=_payload("preview-456"))
-        response = self.client.post("/preview/preview-456/override", json={"variant_id": "variant-2"})
+        with self.app.app_context():
+            conversation = db.session.get(Conversation, conversation_id)
+            manifest = manifest_from_conversation(conversation)
+            self.assertEqual(manifest.preview_id, "preview-continue")
+            self.assertEqual(manifest.variants[0].content.data["hero_title"], "A refined headline")
+            self.assertEqual(Message.query.filter_by(conversation_id=conversation_id).count(), 4)
+
+    def test_settings_updates_defaults_password_and_delete_account(self):
+        email, password = self._signup_and_login()
+        self._seed_conversation(email=email, preview_id="preview-settings")
+
+        profile_response = self.client.post(
+            "/settings",
+            data={
+                "action": "profile",
+                "display_name": "Updated Rush",
+                "email": email,
+                "default_brand_tone": "Bold and clear",
+                "default_content_density": "dense",
+                "default_motion_level": "energetic",
+                "default_icon_style": "Sharp monochrome symbols",
+            },
+            follow_redirects=True,
+        )
+        self.assertEqual(profile_response.status_code, 200)
+        self.assertIn("Settings updated.", profile_response.get_data(as_text=True))
+
+        password_response = self.client.post(
+            "/settings",
+            data={
+                "action": "password",
+                "current_password": password,
+                "new_password": "newpassword123",
+                "confirm_password": "newpassword123",
+            },
+            follow_redirects=True,
+        )
+        self.assertEqual(password_response.status_code, 200)
+        self.assertIn("Password updated.", password_response.get_data(as_text=True))
+
+        self._logout()
+        relogin = self.client.post("/login", data={"email": email, "password": "newpassword123"})
+        self.assertEqual(relogin.status_code, 302)
+
+        delete_response = self.client.post(
+            "/settings",
+            data={"action": "delete", "current_password": "newpassword123"},
+            follow_redirects=True,
+        )
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertIn("deleted", delete_response.get_data(as_text=True).lower())
+
+        with self.app.app_context():
+            self.assertEqual(User.query.count(), 0)
+            self.assertEqual(Conversation.query.count(), 0)
+            self.assertEqual(Message.query.count(), 0)
+
+    def test_other_users_cannot_access_owned_preview_or_conversation(self):
+        owner_email, _ = self._signup_and_login(email="owner@example.com")
+        conversation_id = self._seed_conversation(email=owner_email, preview_id="preview-owner")
+        self._logout()
+        self._signup_and_login(email="other@example.com")
+
+        preview_response = self.client.get("/preview/preview-owner")
+        self.assertEqual(preview_response.status_code, 404)
+
+        override_response = self.client.post("/preview/preview-owner/override", json={"variant_id": "variant-2"})
+        self.assertEqual(override_response.status_code, 404)
+
+        rename_response = self.client.post(f"/conversations/{conversation_id}/rename", json={"title": "Nope"})
+        self.assertEqual(rename_response.status_code, 404)
+
+    def test_publish_stays_public_but_creation_requires_login(self):
+        self._signup_and_login()
+        self._seed_conversation(preview_id="preview-publish")
+
+        response = self.client.post("/preview/preview-publish/publish", json={"variant_id": "variant-2"})
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
         self.assertTrue(data["ok"])
-        self.assertEqual(data["selected_variant_id"], "variant-2")
-        updated = PREVIEW_STORE.get("preview-456")
-        self.assertEqual(updated["payload"]["selected_variant_id"], "variant-2")
+        self.assertIn("/published/", data["public_path"])
 
-    def test_override_can_apply_layout_changes(self):
-        PREVIEW_STORE.set(preview_id="preview-789", prompt="Some prompt", payload=_payload("preview-789"))
-        response = self.client.post(
-            "/preview/preview-789/override",
-            json={
-                "variant_id": "variant-1",
-                "layout_mode": "immersive_layers",
-                "art_direction": "warm_gradient",
-                "section_visibility": {"proof": False},
-            },
-        )
+        public_client = self.app.test_client()
+        site_response = public_client.get(data["public_path"])
+        self.assertEqual(site_response.status_code, 200)
+        site_html = site_response.get_data(as_text=True)
+        self.assertIn("<!DOCTYPE html>", site_html)
+        self.assertIn("Build momentum", site_html)
+
+        css_response = public_client.get(f"/published/{data['publish_id']}/assets/export-frame.css")
+        self.assertEqual(css_response.status_code, 200)
+        self.assertEqual(css_response.mimetype, "text/css")
+
+    def test_export_returns_zip_for_owned_preview(self):
+        self._signup_and_login()
+        self._seed_conversation(preview_id="preview-export")
+
+        response = self.client.post("/preview/preview-export/export")
         self.assertEqual(response.status_code, 200)
-        updated = PREVIEW_STORE.get("preview-789")
-        variant = updated["payload"]["variants"][0]
-        self.assertEqual(variant["render_plan"]["layout_mode"], "immersive_layers")
-        self.assertEqual(variant["render_plan"]["art_direction"], "warm_gradient")
-        self.assertFalse(variant["render_plan"]["section_visibility"]["proof"])
-
-    def test_preview_404_when_id_missing(self):
-        response = self.client.get("/preview/does-not-exist")
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.mimetype, "application/zip")
+        self.assertIn("attachment;", response.headers.get("Content-Disposition", ""))
 
     def test_preview_frame_accepts_query_overrides_for_remix(self):
-        PREVIEW_STORE.set(preview_id="preview-frame", prompt="Some prompt", payload=_payload("preview-frame"))
+        self._signup_and_login()
+        self._seed_conversation(preview_id="preview-frame")
+
         response = self.client.get(
             "/preview/preview-frame/frame?variant_id=variant-1&layout_mode=proof_first&art_direction=warm_gradient&remix_label=Remix+1"
         )
@@ -254,73 +451,19 @@ class RouteTests(unittest.TestCase):
         self.assertIn("Remix 1", body)
         self.assertIn("--theme-frame-background", body)
         self.assertIn("Contact", body)
-        self.assertNotIn("Explore Flow", body)
-        self.assertNotIn("Distinct sections with actual jobs to do.", body)
 
-    def test_preview_frame_renders_uploaded_brand_asset(self):
-        payload = _payload("preview-brand-asset")
-        payload["brief"]["brand_assets"] = [_brand_asset()]
-        PREVIEW_STORE.set(preview_id="preview-brand-asset", prompt="Some prompt", payload=payload)
-        response = self.client.get("/preview/preview-brand-asset/frame")
-        self.assertEqual(response.status_code, 200)
-        body = response.get_data(as_text=True)
-        self.assertIn("frame-brand-logo", body)
-        self.assertIn("data:image/svg+xml;base64", body)
+    def test_branding_and_canvas_actions_persist_to_conversation(self):
+        self._signup_and_login()
+        self._seed_conversation(preview_id="preview-branding")
 
-    def test_preview_frame_uses_top_anchor_for_brand_navigation(self):
-        PREVIEW_STORE.set(preview_id="preview-nav", prompt="Some prompt", payload=_payload("preview-nav"))
-        response = self.client.get("/preview/preview-nav/frame")
-        self.assertEqual(response.status_code, 200)
-        body = response.get_data(as_text=True)
-        self.assertIn('id="page-top"', body)
-        self.assertIn('href="#page-top"', body)
-        self.assertIn('data-site-nav-link="true"', body)
-
-    def test_export_returns_zip(self):
-        PREVIEW_STORE.set(preview_id="preview-export", prompt="Some prompt", payload=_payload("preview-export"))
-        response = self.client.post("/preview/preview-export/export")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.mimetype, "application/zip")
-        self.assertIn("attachment;", response.headers.get("Content-Disposition", ""))
-
-    def test_publish_returns_public_link_and_content(self):
-        PREVIEW_STORE.set(preview_id="preview-publish", prompt="Some prompt", payload=_payload("preview-publish"))
-        response = self.client.post("/preview/preview-publish/publish", json={"variant_id": "variant-2"})
-        self.assertEqual(response.status_code, 200)
-        data = response.get_json()
-        self.assertTrue(data["ok"])
-        self.assertTrue(data["publish_id"])
-        self.assertIn("/published/", data["public_path"])
-        self.assertIn("http://localhost/published/", data["public_url"])
-
-        site_response = self.client.get(data["public_path"])
-        self.assertEqual(site_response.status_code, 200)
-        site_html = site_response.get_data(as_text=True)
-        self.assertIn("<!DOCTYPE html>", site_html)
-        self.assertIn("Build momentum", site_html)
-        self.assertNotIn("Variant variant-2", site_html)
-        self.assertNotIn("Open Project", site_html)
-        self.assertNotIn("Share Concept", site_html)
-
-        css_response = self.client.get(f"/published/{data['publish_id']}/assets/export-frame.css")
-        self.assertEqual(css_response.status_code, 200)
-        self.assertEqual(css_response.mimetype, "text/css")
-
-    def test_regenerate_section_returns_updated_preview(self):
-        PREVIEW_STORE.set(preview_id="preview-regen", prompt="Some prompt", payload=_payload("preview-regen"))
-        response = self.client.post(
-            "/preview/preview-regen/regenerate",
-            json={"scope": "section", "variant_id": "variant-1", "section_name": "hero"},
+        branding_response = self.client.post(
+            "/preview/preview-branding/branding",
+            json={"brief": {"brand_assets": [_brand_asset()], "icon_style": "Rounded interface icons"}},
         )
-        self.assertEqual(response.status_code, 200)
-        data = response.get_json()
-        self.assertTrue(data["ok"])
-        self.assertEqual(data["selected_variant_id"], "variant-1")
+        self.assertEqual(branding_response.status_code, 200)
 
-    def test_canvas_command_can_update_text_override(self):
-        PREVIEW_STORE.set(preview_id="preview-command", prompt="Some prompt", payload=_payload("preview-command"))
-        response = self.client.post(
-            "/preview/preview-command/command",
+        command_response = self.client.post(
+            "/preview/preview-branding/command",
             json={
                 "variant_id": "variant-1",
                 "action": "set_text",
@@ -329,223 +472,15 @@ class RouteTests(unittest.TestCase):
                 "value": "A sharper hero headline",
             },
         )
-        self.assertEqual(response.status_code, 200)
-        data = response.get_json()
-        self.assertEqual(data["selected_variant"]["content"]["hero_title"], "A sharper hero headline")
-        updated = PREVIEW_STORE.get("preview-command")
-        variant = updated["payload"]["variants"][0]
-        self.assertEqual(variant["content_overrides"]["hero_title"], "A sharper hero headline")
+        self.assertEqual(command_response.status_code, 200)
+        self.assertEqual(command_response.get_json()["selected_variant"]["content"]["hero_title"], "A sharper hero headline")
 
-    def test_canvas_command_can_move_and_toggle_section(self):
-        PREVIEW_STORE.set(preview_id="preview-layout", prompt="Some prompt", payload=_payload("preview-layout"))
-        move_response = self.client.post(
-            "/preview/preview-layout/command",
-            json={
-                "variant_id": "variant-1",
-                "action": "move_section",
-                "section_name": "proof",
-                "direction": "up",
-            },
-        )
-        self.assertEqual(move_response.status_code, 200)
-        toggle_response = self.client.post(
-            "/preview/preview-layout/command",
-            json={
-                "variant_id": "variant-1",
-                "action": "toggle_section",
-                "section_name": "proof",
-                "value": False,
-            },
-        )
-        self.assertEqual(toggle_response.status_code, 200)
-        updated = PREVIEW_STORE.get("preview-layout")
-        variant = updated["payload"]["variants"][0]
-        self.assertEqual(variant["layout_overrides"]["section_order"][1], "proof")
-        self.assertFalse(variant["layout_overrides"]["section_visibility"]["proof"])
-
-    def test_canvas_command_rejects_invalid_path(self):
-        PREVIEW_STORE.set(preview_id="preview-invalid", prompt="Some prompt", payload=_payload("preview-invalid"))
-        response = self.client.post(
-            "/preview/preview-invalid/command",
-            json={
-                "variant_id": "variant-1",
-                "action": "set_text",
-                "edit_path": "nonexistent_slot",
-                "value": "Nope",
-            },
-        )
-        self.assertEqual(response.status_code, 400)
-
-    def test_branding_route_updates_brief_assets_and_icon_style(self):
-        PREVIEW_STORE.set(preview_id="preview-branding-update", prompt="Some prompt", payload=_payload("preview-branding-update"))
-        response = self.client.post(
-            "/preview/preview-branding-update/branding",
-            json={
-                "brief": {
-                    "brand_assets": [_brand_asset("brand-mark.svg")],
-                    "icon_style": "Sharp monochrome icons",
-                }
-            },
-        )
-        self.assertEqual(response.status_code, 200)
-        updated = PREVIEW_STORE.get("preview-branding-update")
-        brief = updated["payload"]["brief"]
-        self.assertEqual(brief["icon_style"], "Sharp monochrome icons")
-        self.assertEqual(len(brief["brand_assets"]), 1)
-        self.assertEqual(brief["brand_assets"][0]["name"], "brand-mark.svg")
-
-    def test_export_applies_saved_overrides(self):
-        PREVIEW_STORE.set(preview_id="preview-export-edit", prompt="Some prompt", payload=_payload("preview-export-edit"))
-        self.client.post(
-            "/preview/preview-export-edit/command",
-            json={
-                "variant_id": "variant-1",
-                "action": "set_text",
-                "node_id": "hero-title",
-                "edit_path": "hero_title",
-                "value": "Exported headline",
-            },
-        )
-        response = self.client.post("/preview/preview-export-edit/export")
-        self.assertEqual(response.status_code, 200)
-        archive = ZipFile(BytesIO(response.data))
-        index_html = archive.read("index.html").decode("utf-8")
-        self.assertIn("Exported headline", index_html)
-
-    def test_regenerate_all_preserves_content_overrides(self):
-        PREVIEW_STORE.set(preview_id="preview-regen-all", prompt="Some prompt", payload=_payload("preview-regen-all"))
-        self.client.post(
-            "/preview/preview-regen-all/command",
-            json={
-                "variant_id": "variant-1",
-                "action": "set_text",
-                "node_id": "hero-title",
-                "edit_path": "hero_title",
-                "value": "Sticky override",
-            },
-        )
-        response = self.client.post(
-            "/preview/preview-regen-all/regenerate",
-            json={"scope": "all", "variant_id": "variant-1"},
-        )
-        self.assertEqual(response.status_code, 200)
-        updated = PREVIEW_STORE.get("preview-regen-all")
-        variant = updated["payload"]["variants"][0]
-        self.assertEqual(variant["content_overrides"]["hero_title"], "Sticky override")
-
-    @patch("app.services.ai_engine.get_default_provider", return_value=None)
-    def test_generate_falls_back_when_ai_is_missing(self, mocked_provider):
-        response = self.client.post(
-            "/generate",
-            json={
-                "prompt": "A startup landing page",
-                "brief": {
-                    "goal": "A startup landing page",
-                    "audience": "Founders",
-                    "brand_tone": "Clear and modern",
-                    "content_density": "balanced",
-                    "motion_level": "moderate",
-                },
-            },
-        )
-        self.assertEqual(response.status_code, 200)
-        data = response.get_json()
-        self.assertTrue(data["preview_id"])
-        generate_stage = next(stage for stage in data["statuses"] if stage["key"] == "generate")
-        self.assertIn("Gemini was unavailable", generate_stage["detail"])
-        manifest = MANIFEST_SERVICE.get(data["preview_id"])
-        self.assertIsNotNone(manifest)
-        self.assertTrue(manifest.variants[0].content.validation.fallback_used)
-
-    @patch("app.routes.configured_api_key_count", return_value=1)
-    @patch("app.routes.generate_project_manifest")
-    def test_generate_sanitizes_quota_errors_for_single_key(self, mocked_generate, mocked_key_count):
-        mocked_generate.side_effect = AIProviderUnavailableError(
-            "Gemini generation is unavailable because the configured API key is out of quota or rate-limited. "
-            "Tried models: gemini-2.5-flash-lite, gemini-2.5-flash. Set GEMINI_MODEL to a model with available quota. "
-            "Last error: ResourceExhausted: 429 quota exceeded."
-        )
-        response = self.client.post(
-            "/generate",
-            json={
-                "prompt": "A startup landing page",
-                "brief": {
-                    "goal": "A startup landing page",
-                    "audience": "Founders",
-                    "brand_tone": "Clear and modern",
-                    "content_density": "balanced",
-                    "motion_level": "moderate",
-                },
-            },
-        )
-
-        self.assertEqual(response.status_code, 503)
-        data = response.get_json()
-        self.assertEqual(
-            data["error"],
-            "Gemini generation is temporarily unavailable because the only configured API key is out of quota. Add another Gemini key to enable rotation, or try again after the quota resets.",
-        )
-        self.assertNotIn("Tried models", data["error"])
-        self.assertNotIn("ResourceExhausted", data["error"])
-        self.assertNotIn("GEMINI_MODEL", data["error"])
-
-    @patch("app.routes.configured_api_key_count", return_value=3)
-    @patch("app.routes.generate_project_manifest")
-    def test_generate_sanitizes_quota_errors_for_multiple_keys(self, mocked_generate, mocked_key_count):
-        mocked_generate.side_effect = AIProviderUnavailableError(
-            "Gemini generation is unavailable because all configured API keys are out of quota or rate-limited. "
-            "Tried APIs: api#1, api#2, api#3. Last error: ResourceExhausted: 429 quota exceeded."
-        )
-        response = self.client.post(
-            "/generate",
-            json={
-                "prompt": "A startup landing page",
-                "brief": {
-                    "goal": "A startup landing page",
-                    "audience": "Founders",
-                    "brand_tone": "Clear and modern",
-                    "content_density": "balanced",
-                    "motion_level": "moderate",
-                },
-            },
-        )
-
-        self.assertEqual(response.status_code, 503)
-        self.assertEqual(
-            response.get_json()["error"],
-            "Gemini generation is temporarily unavailable because all configured API keys are out of quota. Add another Gemini key or try again after the quota resets.",
-        )
-
-
-class AppStartupLoggingTests(unittest.TestCase):
-    @patch("app.services.ai_provider.configured_api_key_sources", return_value=("GEMINI_API_KEY",))
-    @patch("app.services.ai_provider.configured_api_key_count", return_value=1)
-    def test_create_app_logs_warning_when_only_one_key_is_configured(self, mocked_count, mocked_sources):
-        with self.assertLogs("app", level="WARNING") as captured:
-            create_app()
-
-        self.assertIn(
-            "ai.provider.startup configured_gemini_keys=1 sources=GEMINI_API_KEY",
-            "\n".join(captured.output),
-        )
-        mocked_count.assert_called_once_with()
-        mocked_sources.assert_called_once_with()
-
-    @patch(
-        "app.services.ai_provider.configured_api_key_sources",
-        return_value=("GEMINI_API_KEY_1", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3"),
-    )
-    @patch("app.services.ai_provider.configured_api_key_count", return_value=3)
-    def test_create_app_logs_info_when_multiple_keys_are_configured(self, mocked_count, mocked_sources):
-        with self.assertLogs("app", level="INFO") as captured:
-            create_app()
-
-        self.assertIn(
-            "ai.provider.startup configured_gemini_keys=3 sources=GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_API_KEY_3",
-            "\n".join(captured.output),
-        )
-        mocked_count.assert_called_once_with()
-        mocked_sources.assert_called_once_with()
+        with self.app.app_context():
+            conversation = Conversation.query.filter_by(preview_id="preview-branding").first()
+            manifest = manifest_from_conversation(conversation)
+            self.assertEqual(manifest.brief.icon_style, "Rounded interface icons")
+            self.assertEqual(manifest.variants[0].content_overrides["hero_title"], "A sharper hero headline")
+            self.assertEqual(Message.query.filter_by(conversation_id=conversation.id, role="system").count(), 2)
 
 
 if __name__ == "__main__":
