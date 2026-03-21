@@ -1,5 +1,17 @@
 .studio-page {
     padding-top: 4px;
+    position: relative;
+}
+
+.studio-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(circle at top left, rgba(31, 111, 235, 0.08), transparent 28%),
+        radial-gradient(circle at 85% 12%, rgba(15, 23, 42, 0.06), transparent 24%);
+    pointer-events: none;
+    z-index: -1;
 }
 
 .studio-grid {
@@ -19,8 +31,9 @@
 .panel-block {
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    background: var(--surface);
-    box-shadow: var(--shadow);
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
     padding: 16px;
 }
 
@@ -56,6 +69,31 @@
     flex-wrap: wrap;
     gap: 8px;
     margin: 14px 0;
+}
+
+.generation-warning {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid rgba(180, 83, 9, 0.22);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 247, 237, 0.92);
+    color: #7c2d12;
+}
+
+.generation-warning strong,
+.generation-warning p,
+.generation-warning ul {
+    margin: 0;
+}
+
+.generation-warning ul {
+    padding-left: 18px;
+}
+
+.generation-warning.is-hidden {
+    display: none;
 }
 
 .brief-facts span {
@@ -108,7 +146,9 @@
     font-size: 0.88rem;
 }
 
-.control-grid select {
+.control-grid select,
+.control-grid textarea,
+.control-grid input[type="file"] {
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     background: var(--surface-soft);
@@ -117,9 +157,48 @@
     outline: 0;
 }
 
-.control-grid select:focus {
+.control-grid textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.control-grid select:focus,
+.control-grid textarea:focus,
+.control-grid input[type="file"]:focus {
     border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
     box-shadow: 0 0 0 4px rgba(31, 111, 235, 0.12);
+}
+
+.asset-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 10px;
+}
+
+.asset-preview-card {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+}
+
+.asset-preview-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: calc(var(--radius-sm) - 4px);
+    background: rgba(15, 23, 42, 0.04);
+}
+
+.asset-preview-card figcaption,
+.asset-preview-empty {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.76rem;
+    line-height: 1.45;
 }
 
 .button-stack {
@@ -195,8 +274,9 @@
     gap: 16px;
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    background: var(--surface);
-    box-shadow: var(--shadow);
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
     padding: 16px;
 }
 
@@ -247,8 +327,10 @@
     min-height: 840px;
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    background: var(--surface);
-    box-shadow: var(--shadow);
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.02), rgba(15, 23, 42, 0)),
+        var(--surface);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
     overflow: hidden;
     padding: 12px;
     transition: max-width 160ms ease;
@@ -287,10 +369,17 @@
     gap: 5px;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    background: var(--surface-soft);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.96));
     padding: 12px;
     text-align: left;
     cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.variant-card:hover {
+    transform: translateY(-2px);
+    border-color: #bbc3d3;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
 }
 
 .variant-card.is-selected {
@@ -321,7 +410,7 @@
     gap: 10px;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    background: var(--surface-soft);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.96));
     padding: 10px;
 }
 
@@ -357,7 +446,7 @@
     gap: 8px;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    background: var(--surface-soft);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.96));
     padding: 10px;
 }
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 
 
@@ -132,15 +132,99 @@ ART_DIRECTION_SIGNALS: dict[str, dict[str, tuple[str, ...]]] = {
         "strong_terms": ("warm", "gradient", "sunset", "approachable", "optimistic"),
         "support_terms": ("soft", "welcoming", "uplifting", "bright", "human"),
     },
+    "coastal_breeze": {
+        "phrases": ("coastal calm", "ocean inspired", "resort modern", "airy blue"),
+        "strong_terms": ("coastal", "ocean", "sea", "breeze", "fresh", "airy"),
+        "support_terms": ("travel", "resort", "spa", "light", "blue"),
+    },
+    "mono_signal": {
+        "phrases": ("swiss poster", "monochrome system", "black and white", "high contrast minimal"),
+        "strong_terms": ("monochrome", "swiss", "grid", "minimalist", "black", "white"),
+        "support_terms": ("contrast", "signal", "precise", "sharp", "modernist"),
+    },
+    "botanical_noir": {
+        "phrases": ("organic luxury", "botanical premium", "earthy dark", "natural editorial"),
+        "strong_terms": ("botanical", "organic", "forest", "earthy", "natural", "verdant"),
+        "support_terms": ("calm", "wellness", "garden", "serene", "crafted"),
+    },
+    "studio_pop": {
+        "phrases": ("art school poster", "studio color", "expressive editorial", "creative pop"),
+        "strong_terms": ("expressive", "graphic", "electric", "cobalt", "creative", "pop"),
+        "support_terms": ("studio", "magazine", "dynamic", "vivid", "experimental"),
+    },
+}
+
+TEMPLATE_ART_DIRECTION_BIASES: dict[str, tuple[str, ...]] = {
+    "landing": ("warm_gradient", "modern_editorial", "mono_signal"),
+    "portfolio": ("brutalist_poster", "studio_pop", "luxury_serif"),
+    "product": ("cyber_signal", "mono_signal", "luxury_serif"),
+}
+
+ART_DIRECTION_INDUSTRY_BIASES: dict[str, tuple[str, ...]] = {
+    "fitness": ("playful_blocks", "warm_gradient", "brutalist_poster"),
+    "technology": ("cyber_signal", "mono_signal", "modern_editorial"),
+    "retail": ("warm_gradient", "luxury_serif", "playful_blocks"),
+    "creative": ("brutalist_poster", "studio_pop", "playful_blocks"),
+    "finance": ("mono_signal", "luxury_serif", "modern_editorial"),
+    "healthcare": ("warm_gradient", "modern_editorial", "luxury_serif"),
+    "education": ("playful_blocks", "warm_gradient", "modern_editorial"),
+    "hospitality": ("coastal_breeze", "warm_gradient", "luxury_serif"),
+    "music": ("studio_pop", "brutalist_poster", "cyber_signal"),
+    "real_estate": ("luxury_serif", "modern_editorial", "warm_gradient"),
+    "wellness": ("botanical_noir", "warm_gradient", "coastal_breeze"),
+}
+
+ART_DIRECTION_VIBE_BIASES: dict[str, tuple[str, ...]] = {
+    "minimal": ("modern_editorial", "mono_signal", "coastal_breeze"),
+    "bold": ("brutalist_poster", "studio_pop", "cyber_signal"),
+    "playful": ("playful_blocks", "warm_gradient", "brutalist_poster"),
+    "premium": ("luxury_serif", "botanical_noir", "modern_editorial"),
+    "futuristic": ("cyber_signal", "mono_signal", "modern_editorial"),
+    "warm": ("warm_gradient", "botanical_noir", "playful_blocks"),
+}
+
+ART_DIRECTION_TRAITS: dict[str, dict[str, str]] = {
+    "modern_editorial": {"family": "editorial", "temperature": "neutral", "contrast": "medium", "energy": "calm"},
+    "luxury_serif": {"family": "heritage", "temperature": "warm", "contrast": "soft", "energy": "calm"},
+    "playful_blocks": {"family": "playful", "temperature": "mixed", "contrast": "high", "energy": "lively"},
+    "cyber_signal": {"family": "tech_noir", "temperature": "cool", "contrast": "high", "energy": "high"},
+    "brutalist_poster": {"family": "poster", "temperature": "neutral", "contrast": "high", "energy": "high"},
+    "warm_gradient": {"family": "sunset", "temperature": "warm", "contrast": "soft", "energy": "calm"},
+    "coastal_breeze": {"family": "coastal", "temperature": "cool", "contrast": "soft", "energy": "calm"},
+    "mono_signal": {"family": "monochrome", "temperature": "neutral", "contrast": "high", "energy": "calm"},
+    "botanical_noir": {"family": "botanical", "temperature": "earth", "contrast": "medium", "energy": "calm"},
+    "studio_pop": {"family": "studio", "temperature": "warm", "contrast": "high", "energy": "high"},
 }
 
 INDUSTRY_KEYWORDS: dict[str, tuple[str, ...]] = {
     "fitness": ("fitness", "gym", "workout", "yoga", "coach"),
     "technology": ("tech", "ai", "saas", "software", "app", "developer"),
-    "retail": ("shop", "store", "product", "ecommerce", "fashion"),
+    "retail": (
+        "shop",
+        "store",
+        "product",
+        "ecommerce",
+        "fashion",
+        "bakery",
+        "bakehouse",
+        "pastry",
+        "bread",
+        "cake",
+        "dessert",
+        "cafe",
+        "coffee",
+        "restaurant",
+        "menu",
+        "food",
+    ),
     "creative": ("designer", "artist", "photography", "portfolio", "studio"),
     "finance": ("finance", "bank", "investment", "fintech", "accounting"),
     "healthcare": ("health", "clinic", "medical", "wellness", "doctor"),
+    "education": ("education", "academy", "course", "lesson", "learning", "school", "class", "workshop", "bootcamp"),
+    "hospitality": ("hotel", "resort", "travel", "restaurant", "cafe", "bar", "booking", "venue", "stay"),
+    "music": ("music", "band", "album", "dj", "festival", "tour", "record", "label", "audio"),
+    "real_estate": ("real estate", "property", "realtor", "listing", "home", "apartment", "condo", "broker"),
+    "wellness": ("spa", "salon", "beauty", "massage", "mindfulness", "skincare", "wellness", "self-care"),
 }
 
 VIBE_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -185,6 +269,19 @@ STOPWORDS = {
     "page",
     "site",
 }
+
+ALLOWED_BRAND_ASSET_MIME_TYPES = {
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "image/gif",
+    "image/svg+xml",
+}
+
+MAX_BRAND_ASSETS = 4
+MAX_BRAND_ASSET_NAME_LENGTH = 80
+MAX_BRAND_ASSET_ALT_LENGTH = 140
+MAX_BRAND_ASSET_DATA_URL_LENGTH = 1_800_000
 
 LAYOUT_LIBRARY: dict[str, dict[str, dict[str, Any]]] = {
     "landing": {
@@ -299,6 +396,10 @@ SECTION_SCHEMAS: dict[str, dict[str, Any]] = {
             "hero_subtitle",
             "cta_text",
             "cta_note",
+            "metrics_title",
+            "metrics_intro",
+            "features_title",
+            "features_intro",
             "stat_1_value",
             "stat_1_label",
             "stat_2_value",
@@ -320,7 +421,13 @@ SECTION_SCHEMAS: dict[str, dict[str, Any]] = {
             "hero_subtitle",
             "cta_text",
             "cta_note",
+            "projects_title",
+            "projects_intro",
+            "about_title",
+            "about_intro",
             "about_text",
+            "capabilities_title",
+            "capabilities_intro",
             "proof_quote",
             "proof_author",
         ),
@@ -337,6 +444,12 @@ SECTION_SCHEMAS: dict[str, dict[str, Any]] = {
             "price_badge",
             "cta_text",
             "cta_note",
+            "metrics_title",
+            "metrics_intro",
+            "features_title",
+            "features_intro",
+            "pricing_title",
+            "pricing_intro",
             "stat_1_value",
             "stat_1_label",
             "stat_2_value",
@@ -364,6 +477,8 @@ class BriefInput:
     name: str
     notes: str
     prompt: str
+    brand_assets: list[dict[str, str]] = field(default_factory=list)
+    icon_style: str = ""
 
     def to_dict(self) -> dict[str, str]:
         return asdict(self)
@@ -375,6 +490,7 @@ class BriefInput:
             self.brand_tone,
             self.name,
             self.notes,
+            self.icon_style,
             self.prompt,
         ]
         return ". ".join(item.strip() for item in pieces if item and item.strip())
@@ -433,6 +549,47 @@ def _coerce_list_of_str(value: Any) -> list[str]:
         seen.add(normalized)
         output.append(normalized)
     return output
+
+
+def _coerce_brand_assets(value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        return []
+
+    assets: list[dict[str, str]] = []
+    seen_urls: set[str] = set()
+    for index, item in enumerate(value):
+        if len(assets) >= MAX_BRAND_ASSETS or not isinstance(item, dict):
+            continue
+
+        data_url = _coerce_str(item.get("data_url"))
+        if not data_url.startswith("data:image/") or len(data_url) > MAX_BRAND_ASSET_DATA_URL_LENGTH:
+            continue
+
+        header = data_url.split(",", 1)[0].lower()
+        mime_type = _coerce_str(item.get("mime_type")).lower()
+        if not mime_type and header.startswith("data:"):
+            mime_type = header[5:].split(";", 1)[0].strip().lower()
+        if mime_type not in ALLOWED_BRAND_ASSET_MIME_TYPES:
+            continue
+
+        if data_url in seen_urls:
+            continue
+        seen_urls.add(data_url)
+
+        name = _coerce_str(item.get("name"), f"Brand asset {index + 1}")[:MAX_BRAND_ASSET_NAME_LENGTH]
+        alt = _coerce_str(item.get("alt"), name or f"Brand asset {index + 1}")[:MAX_BRAND_ASSET_ALT_LENGTH]
+        asset_id = _coerce_str(item.get("id"), f"brand-asset-{index + 1}")[:40]
+
+        assets.append(
+            {
+                "id": asset_id or f"brand-asset-{index + 1}",
+                "name": name or f"Brand asset {index + 1}",
+                "alt": alt or name or f"Brand asset {index + 1}",
+                "mime_type": mime_type,
+                "data_url": data_url,
+            }
+        )
+    return assets
 
 
 def _normalize_prompt(prompt: str) -> str:
@@ -583,6 +740,8 @@ def normalize_brief(raw_prompt: str = "", raw_brief: dict[str, Any] | None = Non
     name = _coerce_str(raw_brief.get("name"))
     notes = _coerce_str(raw_brief.get("notes"), raw_prompt if raw_prompt and raw_prompt != goal else "")
     prompt = _coerce_str(raw_prompt)
+    brand_assets = _coerce_brand_assets(raw_brief.get("brand_assets"))
+    icon_style = _coerce_str(raw_brief.get("icon_style"))[:220]
     return BriefInput(
         goal=goal,
         audience=audience,
@@ -592,6 +751,8 @@ def normalize_brief(raw_prompt: str = "", raw_brief: dict[str, Any] | None = Non
         name=name,
         notes=notes,
         prompt=prompt,
+        brand_assets=brand_assets,
+        icon_style=icon_style,
     )
 
 
@@ -651,6 +812,26 @@ def _apply_intent_boosts(
         art_scores["warm_gradient"] = art_scores.get("warm_gradient", 0.0) + 1.7
         art_hits["warm_gradient"] = art_hits.get("warm_gradient", 0) + 1
 
+    coastal_words = {"coastal", "ocean", "sea", "breeze", "shore", "resort"}
+    if coastal_words.intersection(token_set):
+        art_scores["coastal_breeze"] = art_scores.get("coastal_breeze", 0.0) + 1.9
+        art_hits["coastal_breeze"] = art_hits.get("coastal_breeze", 0) + 1
+
+    monochrome_words = {"monochrome", "swiss", "grid", "minimalist", "black", "white"}
+    if monochrome_words.intersection(token_set):
+        art_scores["mono_signal"] = art_scores.get("mono_signal", 0.0) + 1.8
+        art_hits["mono_signal"] = art_hits.get("mono_signal", 0) + 1
+
+    botanical_words = {"botanical", "organic", "forest", "earthy", "natural", "garden"}
+    if botanical_words.intersection(token_set):
+        art_scores["botanical_noir"] = art_scores.get("botanical_noir", 0.0) + 1.8
+        art_hits["botanical_noir"] = art_hits.get("botanical_noir", 0) + 1
+
+    pop_words = {"expressive", "electric", "cobalt", "vivid", "studio", "magazine"}
+    if pop_words.intersection(token_set):
+        art_scores["studio_pop"] = art_scores.get("studio_pop", 0.0) + 1.8
+        art_hits["studio_pop"] = art_hits.get("studio_pop", 0) + 1
+
     graphic_words = {"poster", "graphic", "raw", "brutalist", "contrast"}
     if graphic_words.intersection(token_set):
         art_scores["brutalist_poster"] = art_scores.get("brutalist_poster", 0.0) + 1.8
@@ -688,6 +869,144 @@ def _rank_layouts(
     if ordered:
         return ordered
     return list(recipes.keys())
+
+
+def _unique_keys(values: list[str], *, allowed: set[str]) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if value not in allowed or value in seen:
+            continue
+        ordered.append(value)
+        seen.add(value)
+    return ordered
+
+
+def _contextual_art_ranking(
+    *,
+    template_key: str,
+    industry: str,
+    vibe: str,
+    density: str,
+    motion_level: str,
+    allowed_art_keys: set[str],
+) -> list[str]:
+    ranking: list[str] = []
+    ranking.extend(TEMPLATE_ART_DIRECTION_BIASES.get(template_key, ()))
+    ranking.extend(ART_DIRECTION_INDUSTRY_BIASES.get(industry, ()))
+    ranking.extend(ART_DIRECTION_VIBE_BIASES.get(vibe, ()))
+
+    if motion_level == "energetic":
+        ranking.extend(("cyber_signal", "studio_pop", "brutalist_poster"))
+    elif motion_level == "calm":
+        ranking.extend(("luxury_serif", "coastal_breeze", "warm_gradient"))
+
+    if density == "airy":
+        ranking.extend(("coastal_breeze", "modern_editorial", "warm_gradient"))
+    elif density == "dense":
+        ranking.extend(("mono_signal", "brutalist_poster", "cyber_signal"))
+
+    ranking.extend(sorted(allowed_art_keys))
+    return _unique_keys(ranking, allowed=allowed_art_keys)
+
+
+def _art_direction_distance(primary: str, candidate: str) -> float:
+    if primary == candidate:
+        return 0.0
+
+    primary_traits = ART_DIRECTION_TRAITS.get(primary, {})
+    candidate_traits = ART_DIRECTION_TRAITS.get(candidate, {})
+    score = 0.0
+
+    if primary_traits.get("family") != candidate_traits.get("family"):
+        score += 2.2
+    if primary_traits.get("temperature") != candidate_traits.get("temperature"):
+        score += 1.0
+    if primary_traits.get("contrast") != candidate_traits.get("contrast"):
+        score += 1.0
+    if primary_traits.get("energy") != candidate_traits.get("energy"):
+        score += 0.8
+
+    return score
+
+
+def _layout_distance(template_key: str, primary: str, candidate: str) -> float:
+    if primary == candidate:
+        return 0.0
+
+    primary_recipe = _recipe_for(template_key, primary)
+    candidate_recipe = _recipe_for(template_key, candidate)
+    score = 0.0
+
+    if primary_recipe.get("hero_variant") != candidate_recipe.get("hero_variant"):
+        score += 2.0
+    if primary_recipe.get("density_bias") != candidate_recipe.get("density_bias"):
+        score += 0.8
+    if primary_recipe.get("motion_bias") != candidate_recipe.get("motion_bias"):
+        score += 0.8
+
+    primary_sections = list(primary_recipe.get("section_order", ()))
+    candidate_sections = list(candidate_recipe.get("section_order", ()))
+    shared = set(primary_sections).intersection(candidate_sections)
+    order_changes = sum(
+        1
+        for section in shared
+        if primary_sections.index(section) != candidate_sections.index(section)
+    )
+    score += min(float(order_changes), 3.0) * 0.5
+    return score
+
+
+def _pick_diverse_options(
+    ordered_keys: list[str],
+    *,
+    primary: str,
+    distance_fn: Any,
+    score_lookup: dict[str, float] | None = None,
+    limit: int = 3,
+) -> list[str]:
+    selected: list[str] = []
+    if primary in ordered_keys:
+        selected.append(primary)
+    elif ordered_keys:
+        selected.append(ordered_keys[0])
+
+    remaining = [key for key in ordered_keys if key not in selected]
+    while remaining and len(selected) < limit:
+        best_key = remaining[0]
+        best_score = float("-inf")
+        for key in remaining:
+            diversity = min(distance_fn(existing, key) for existing in selected)
+            routing_score = (score_lookup or {}).get(key, 0.0)
+            combined = diversity * 3.4 + routing_score
+            if combined > best_score:
+                best_key = key
+                best_score = combined
+        selected.append(best_key)
+        remaining = [key for key in remaining if key != best_key]
+
+    return selected
+
+
+def _apply_contextual_art_biases(
+    art_scores: dict[str, float],
+    art_hits: dict[str, int],
+    *,
+    contextual_ranking: list[str],
+    template_key: str,
+    industry: str,
+    vibe: str,
+) -> list[str]:
+    weights = (1.1, 0.7, 0.4)
+    for index, art_direction in enumerate(contextual_ranking[: len(weights)]):
+        art_scores[art_direction] = art_scores.get(art_direction, 0.0) + weights[index]
+        art_hits[art_direction] = art_hits.get(art_direction, 0) + 1
+
+    if not contextual_ranking:
+        return []
+    return [
+        f"Context routing favored '{contextual_ranking[0]}' for {template_key}/{industry}/{vibe}."
+    ]
 
 
 def _section_visibility(section_order: list[str], overrides: dict[str, bool] | None = None) -> dict[str, bool]:
@@ -804,6 +1123,24 @@ BRIEF:
     }
 
 
+def _density_sequence(base: str) -> list[str]:
+    mapping = {
+        "airy": ["airy", "dense", "balanced"],
+        "balanced": ["balanced", "airy", "dense"],
+        "dense": ["dense", "airy", "balanced"],
+    }
+    return mapping.get(base, ["balanced", "airy", "dense"])
+
+
+def _motion_sequence(base: str) -> list[str]:
+    mapping = {
+        "calm": ["calm", "moderate", "energetic"],
+        "moderate": ["moderate", "calm", "energetic"],
+        "energetic": ["energetic", "moderate", "calm"],
+    }
+    return mapping.get(base, ["moderate", "calm", "energetic"])
+
+
 def build_render_variants(
     user_prompt: str,
     *,
@@ -818,10 +1155,13 @@ def build_render_variants(
     if template_catalog is None:
         template_catalog = {"landing": {"template_file": "generated/site_builder.html", "slot_schema": {}}}
 
+    brief_payload = brief.to_dict() if isinstance(brief, BriefInput) else (brief if isinstance(brief, dict) else {})
     brief_input = brief if isinstance(brief, BriefInput) else normalize_brief(user_prompt, brief)
     prompt = _normalize_prompt(brief_input.to_prompt_text())
     tokens = _tokenize(prompt)
     token_set = _build_token_set(tokens)
+    has_density_preference = _coerce_str(brief_payload.get("content_density")).lower() in {"airy", "balanced", "dense"}
+    has_motion_preference = _coerce_str(brief_payload.get("motion_level")).lower() in {"calm", "moderate", "energetic"}
 
     template_keys = list(template_catalog.keys())
     art_keys = list(theme_catalog.keys())
@@ -842,6 +1182,11 @@ def build_render_variants(
         strong_weight=1.6,
         support_weight=0.8,
     )
+    density = brief_input.content_density or _infer_category(prompt, token_set, DENSITY_KEYWORDS, "balanced")
+    motion_level = brief_input.motion_level or _infer_category(prompt, token_set, MOTION_KEYWORDS, "moderate")
+    industry = _infer_category(prompt, token_set, INDUSTRY_KEYWORDS, "general")
+    vibe = _infer_category(prompt, token_set, VIBE_KEYWORDS, "clean")
+    keywords = _extract_keywords(prompt)
     reasons = _apply_intent_boosts(
         token_set=token_set,
         template_scores=template_scores,
@@ -851,20 +1196,32 @@ def build_render_variants(
     )
 
     ranked_template_scores = {key: template_scores.get(key, 0.0) for key in template_keys}
-    ranked_art_scores = {key: art_scores.get(key, 0.0) for key in art_keys}
     for key in template_keys:
         template_hits.setdefault(key, 0)
 
     (best_template, top_template_score), (_, second_template_score) = _top_two(ranked_template_scores)
+    contextual_art_ranking = _contextual_art_ranking(
+        template_key=best_template,
+        industry=industry,
+        vibe=vibe,
+        density=density,
+        motion_level=motion_level,
+        allowed_art_keys=set(art_keys),
+    )
+    reasons.extend(
+        _apply_contextual_art_biases(
+            art_scores,
+            art_hits,
+            contextual_ranking=contextual_art_ranking,
+            template_key=best_template,
+            industry=industry,
+            vibe=vibe,
+        )
+    )
+    ranked_art_scores = {key: art_scores.get(key, 0.0) for key in art_keys}
     (best_art, _), _ = _top_two(ranked_art_scores)
     template_gap = max(0.0, top_template_score - second_template_score)
     confidence = _compute_rule_confidence(top_template_score, template_gap, template_hits.get(best_template, 0))
-
-    density = brief_input.content_density or _infer_category(prompt, token_set, DENSITY_KEYWORDS, "balanced")
-    motion_level = brief_input.motion_level or _infer_category(prompt, token_set, MOTION_KEYWORDS, "moderate")
-    industry = _infer_category(prompt, token_set, INDUSTRY_KEYWORDS, "general")
-    vibe = _infer_category(prompt, token_set, VIBE_KEYWORDS, "clean")
-    keywords = _extract_keywords(prompt)
     reasons = [f"Rule routing picked '{best_template}' with layout diversity enabled."] + reasons
 
     layout_ranking = _rank_layouts(
@@ -908,9 +1265,19 @@ def build_render_variants(
 
     if confidence < 0.55:
         best_template = _safe_default_key(set(template_keys), "landing")
-        best_art = _safe_default_key(set(art_keys), "modern_editorial")
-        density = "balanced"
-        motion_level = "moderate"
+        fallback_ranking = _contextual_art_ranking(
+            template_key=best_template,
+            industry=industry,
+            vibe=vibe,
+            density=density,
+            motion_level=motion_level,
+            allowed_art_keys=set(art_keys),
+        )
+        best_art = fallback_ranking[0] if fallback_ranking else _safe_default_key(set(art_keys), "modern_editorial")
+        if not has_density_preference:
+            density = "balanced"
+        if not has_motion_preference:
+            motion_level = "moderate"
         confidence = 0.55
         reasons.append("Confidence low; applied safe fallback profile.")
 
@@ -940,43 +1307,61 @@ def build_render_variants(
         layout_ranking.remove(best_layout)
     layout_ranking.insert(0, best_layout)
 
-    art_ranking = [key for key, _ in sorted(ranked_art_scores.items(), key=lambda item: item[1], reverse=True) if key in art_keys]
-    if best_art in art_ranking:
-        art_ranking.remove(best_art)
-    art_ranking.insert(0, best_art)
-    if not art_ranking:
-        art_ranking = art_keys
+    scored_art_ranking = [
+        key
+        for key, _ in sorted(ranked_art_scores.items(), key=lambda item: item[1], reverse=True)
+        if key in art_keys
+    ]
+    if not scored_art_ranking:
+        scored_art_ranking = list(art_keys)
+    art_ranking = _pick_diverse_options(
+        scored_art_ranking,
+        primary=best_art,
+        distance_fn=_art_direction_distance,
+        score_lookup=ranked_art_scores,
+        limit=max(3, min(4, len(scored_art_ranking))),
+    )
+    layout_ranking = _pick_diverse_options(
+        layout_ranking,
+        primary=best_layout,
+        distance_fn=lambda existing, candidate: _layout_distance(best_template, existing, candidate),
+        limit=max(3, min(4, len(layout_ranking))),
+    )
 
     variants: list[RenderPlan] = []
     used_pairs: set[tuple[str, str, str, str, str]] = set()
     section_override = overrides.get("section_visibility") if isinstance(overrides, dict) else None
+    density_choices = _density_sequence(density)
+    motion_choices = _motion_sequence(motion_level)
 
     candidate_specs = [
-        (best_layout, best_art, density, motion_level, confidence, list(reasons)),
+        (
+            layout_ranking[0] if layout_ranking else best_layout,
+            art_ranking[0] if art_ranking else best_art,
+            density_choices[0],
+            motion_choices[0],
+            confidence,
+            list(reasons),
+        ),
     ]
-
-    alt_layouts = [item for item in layout_ranking if item != best_layout]
-    alt_arts = [item for item in art_ranking if item != best_art]
     candidate_specs.append(
         (
-            alt_layouts[0] if alt_layouts else best_layout,
-            alt_arts[0] if alt_arts else best_art,
-            density,
-            motion_level,
+            layout_ranking[1] if len(layout_ranking) > 1 else best_layout,
+            art_ranking[1] if len(art_ranking) > 1 else best_art,
+            density_choices[1] if len(density_choices) > 1 else density,
+            motion_choices[1] if len(motion_choices) > 1 else motion_level,
             max(0.55, confidence - 0.05),
-            [f"Variant explores alternate layout '{alt_layouts[0]}'." if alt_layouts else "Variant explores alternate art direction."],
+            ["Variant widens the visual system with a more distant art and layout pairing."],
         )
     )
-    density_variant = "dense" if density == "balanced" else "airy"
-    motion_variant = "energetic" if motion_level != "energetic" else "calm"
     candidate_specs.append(
         (
-            alt_layouts[1] if len(alt_layouts) > 1 else (alt_layouts[0] if alt_layouts else best_layout),
-            alt_arts[1] if len(alt_arts) > 1 else (alt_arts[0] if alt_arts else best_art),
-            density_variant,
-            motion_variant,
+            layout_ranking[2] if len(layout_ranking) > 2 else (layout_ranking[1] if len(layout_ranking) > 1 else best_layout),
+            art_ranking[2] if len(art_ranking) > 2 else (art_ranking[1] if len(art_ranking) > 1 else best_art),
+            density_choices[2] if len(density_choices) > 2 else density,
+            motion_choices[2] if len(motion_choices) > 2 else motion_level,
             max(0.55, confidence - 0.08),
-            ["Variant pushes density/motion to widen design range."],
+            ["Variant pushes density and motion further so the remix set feels visually distinct."],
         )
     )
 

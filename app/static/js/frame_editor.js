@@ -41,11 +41,27 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     }
 
+    function eventElement(target) {
+        if (target instanceof Element) {
+            return target;
+        }
+        if (target instanceof Node) {
+            return target.parentElement;
+        }
+        return null;
+    }
+
     function closestEditable(target) {
-        if (!(target instanceof Element)) {
+        const element = eventElement(target);
+        if (!element) {
             return null;
         }
-        return target.closest("[data-node-id]");
+        return element.closest("[data-node-id]");
+    }
+
+    function insideFloatingUi(target) {
+        const element = eventElement(target);
+        return Boolean(element && element.closest(".frame-hover-toolbar, .frame-inline-editor, .frame-move-menu"));
     }
 
     function sectionForNode(node) {
@@ -129,7 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <textarea rows="4" name="value">${currentValue}</textarea>
             </label>
             <div class="editor-actions">
-                <button type="submit" class="editor-save">Save</button>
+                <button type="button" class="editor-save">Save</button>
                 <button type="button" class="editor-cancel">Cancel</button>
             </div>
         `;
@@ -137,9 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
         placeFloatingElement(editor, node, 18);
         const input = editor.querySelector("textarea");
         input.focus();
-        editor.querySelector(".editor-cancel").addEventListener("click", hideEditor);
-        editor.onsubmit = (event) => {
-            event.preventDefault();
+        const save = () => {
             postCommand({
                 action: "set_text",
                 node_id: node.dataset.nodeId,
@@ -148,6 +162,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 status_label: "Saving text...",
             });
             hideEditor();
+        };
+        editor.querySelector(".editor-save").addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            save();
+        });
+        editor.querySelector(".editor-cancel").addEventListener("click", hideEditor);
+        editor.onsubmit = (event) => {
+            event.preventDefault();
+            save();
         };
     }
 
@@ -272,18 +296,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.addEventListener("mouseover", (event) => {
-        if (!hoverCapable || !editor.hidden || !moveMenu.hidden) {
+        if (!hoverCapable || !editor.hidden || !moveMenu.hidden || !toolbar.hidden) {
+            return;
+        }
+        if (insideFloatingUi(event.target)) {
             return;
         }
         const node = closestEditable(event.target);
-        if (node) {
-            setSelectedNode(node);
+        if (!node || node === selectedNode) {
+            return;
         }
+        // Keep the more-specific selection while the pointer moves inside the same card/section.
+        if (selectedNode && node.contains(selectedNode)) {
+            return;
+        }
+        setSelectedNode(node);
     });
 
     document.addEventListener("click", (event) => {
         const editable = closestEditable(event.target);
-        const clickedInsideFloating = event.target.closest(".frame-hover-toolbar, .frame-inline-editor, .frame-move-menu");
+        const clickedInsideFloating = insideFloatingUi(event.target);
         if (clickedInsideFloating) {
             return;
         }

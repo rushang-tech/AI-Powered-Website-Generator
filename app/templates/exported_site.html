@@ -7,10 +7,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Cormorant+Garamond:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600;700&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/export-frame.css">
+    <link rel="stylesheet" href="{{ css_href or 'assets/export-frame.css' }}">
 </head>
-<body>
+{% set theme = selected_variant.theme or {} %}
+{% set is_consumer = consumer_mode|default(false) %}
+<body
+    style="
+        --theme-frame-background: {{ theme.get('frame_background', theme.get('canvas_background', 'linear-gradient(180deg, #f3efe8 0%, #ece6db 100%)')) }};
+        --theme-frame-border: {{ theme.get('frame_border', theme.get('border', 'rgba(25, 24, 22, 0.12)')) }};
+        --theme-frame-glow: {{ theme.get('frame_glow', theme.get('shadow', '0 22px 60px rgba(44, 36, 23, 0.12)')) }};
+        --theme-accent: {{ theme.get('accent', '#a16e36') }};
+        --theme-muted: {{ theme.get('muted', '#645d52') }};
+        --theme-display-font: {{ theme.get('display_font', "'Bricolage Grotesque', sans-serif") }};
+    "
+>
     <main class="frame-shell is-export">
+        {% if not is_consumer %}
         <div class="frame-meta">
             <div class="frame-brand">
                 <strong>{{ brief.name or "VeloSite Export" }}</strong>
@@ -18,6 +30,7 @@
             </div>
             <div class="frame-status">{{ selected_variant.summary }}</div>
         </div>
+        {% endif %}
         <div class="frame-canvas">
             {% include selected_variant.render_plan.template_file %}
         </div>

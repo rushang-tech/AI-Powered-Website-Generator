@@ -5,9 +5,11 @@ from collections import defaultdict
 from functools import wraps
 from threading import Lock
 from typing import Any, Callable
+from uuid import uuid4
 
 from flask import Blueprint, abort, current_app, g, jsonify, make_response, render_template, request, send_file, url_for
 
+from app.services.ai_provider import AIProviderUnavailableError, configured_api_key_count
 from app.services.ai_engine import (
     TEMPLATE_CATALOG,
     THEME_MAP,
@@ -19,14 +21,37 @@ from app.services.ai_engine import (
     selected_preview_data,
     status_blueprint,
 )
-from app.services.export_service import build_export_bundle
+from app.services.contracts import ProjectManifest
+from app.services.export_service import build_export_bundle, render_export_site
 from app.services.manifest_service import MANIFEST_SERVICE
-from app.services.taste_engine import LAYOUT_LIBRARY
+from app.services.published_site_service import PUBLISHED_SITE_SERVICE
+from app.services.taste_engine import LAYOUT_LIBRARY, normalize_brief
 
 main = Blueprint("main", __name__)
 
 _ROUTE_METRICS: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "errors": 0})
 _ROUTE_METRICS_LOCK = Lock()
+
+
+def _public_ai_error_message(exc: AIProviderUnavailableError) -> str:
+    message = str(exc).strip()
+    lowered = message.lower()
+    if any(token in lowered for token in ("resourceexhausted", "429", "quota", "rate-limited", "rate limit")):
+        if configured_api_key_count() <= 1:
+            return (
+                "Gemini generation is temporarily unavailable because the only configured API key is out of quota. "
+                "Add another Gemini key to enable rotation, or try again after the quota resets."
+            )
+        return (
+            "Gemini generation is temporarily unavailable because all configured API keys are out of quota. "
+            "Add another Gemini key or try again after the quota resets."
+        )
+    return message
+
+
+def _service_unavailable_response(exc: AIProviderUnavailableError) -> tuple[dict[str, str], int]:
+    current_app.logger.warning("ai.unavailable id=%s error=%s", getattr(g, "request_id", ""), exc)
+    return {"error": _public_ai_error_message(exc)}, 503
 
 
 def observe_route(route_key: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
@@ -140,6 +165,8 @@ def _normalized_brief(body: dict[str, object]) -> tuple[str, dict[str, object]]:
         "motion_level": _clean_text(raw_brief.get("motion_level"), max_length=24).lower(),
         "name": _clean_text(raw_brief.get("name"), max_length=120),
         "notes": _clean_text(raw_brief.get("notes"), max_length=600),
+        "brand_assets": raw_brief.get("brand_assets") if isinstance(raw_brief.get("brand_assets"), list) else [],
+        "icon_style": _clean_text(raw_brief.get("icon_style"), max_length=220),
     }
     return prompt, brief
 
@@ -156,15 +183,26 @@ def index():
     )
 
 
+@main.route("/healthz", methods=["GET"])
+def healthz():
+    return jsonify({"ok": True, "service": "velosite-ai"}), 200
+
+
 @main.route("/generate", methods=["POST"])
 @observe_route("generate")
 def generate():
     body = request.get_json(silent=True) or {}
     user_prompt, brief = _normalized_brief(body)
-    if not user_prompt and not any(str(value).strip() for value in brief.values()):
+    has_brand_assets = bool(brief.get("brand_assets"))
+    has_text_brief = any(str(value).strip() for key, value in brief.items() if key != "brand_assets")
+    if not user_prompt and not has_text_brief and not has_brand_assets:
         return jsonify({"error": "Prompt or brief is required."}), 400
 
-    manifest = generate_project_manifest(user_prompt, brief=brief)
+    try:
+        manifest = generate_project_manifest(user_prompt, brief=brief)
+    except AIProviderUnavailableError as exc:
+        body, status_code = _service_unavailable_response(exc)
+        return jsonify(body), status_code
     preview_id = manifest.preview_id
     if not preview_id:
         return jsonify({"error": "Failed to generate preview ID."}), 500
@@ -187,6 +225,45 @@ def generate():
                 for item in manifest.variants
             ],
             "statuses": [stage.to_dict() for stage in manifest.statuses],
+        }
+    )
+
+
+@main.route("/preview/<preview_id>/branding", methods=["POST"])
+def update_branding(preview_id: str):
+    manifest = MANIFEST_SERVICE.get(preview_id)
+    if not manifest:
+        return jsonify({"error": "Preview not found."}), 404
+
+    body = request.get_json(silent=True) or {}
+    incoming = _brief_payload(body) if isinstance(body.get("brief"), dict) else body
+
+    merged_brief = manifest.brief.to_dict()
+    if "brand_assets" in incoming:
+        merged_brief["brand_assets"] = incoming.get("brand_assets")
+    if "icon_style" in incoming:
+        merged_brief["icon_style"] = incoming.get("icon_style")
+
+    normalized = normalize_brief(manifest.prompt, merged_brief)
+    updated = ProjectManifest(
+        preview_id=manifest.preview_id,
+        prompt=manifest.prompt,
+        brief=normalized,
+        selected_variant_id=manifest.selected_variant_id,
+        variants=manifest.variants,
+        statuses=manifest.statuses,
+    )
+    MANIFEST_SERVICE.save(updated)
+    selected = selected_preview_data(updated).get("selected_variant", {})
+
+    return jsonify(
+        {
+            "ok": True,
+            "preview_id": preview_id,
+            "selected_variant_id": updated.selected_variant_id,
+            "selected_variant": selected,
+            "brief": updated.brief.to_dict(),
+            "frame_url": url_for("main.preview_frame", preview_id=preview_id),
         }
     )
 
@@ -248,6 +325,7 @@ def preview_frame(preview_id: str):
         brief=manifest.brief.to_dict(),
         selected_variant=selected_variant,
         studio_mode=request.args.get("studio", "").strip() == "1",
+        consumer_mode=True,
     )
 
 
@@ -262,11 +340,15 @@ def override_preview(preview_id: str):
 
     overrides = _collect_overrides(body)
 
-    updated = apply_variant_override_to_manifest(
-        manifest,
-        variant_id=variant_id,
-        overrides=overrides or None,
-    )
+    try:
+        updated = apply_variant_override_to_manifest(
+            manifest,
+            variant_id=variant_id,
+            overrides=overrides or None,
+        )
+    except AIProviderUnavailableError as exc:
+        body, status_code = _service_unavailable_response(exc)
+        return jsonify(body), status_code
     MANIFEST_SERVICE.save(updated)
     selected = selected_preview_data(updated).get("selected_variant", {})
 
@@ -319,6 +401,9 @@ def canvas_command(preview_id: str):
             instruction=instruction,
             direction=direction,
         )
+    except AIProviderUnavailableError as exc:
+        body, status_code = _service_unavailable_response(exc)
+        return jsonify(body), status_code
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
@@ -352,12 +437,16 @@ def regenerate_preview(preview_id: str):
     if scope == "section" and not section_name:
         return jsonify({"error": "Section name is required for section regeneration."}), 400
 
-    updated = regenerate_manifest(
-        manifest,
-        scope=scope,
-        variant_id=variant_id,
-        section_name=section_name,
-    )
+    try:
+        updated = regenerate_manifest(
+            manifest,
+            scope=scope,
+            variant_id=variant_id,
+            section_name=section_name,
+        )
+    except AIProviderUnavailableError as exc:
+        body, status_code = _service_unavailable_response(exc)
+        return jsonify(body), status_code
     MANIFEST_SERVICE.save(updated)
     selected = selected_preview_data(updated).get("selected_variant", {})
     return jsonify(
@@ -370,6 +459,76 @@ def regenerate_preview(preview_id: str):
             "selected_variant": selected,
         }
     )
+
+
+@main.route("/preview/<preview_id>/publish", methods=["POST"])
+@observe_route("publish")
+def publish_preview(preview_id: str):
+    manifest = MANIFEST_SERVICE.get(preview_id)
+    if not manifest:
+        return jsonify({"error": "Preview not found."}), 404
+
+    body = request.get_json(silent=True) or {}
+    variant_id = _clean_text(body.get("variant_id"), max_length=64) or manifest.selected_variant_id
+    publish_id = uuid4().hex[:12]
+    css_href = url_for("main.published_site_css", publish_id=publish_id)
+    rendered_html, css_text, selected_variant = render_export_site(
+        manifest,
+        variant_id=variant_id,
+        css_href=css_href,
+    )
+    PUBLISHED_SITE_SERVICE.save(
+        publish_id,
+        {
+            "preview_id": preview_id,
+            "variant_id": selected_variant.get("variant_id"),
+            "page_title": manifest.brief.name or "VeloSite Export",
+            "html": rendered_html,
+            "css": css_text,
+        },
+    )
+    public_path = url_for("main.published_site", publish_id=publish_id)
+    return jsonify(
+        {
+            "ok": True,
+            "publish_id": publish_id,
+            "public_path": public_path,
+            "public_url": url_for("main.published_site", publish_id=publish_id, _external=True),
+            "expires_in_seconds": PUBLISHED_SITE_SERVICE.ttl_seconds,
+        }
+    )
+
+
+@main.route("/published/<publish_id>", methods=["GET"])
+def published_site(publish_id: str):
+    payload = PUBLISHED_SITE_SERVICE.get(_clean_text(publish_id, max_length=80))
+    if not payload:
+        abort(404)
+
+    html = payload.get("html")
+    if not isinstance(html, str) or not html.strip():
+        abort(404)
+
+    response = make_response(html)
+    response.headers["Content-Type"] = "text/html; charset=utf-8"
+    response.headers["Cache-Control"] = "public, max-age=120"
+    return response
+
+
+@main.route("/published/<publish_id>/assets/export-frame.css", methods=["GET"])
+def published_site_css(publish_id: str):
+    payload = PUBLISHED_SITE_SERVICE.get(_clean_text(publish_id, max_length=80))
+    if not payload:
+        abort(404)
+
+    css = payload.get("css")
+    if not isinstance(css, str) or not css.strip():
+        abort(404)
+
+    response = make_response(css)
+    response.headers["Content-Type"] = "text/css; charset=utf-8"
+    response.headers["Cache-Control"] = "public, max-age=120"
+    return response
 
 
 @main.route("/preview/<preview_id>/export", methods=["POST"])

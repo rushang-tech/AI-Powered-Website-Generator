@@ -12,10 +12,25 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/frame_editor.css') }}">
     {% endif %}
 </head>
-<body>
+{% set theme = selected_variant.theme or {} %}
+{% set brand_assets = brief.brand_assets or [] %}
+{% set primary_brand_asset = brand_assets[0] if brand_assets else None %}
+<body
+    style="
+        --theme-frame-background: {{ theme.get('frame_background', theme.get('canvas_background', 'linear-gradient(180deg, #f3efe8 0%, #ece6db 100%)')) }};
+        --theme-frame-border: {{ theme.get('frame_border', theme.get('border', 'rgba(25, 24, 22, 0.12)')) }};
+        --theme-frame-glow: {{ theme.get('frame_glow', theme.get('shadow', '0 22px 60px rgba(44, 36, 23, 0.12)')) }};
+        --theme-accent: {{ theme.get('accent', '#a16e36') }};
+        --theme-muted: {{ theme.get('muted', '#645d52') }};
+        --theme-display-font: {{ theme.get('display_font', "'Bricolage Grotesque', sans-serif") }};
+    "
+>
     <main class="frame-shell">
         <div class="frame-meta">
             <div class="frame-brand">
+                {% if primary_brand_asset %}
+                <img class="frame-brand-logo" src="{{ primary_brand_asset.data_url }}" alt="{{ primary_brand_asset.alt }}">
+                {% endif %}
                 <strong>{{ brief.name or "VeloSite Preview" }}</strong>
                 <span>{{ selected_variant.label }}</span>
             </div>

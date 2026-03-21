@@ -20,16 +20,29 @@ def _slugify(value: str) -> str:
     return cleaned or "velosite-export"
 
 
-def build_export_bundle(manifest: ProjectManifest) -> tuple[BytesIO, str]:
-    selected_variant = build_preview_variant(manifest, variant_id=manifest.selected_variant_id)
+def render_export_site(
+    manifest: ProjectManifest,
+    *,
+    variant_id: str | None = None,
+    css_href: str = "assets/export-frame.css",
+) -> tuple[str, str, dict[str, object]]:
+    selected_variant = build_preview_variant(manifest, variant_id=variant_id or manifest.selected_variant_id)
     brief = manifest.brief.to_dict()
     rendered_html = render_template(
         "exported_site.html",
         page_title=brief.get("name") or "VeloSite Export",
         brief=brief,
         selected_variant=selected_variant,
+        css_href=css_href,
+        consumer_mode=True,
     )
     css_text = EXPORT_CSS_PATH.read_text(encoding="utf-8")
+    return rendered_html, css_text, selected_variant
+
+
+def build_export_bundle(manifest: ProjectManifest) -> tuple[BytesIO, str]:
+    rendered_html, css_text, selected_variant = render_export_site(manifest)
+    brief = manifest.brief.to_dict()
     timestamp = datetime.now(UTC).isoformat()
     archive_name = _slugify(brief.get("name") or manifest.prompt or manifest.preview_id)
 

@@ -72,6 +72,16 @@
                 <span>Extra notes</span>
                 <textarea id="notes-input" name="notes" placeholder="Include pricing context, proof angle, visual references, constraints, or anything the taste engine should honor."></textarea>
             </label>
+            <label class="field field-large">
+                <span>Brand images</span>
+                <input id="brand-assets-input" name="brand_assets" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" multiple>
+                <small class="field-hint">Upload logos, icons, or reference images. The first image becomes the primary brand mark in the generated site.</small>
+            </label>
+            <div id="brand-assets-preview" class="asset-preview-grid field-large"></div>
+            <label class="field field-large">
+                <span>Icon style notes</span>
+                <textarea id="icon-style-input" name="icon_style" placeholder="Optional: rounded line icons, sharp monochrome symbols, soft editorial marks, app-style product icons, and so on."></textarea>
+            </label>
         </div>
 
         <div class="brief-actions">

@@ -4,8 +4,22 @@ from unittest.mock import patch
 from zipfile import ZipFile
 
 from app import create_app
+from app.services.ai_provider import AIProviderUnavailableError
 from app.services.contracts import ProjectManifest
+from app.services.manifest_service import MANIFEST_SERVICE
 from app.services.preview_store import PREVIEW_STORE
+from app.services.published_site_service import PUBLISHED_SITE_SERVICE
+
+
+def _brand_asset(name: str = "logo.svg", data_url: str | None = None):
+    return {
+        "id": "brand-asset-1",
+        "name": name,
+        "alt": "Northstar logo",
+        "mime_type": "image/svg+xml",
+        "data_url": data_url
+        or "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg==",
+    }
 
 
 def _variant(variant_id: str, template_key: str = "landing", art_direction: str = "modern_editorial", layout_mode: str = "split_hero"):
@@ -90,6 +104,8 @@ def _payload(preview_id: str):
             "name": "Northstar",
             "notes": "Lead with proof.",
             "prompt": "A startup landing page",
+            "brand_assets": [],
+            "icon_style": "",
         },
         "selected_variant_id": "variant-1",
         "variants": [
@@ -111,6 +127,7 @@ def _payload(preview_id: str):
 class RouteTests(unittest.TestCase):
     def setUp(self):
         PREVIEW_STORE.clear()
+        PUBLISHED_SITE_SERVICE.clear()
         self.app = create_app()
         self.client = self.app.test_client()
 
@@ -122,6 +139,13 @@ class RouteTests(unittest.TestCase):
         self.assertIn("Generate Studio", body)
         self.assertIn("Try Demo Prompt", body)
         self.assertIn("Pipeline progress", body)
+
+    def test_healthz_returns_ok(self):
+        response = self.client.get("/healthz")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["ok"], True)
+        self.assertEqual(data["service"], "velosite-ai")
 
     @patch("app.routes.generate_project_manifest")
     def test_generate_returns_variant_metadata(self, mocked_generate):
@@ -153,7 +177,34 @@ class RouteTests(unittest.TestCase):
         self.assertIn("Section layers", body)
         self.assertIn("Generation states", body)
 
-    def test_generate_accepts_prompt_only(self):
+    @patch("app.routes.generate_project_manifest")
+    def test_generate_forwards_brand_assets_and_icon_style(self, mocked_generate):
+        mocked_generate.return_value = ProjectManifest.from_dict(_payload("preview-branding"))
+        brand_asset = _brand_asset()
+        response = self.client.post(
+            "/generate",
+            json={
+                "prompt": "A startup landing page",
+                "brief": {
+                    "goal": "A startup landing page",
+                    "audience": "Founders",
+                    "brand_tone": "Clear and modern",
+                    "content_density": "balanced",
+                    "motion_level": "moderate",
+                    "brand_assets": [brand_asset],
+                    "icon_style": "Rounded product icons",
+                },
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        forwarded_brief = mocked_generate.call_args.kwargs["brief"]
+        self.assertEqual(forwarded_brief["icon_style"], "Rounded product icons")
+        self.assertEqual(len(forwarded_brief["brand_assets"]), 1)
+        self.assertEqual(forwarded_brief["brand_assets"][0]["data_url"], brand_asset["data_url"])
+
+    @patch("app.routes.generate_project_manifest")
+    def test_generate_accepts_prompt_only(self, mocked_generate):
+        mocked_generate.return_value = ProjectManifest.from_dict(_payload("preview-prompt-only"))
         response = self.client.post("/generate", json={"prompt": "A product launch page"})
         self.assertEqual(response.status_code, 200)
         data = response.get_json()
@@ -201,6 +252,29 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         body = response.get_data(as_text=True)
         self.assertIn("Remix 1", body)
+        self.assertIn("--theme-frame-background", body)
+        self.assertIn("Contact", body)
+        self.assertNotIn("Explore Flow", body)
+        self.assertNotIn("Distinct sections with actual jobs to do.", body)
+
+    def test_preview_frame_renders_uploaded_brand_asset(self):
+        payload = _payload("preview-brand-asset")
+        payload["brief"]["brand_assets"] = [_brand_asset()]
+        PREVIEW_STORE.set(preview_id="preview-brand-asset", prompt="Some prompt", payload=payload)
+        response = self.client.get("/preview/preview-brand-asset/frame")
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertIn("frame-brand-logo", body)
+        self.assertIn("data:image/svg+xml;base64", body)
+
+    def test_preview_frame_uses_top_anchor_for_brand_navigation(self):
+        PREVIEW_STORE.set(preview_id="preview-nav", prompt="Some prompt", payload=_payload("preview-nav"))
+        response = self.client.get("/preview/preview-nav/frame")
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertIn('id="page-top"', body)
+        self.assertIn('href="#page-top"', body)
+        self.assertIn('data-site-nav-link="true"', body)
 
     def test_export_returns_zip(self):
         PREVIEW_STORE.set(preview_id="preview-export", prompt="Some prompt", payload=_payload("preview-export"))
@@ -208,6 +282,29 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.mimetype, "application/zip")
         self.assertIn("attachment;", response.headers.get("Content-Disposition", ""))
+
+    def test_publish_returns_public_link_and_content(self):
+        PREVIEW_STORE.set(preview_id="preview-publish", prompt="Some prompt", payload=_payload("preview-publish"))
+        response = self.client.post("/preview/preview-publish/publish", json={"variant_id": "variant-2"})
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["ok"])
+        self.assertTrue(data["publish_id"])
+        self.assertIn("/published/", data["public_path"])
+        self.assertIn("http://localhost/published/", data["public_url"])
+
+        site_response = self.client.get(data["public_path"])
+        self.assertEqual(site_response.status_code, 200)
+        site_html = site_response.get_data(as_text=True)
+        self.assertIn("<!DOCTYPE html>", site_html)
+        self.assertIn("Build momentum", site_html)
+        self.assertNotIn("Variant variant-2", site_html)
+        self.assertNotIn("Open Project", site_html)
+        self.assertNotIn("Share Concept", site_html)
+
+        css_response = self.client.get(f"/published/{data['publish_id']}/assets/export-frame.css")
+        self.assertEqual(css_response.status_code, 200)
+        self.assertEqual(css_response.mimetype, "text/css")
 
     def test_regenerate_section_returns_updated_preview(self):
         PREVIEW_STORE.set(preview_id="preview-regen", prompt="Some prompt", payload=_payload("preview-regen"))
@@ -279,6 +376,24 @@ class RouteTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_branding_route_updates_brief_assets_and_icon_style(self):
+        PREVIEW_STORE.set(preview_id="preview-branding-update", prompt="Some prompt", payload=_payload("preview-branding-update"))
+        response = self.client.post(
+            "/preview/preview-branding-update/branding",
+            json={
+                "brief": {
+                    "brand_assets": [_brand_asset("brand-mark.svg")],
+                    "icon_style": "Sharp monochrome icons",
+                }
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        updated = PREVIEW_STORE.get("preview-branding-update")
+        brief = updated["payload"]["brief"]
+        self.assertEqual(brief["icon_style"], "Sharp monochrome icons")
+        self.assertEqual(len(brief["brand_assets"]), 1)
+        self.assertEqual(brief["brand_assets"][0]["name"], "brand-mark.svg")
+
     def test_export_applies_saved_overrides(self):
         PREVIEW_STORE.set(preview_id="preview-export-edit", prompt="Some prompt", payload=_payload("preview-export-edit"))
         self.client.post(
@@ -318,9 +433,8 @@ class RouteTests(unittest.TestCase):
         variant = updated["payload"]["variants"][0]
         self.assertEqual(variant["content_overrides"]["hero_title"], "Sticky override")
 
-    @patch("app.services.ai_engine.get_default_provider")
-    def test_generate_handles_unavailable_ai_by_falling_back(self, mocked_provider):
-        mocked_provider.return_value = None
+    @patch("app.services.ai_engine.get_default_provider", return_value=None)
+    def test_generate_falls_back_when_ai_is_missing(self, mocked_provider):
         response = self.client.post(
             "/generate",
             json={
@@ -335,9 +449,103 @@ class RouteTests(unittest.TestCase):
             },
         )
         self.assertEqual(response.status_code, 200)
-        preview_url = response.get_json()["preview_url"]
-        preview_response = self.client.get(preview_url)
-        self.assertEqual(preview_response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["preview_id"])
+        generate_stage = next(stage for stage in data["statuses"] if stage["key"] == "generate")
+        self.assertIn("Gemini was unavailable", generate_stage["detail"])
+        manifest = MANIFEST_SERVICE.get(data["preview_id"])
+        self.assertIsNotNone(manifest)
+        self.assertTrue(manifest.variants[0].content.validation.fallback_used)
+
+    @patch("app.routes.configured_api_key_count", return_value=1)
+    @patch("app.routes.generate_project_manifest")
+    def test_generate_sanitizes_quota_errors_for_single_key(self, mocked_generate, mocked_key_count):
+        mocked_generate.side_effect = AIProviderUnavailableError(
+            "Gemini generation is unavailable because the configured API key is out of quota or rate-limited. "
+            "Tried models: gemini-2.5-flash-lite, gemini-2.5-flash. Set GEMINI_MODEL to a model with available quota. "
+            "Last error: ResourceExhausted: 429 quota exceeded."
+        )
+        response = self.client.post(
+            "/generate",
+            json={
+                "prompt": "A startup landing page",
+                "brief": {
+                    "goal": "A startup landing page",
+                    "audience": "Founders",
+                    "brand_tone": "Clear and modern",
+                    "content_density": "balanced",
+                    "motion_level": "moderate",
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 503)
+        data = response.get_json()
+        self.assertEqual(
+            data["error"],
+            "Gemini generation is temporarily unavailable because the only configured API key is out of quota. Add another Gemini key to enable rotation, or try again after the quota resets.",
+        )
+        self.assertNotIn("Tried models", data["error"])
+        self.assertNotIn("ResourceExhausted", data["error"])
+        self.assertNotIn("GEMINI_MODEL", data["error"])
+
+    @patch("app.routes.configured_api_key_count", return_value=3)
+    @patch("app.routes.generate_project_manifest")
+    def test_generate_sanitizes_quota_errors_for_multiple_keys(self, mocked_generate, mocked_key_count):
+        mocked_generate.side_effect = AIProviderUnavailableError(
+            "Gemini generation is unavailable because all configured API keys are out of quota or rate-limited. "
+            "Tried APIs: api#1, api#2, api#3. Last error: ResourceExhausted: 429 quota exceeded."
+        )
+        response = self.client.post(
+            "/generate",
+            json={
+                "prompt": "A startup landing page",
+                "brief": {
+                    "goal": "A startup landing page",
+                    "audience": "Founders",
+                    "brand_tone": "Clear and modern",
+                    "content_density": "balanced",
+                    "motion_level": "moderate",
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(
+            response.get_json()["error"],
+            "Gemini generation is temporarily unavailable because all configured API keys are out of quota. Add another Gemini key or try again after the quota resets.",
+        )
+
+
+class AppStartupLoggingTests(unittest.TestCase):
+    @patch("app.services.ai_provider.configured_api_key_sources", return_value=("GEMINI_API_KEY",))
+    @patch("app.services.ai_provider.configured_api_key_count", return_value=1)
+    def test_create_app_logs_warning_when_only_one_key_is_configured(self, mocked_count, mocked_sources):
+        with self.assertLogs("app", level="WARNING") as captured:
+            create_app()
+
+        self.assertIn(
+            "ai.provider.startup configured_gemini_keys=1 sources=GEMINI_API_KEY",
+            "\n".join(captured.output),
+        )
+        mocked_count.assert_called_once_with()
+        mocked_sources.assert_called_once_with()
+
+    @patch(
+        "app.services.ai_provider.configured_api_key_sources",
+        return_value=("GEMINI_API_KEY_1", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3"),
+    )
+    @patch("app.services.ai_provider.configured_api_key_count", return_value=3)
+    def test_create_app_logs_info_when_multiple_keys_are_configured(self, mocked_count, mocked_sources):
+        with self.assertLogs("app", level="INFO") as captured:
+            create_app()
+
+        self.assertIn(
+            "ai.provider.startup configured_gemini_keys=3 sources=GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_API_KEY_3",
+            "\n".join(captured.output),
+        )
+        mocked_count.assert_called_once_with()
+        mocked_sources.assert_called_once_with()
 
 
 if __name__ == "__main__":

@@ -1,6 +1,16 @@
 const form = document.getElementById("generate-form");
 
 if (form) {
+    const MAX_BRAND_ASSETS = 4;
+    const MAX_BRAND_ASSET_BYTES = 1024 * 1024;
+    const ALLOWED_BRAND_ASSET_TYPES = new Set([
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+        "image/gif",
+        "image/svg+xml",
+    ]);
+
     const configEl = document.getElementById("home-config");
     const config = configEl ? JSON.parse(configEl.textContent) : {};
 
@@ -17,6 +27,9 @@ if (form) {
     const motionInput = document.getElementById("motion-input");
     const nameInput = document.getElementById("name-input");
     const notesInput = document.getElementById("notes-input");
+    const brandAssetsInput = document.getElementById("brand-assets-input");
+    const brandAssetsPreview = document.getElementById("brand-assets-preview");
+    const iconStyleInput = document.getElementById("icon-style-input");
     const demoBrief = config.demoBrief || {};
 
     let pipelineTicker = null;
@@ -115,6 +128,89 @@ if (form) {
         statusText.textContent = message || "";
     }
 
+    function fileToDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result || ""));
+            reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function inferredMimeType(file) {
+        if (file.type) {
+            return file.type;
+        }
+        const lowerName = String(file.name || "").toLowerCase();
+        if (lowerName.endsWith(".svg")) {
+            return "image/svg+xml";
+        }
+        if (lowerName.endsWith(".png")) {
+            return "image/png";
+        }
+        if (lowerName.endsWith(".webp")) {
+            return "image/webp";
+        }
+        if (lowerName.endsWith(".gif")) {
+            return "image/gif";
+        }
+        if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) {
+            return "image/jpeg";
+        }
+        return "";
+    }
+
+    function renderAssetPreview(assets) {
+        if (!brandAssetsPreview) {
+            return;
+        }
+        brandAssetsPreview.innerHTML = "";
+        const items = Array.isArray(assets) ? assets : [];
+        if (!items.length) {
+            brandAssetsPreview.innerHTML = '<p class="asset-preview-empty">No brand images selected yet.</p>';
+            return;
+        }
+        items.forEach((asset, index) => {
+            const card = document.createElement("figure");
+            card.className = "asset-preview-card";
+            const image = document.createElement("img");
+            image.src = asset.data_url;
+            image.alt = asset.alt || asset.name || `Brand asset ${index + 1}`;
+            const caption = document.createElement("figcaption");
+            caption.textContent = `${asset.name || `Brand asset ${index + 1}`}${index === 0 ? " • Primary mark" : ""}`;
+            card.appendChild(image);
+            card.appendChild(caption);
+            brandAssetsPreview.appendChild(card);
+        });
+    }
+
+    async function serializeBrandAssets(fileList) {
+        const files = Array.from(fileList || []).slice(0, MAX_BRAND_ASSETS);
+        if (!files.length) {
+            return [];
+        }
+
+        const invalidType = files.find((file) => !ALLOWED_BRAND_ASSET_TYPES.has(inferredMimeType(file)));
+        if (invalidType) {
+            throw new Error(`${invalidType.name} is not a supported image type.`);
+        }
+
+        const oversized = files.find((file) => file.size > MAX_BRAND_ASSET_BYTES);
+        if (oversized) {
+            throw new Error(`${oversized.name} is too large. Keep each image under 1 MB.`);
+        }
+
+        return Promise.all(
+            files.map(async (file, index) => ({
+                id: `brand-asset-${index + 1}`,
+                name: file.name,
+                alt: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " "),
+                mime_type: inferredMimeType(file),
+                data_url: await fileToDataUrl(file),
+            }))
+        );
+    }
+
     document.querySelectorAll("[data-sample]").forEach((chip) => {
         chip.addEventListener("click", () => {
             goalInput.value = chip.getAttribute("data-sample");
@@ -142,8 +238,33 @@ if (form) {
         });
     }
 
+    if (brandAssetsInput) {
+        brandAssetsInput.addEventListener("change", async () => {
+            try {
+                const assets = await serializeBrandAssets(brandAssetsInput.files);
+                renderAssetPreview(assets);
+                if (brandAssetsInput.files.length > MAX_BRAND_ASSETS) {
+                    setBusy(false, `Using the first ${MAX_BRAND_ASSETS} brand images.`);
+                } else {
+                    setBusy(false, assets.length ? "Brand images ready for generation." : "");
+                }
+            } catch (error) {
+                brandAssetsInput.value = "";
+                renderAssetPreview([]);
+                setBusy(false, error.message || "Could not load brand images.");
+            }
+        });
+    }
+
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
+        let brandAssets = [];
+        try {
+            brandAssets = await serializeBrandAssets(brandAssetsInput ? brandAssetsInput.files : []);
+        } catch (error) {
+            setBusy(false, error.message || "Could not load brand images.");
+            return;
+        }
         const brief = {
             goal: goalInput.value.trim(),
             audience: audienceInput.value.trim(),
@@ -152,6 +273,8 @@ if (form) {
             motion_level: motionInput.value,
             name: nameInput.value.trim(),
             notes: notesInput.value.trim(),
+            brand_assets: brandAssets,
+            icon_style: iconStyleInput ? iconStyleInput.value.trim() : "",
         };
         if (!brief.goal || !brief.audience || !brief.brand_tone) {
             setBusy(false, "Goal, audience, and brand tone are required.");
@@ -182,4 +305,5 @@ if (form) {
     });
 
     resetPipeline();
+    renderAssetPreview([]);
 }

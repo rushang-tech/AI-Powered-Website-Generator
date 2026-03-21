@@ -4,9 +4,10 @@ import json
 from dataclasses import replace
 from copy import deepcopy
 from types import SimpleNamespace
+from typing import Any
 from uuid import uuid4
 
-from app.services.ai_provider import AIProvider, get_default_provider
+from app.services.ai_provider import AIProvider, AIProviderUnavailableError, get_default_provider, require_default_provider
 from app.services.contracts import (
     GeneratedContent,
     GenerationStage,
@@ -26,56 +27,89 @@ THEME_MAP: dict[str, dict[str, str]] = {
     "modern_editorial": {
         "key": "modern_editorial",
         "name": "Modern Editorial",
-        "canvas_background": "linear-gradient(180deg, #f7f4ee 0%, #f1ede4 100%)",
-        "panel_background": "rgba(255, 252, 247, 0.88)",
-        "surface": "#fffaf2",
-        "surface_alt": "#f2ece1",
-        "text": "#191816",
-        "muted": "#645e56",
-        "accent": "#a16e36",
-        "accent_soft": "rgba(161, 110, 54, 0.12)",
-        "border": "rgba(25, 24, 22, 0.12)",
-        "button_bg": "#191816",
-        "button_text": "#fdf9f2",
-        "shadow": "0 22px 60px rgba(44, 36, 23, 0.12)",
+        "canvas_background": "linear-gradient(180deg, #eff3f8 0%, #dde4ec 100%)",
+        "panel_background": "rgba(252, 254, 255, 0.88)",
+        "surface": "#fbfdff",
+        "surface_alt": "#eef3f8",
+        "text": "#111827",
+        "muted": "#586273",
+        "accent": "#88d92f",
+        "accent_soft": "rgba(136, 217, 47, 0.16)",
+        "border": "rgba(17, 24, 39, 0.12)",
+        "button_bg": "#111827",
+        "button_text": "#f7fafc",
+        "shadow": "0 22px 60px rgba(29, 45, 68, 0.12)",
         "display_font": "'Cormorant Garamond', serif",
         "body_font": "'Space Grotesk', sans-serif",
+        "frame_background": "linear-gradient(180deg, rgba(244, 248, 252, 0.98) 0%, rgba(224, 232, 241, 0.98) 100%)",
+        "frame_border": "rgba(17, 24, 39, 0.1)",
+        "frame_glow": "0 24px 80px rgba(39, 54, 74, 0.14)",
+        "backdrop_overlay": "linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(136, 217, 47, 0.05))",
+        "spotlight": "radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.82), transparent 34%)",
+        "card_fill": "rgba(255, 255, 255, 0.9)",
+        "card_stroke": "rgba(17, 24, 39, 0.08)",
+        "pill_background": "rgba(249, 252, 255, 0.86)",
+        "button_shadow": "0 16px 36px rgba(17, 24, 39, 0.16)",
+        "section_radius": "22px",
+        "card_radius": "18px",
     },
     "luxury_serif": {
         "key": "luxury_serif",
         "name": "Luxury Serif",
-        "canvas_background": "radial-gradient(circle at top, rgba(186, 151, 98, 0.22), transparent 40%), linear-gradient(180deg, #f5eee5 0%, #efe2d2 100%)",
-        "panel_background": "rgba(253, 247, 240, 0.9)",
-        "surface": "#fdf5eb",
-        "surface_alt": "#f2e5d4",
-        "text": "#33261a",
-        "muted": "#735b47",
-        "accent": "#9c7448",
-        "accent_soft": "rgba(156, 116, 72, 0.12)",
-        "border": "rgba(51, 38, 26, 0.12)",
-        "button_bg": "#33261a",
-        "button_text": "#f8f0e4",
-        "shadow": "0 26px 60px rgba(60, 40, 17, 0.15)",
+        "canvas_background": "radial-gradient(circle at top, rgba(228, 190, 121, 0.18), transparent 36%), linear-gradient(180deg, #161110 0%, #261a14 100%)",
+        "panel_background": "rgba(28, 20, 16, 0.78)",
+        "surface": "#1d1512",
+        "surface_alt": "#2d211b",
+        "text": "#f7ead7",
+        "muted": "#c1aa8f",
+        "accent": "#dfb36c",
+        "accent_soft": "rgba(223, 179, 108, 0.18)",
+        "border": "rgba(223, 179, 108, 0.16)",
+        "button_bg": "#dfb36c",
+        "button_text": "#17110d",
+        "shadow": "0 30px 80px rgba(0, 0, 0, 0.34)",
         "display_font": "'Cormorant Garamond', serif",
         "body_font": "'Manrope', sans-serif",
+        "frame_background": "linear-gradient(180deg, rgba(24, 17, 15, 0.98) 0%, rgba(40, 29, 23, 0.98) 100%)",
+        "frame_border": "rgba(223, 179, 108, 0.14)",
+        "frame_glow": "0 28px 82px rgba(4, 2, 1, 0.4)",
+        "backdrop_overlay": "linear-gradient(160deg, rgba(255, 245, 230, 0.06), rgba(223, 179, 108, 0.12))",
+        "spotlight": "radial-gradient(circle at 78% 4%, rgba(255, 232, 198, 0.16), transparent 28%)",
+        "card_fill": "rgba(31, 23, 18, 0.86)",
+        "card_stroke": "rgba(223, 179, 108, 0.12)",
+        "pill_background": "rgba(40, 29, 23, 0.9)",
+        "button_shadow": "0 18px 42px rgba(223, 179, 108, 0.14)",
+        "section_radius": "18px",
+        "card_radius": "16px",
     },
     "playful_blocks": {
         "key": "playful_blocks",
         "name": "Playful Blocks",
-        "canvas_background": "linear-gradient(135deg, #fff8dc 0%, #fde8c8 35%, #fff2f7 100%)",
-        "panel_background": "rgba(255, 252, 244, 0.9)",
-        "surface": "#fffef8",
-        "surface_alt": "#fff1cf",
-        "text": "#1f2f49",
-        "muted": "#48658c",
-        "accent": "#ff9f1c",
-        "accent_soft": "rgba(255, 159, 28, 0.18)",
-        "border": "rgba(31, 47, 73, 0.16)",
-        "button_bg": "#1f2f49",
-        "button_text": "#fff7dd",
-        "shadow": "8px 8px 0 rgba(31, 47, 73, 0.18)",
+        "canvas_background": "linear-gradient(135deg, #fff4bf 0%, #ffd1cb 46%, #c9f4ff 100%)",
+        "panel_background": "rgba(255, 250, 240, 0.92)",
+        "surface": "#fffdf8",
+        "surface_alt": "#ffe79b",
+        "text": "#172b57",
+        "muted": "#395c92",
+        "accent": "#ff5a36",
+        "accent_soft": "rgba(255, 90, 54, 0.18)",
+        "border": "rgba(23, 43, 87, 0.18)",
+        "button_bg": "#2251d1",
+        "button_text": "#fff7d6",
+        "shadow": "10px 10px 0 rgba(23, 43, 87, 0.2)",
         "display_font": "'Bricolage Grotesque', sans-serif",
         "body_font": "'Manrope', sans-serif",
+        "frame_background": "linear-gradient(135deg, rgba(255, 247, 220, 0.98) 0%, rgba(255, 209, 203, 0.98) 56%, rgba(201, 244, 255, 0.98) 100%)",
+        "frame_border": "rgba(23, 43, 87, 0.14)",
+        "frame_glow": "0 22px 58px rgba(23, 43, 87, 0.16)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(255, 255, 255, 0.24), rgba(34, 81, 209, 0.08))",
+        "spotlight": "radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.82), transparent 26%)",
+        "card_fill": "rgba(255, 254, 248, 0.92)",
+        "card_stroke": "rgba(23, 43, 87, 0.14)",
+        "pill_background": "rgba(255, 255, 255, 0.72)",
+        "button_shadow": "8px 10px 0 rgba(23, 43, 87, 0.16)",
+        "section_radius": "28px",
+        "card_radius": "22px",
     },
     "cyber_signal": {
         "key": "cyber_signal",
@@ -94,42 +128,191 @@ THEME_MAP: dict[str, dict[str, str]] = {
         "shadow": "0 26px 80px rgba(1, 15, 26, 0.55)",
         "display_font": "'Space Grotesk', sans-serif",
         "body_font": "'Manrope', sans-serif",
+        "frame_background": "linear-gradient(180deg, rgba(8, 18, 31, 0.98) 0%, rgba(5, 11, 19, 0.98) 100%)",
+        "frame_border": "rgba(57, 224, 201, 0.16)",
+        "frame_glow": "0 32px 96px rgba(0, 14, 28, 0.6)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(8, 18, 31, 0.1), rgba(57, 224, 201, 0.08))",
+        "spotlight": "radial-gradient(circle at 84% 14%, rgba(57, 224, 201, 0.2), transparent 24%)",
+        "card_fill": "rgba(11, 22, 36, 0.78)",
+        "card_stroke": "rgba(57, 224, 201, 0.12)",
+        "pill_background": "rgba(8, 18, 31, 0.64)",
+        "button_shadow": "0 18px 42px rgba(0, 227, 204, 0.18)",
+        "section_radius": "28px",
+        "card_radius": "22px",
     },
     "brutalist_poster": {
         "key": "brutalist_poster",
         "name": "Brutalist Poster",
-        "canvas_background": "linear-gradient(135deg, #f4f1ea 0%, #e5e1d9 100%)",
-        "panel_background": "rgba(247, 243, 234, 0.92)",
-        "surface": "#f6f2ea",
-        "surface_alt": "#e8dfd0",
+        "canvas_background": "linear-gradient(135deg, #fff7ec 0%, #f0eadf 100%)",
+        "panel_background": "rgba(255, 249, 239, 0.94)",
+        "surface": "#fff8ee",
+        "surface_alt": "#efe1cd",
         "text": "#121212",
         "muted": "#565656",
-        "accent": "#e04b21",
-        "accent_soft": "rgba(224, 75, 33, 0.12)",
+        "accent": "#ff4a1f",
+        "accent_soft": "rgba(255, 74, 31, 0.16)",
         "border": "rgba(18, 18, 18, 0.18)",
         "button_bg": "#121212",
-        "button_text": "#f9f4ec",
-        "shadow": "10px 10px 0 rgba(18, 18, 18, 0.16)",
+        "button_text": "#fff7ec",
+        "shadow": "12px 12px 0 rgba(18, 18, 18, 0.18)",
         "display_font": "'Bricolage Grotesque', sans-serif",
         "body_font": "'Space Grotesk', sans-serif",
+        "frame_background": "linear-gradient(135deg, rgba(255, 247, 236, 0.98) 0%, rgba(240, 234, 223, 0.98) 100%)",
+        "frame_border": "rgba(18, 18, 18, 0.14)",
+        "frame_glow": "12px 14px 0 rgba(18, 18, 18, 0.12)",
+        "backdrop_overlay": "linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 74, 31, 0.1))",
+        "spotlight": "radial-gradient(circle at 16% 14%, rgba(255, 255, 255, 0.62), transparent 24%)",
+        "card_fill": "rgba(255, 250, 242, 0.94)",
+        "card_stroke": "rgba(18, 18, 18, 0.12)",
+        "pill_background": "rgba(255, 250, 242, 0.88)",
+        "button_shadow": "8px 10px 0 rgba(18, 18, 18, 0.18)",
+        "section_radius": "14px",
+        "card_radius": "12px",
     },
     "warm_gradient": {
         "key": "warm_gradient",
         "name": "Warm Gradient",
-        "canvas_background": "radial-gradient(circle at top left, rgba(255, 204, 120, 0.28), transparent 30%), linear-gradient(180deg, #fff4e7 0%, #ffe2db 50%, #ffeef2 100%)",
-        "panel_background": "rgba(255, 248, 241, 0.9)",
+        "canvas_background": "radial-gradient(circle at top left, rgba(255, 174, 120, 0.34), transparent 30%), linear-gradient(180deg, #fff1d7 0%, #ffc9b7 46%, #ffd9d5 100%)",
+        "panel_background": "rgba(255, 247, 238, 0.9)",
         "surface": "#fff8f1",
-        "surface_alt": "#ffe8de",
-        "text": "#2c1e1f",
-        "muted": "#715154",
-        "accent": "#ee7d57",
-        "accent_soft": "rgba(238, 125, 87, 0.13)",
-        "border": "rgba(44, 30, 31, 0.12)",
-        "button_bg": "#2c1e1f",
-        "button_text": "#fff5ef",
-        "shadow": "0 24px 68px rgba(126, 70, 45, 0.16)",
+        "surface_alt": "#ffd9c9",
+        "text": "#3a231f",
+        "muted": "#85584f",
+        "accent": "#f26d3d",
+        "accent_soft": "rgba(242, 109, 61, 0.16)",
+        "border": "rgba(58, 35, 31, 0.12)",
+        "button_bg": "#f26d3d",
+        "button_text": "#fff8f1",
+        "shadow": "0 24px 68px rgba(178, 94, 59, 0.2)",
         "display_font": "'Fraunces', serif",
         "body_font": "'Manrope', sans-serif",
+        "frame_background": "linear-gradient(180deg, rgba(255, 241, 215, 0.98) 0%, rgba(255, 215, 201, 0.98) 58%, rgba(255, 224, 219, 0.98) 100%)",
+        "frame_border": "rgba(145, 75, 48, 0.1)",
+        "frame_glow": "0 26px 72px rgba(178, 94, 59, 0.18)",
+        "backdrop_overlay": "linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(242, 109, 61, 0.1))",
+        "spotlight": "radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.82), transparent 28%)",
+        "card_fill": "rgba(255, 251, 245, 0.88)",
+        "card_stroke": "rgba(133, 88, 79, 0.1)",
+        "pill_background": "rgba(255, 244, 235, 0.84)",
+        "button_shadow": "0 18px 42px rgba(242, 109, 61, 0.2)",
+        "section_radius": "32px",
+        "card_radius": "26px",
+    },
+    "coastal_breeze": {
+        "key": "coastal_breeze",
+        "name": "Coastal Breeze",
+        "canvas_background": "radial-gradient(circle at top right, rgba(122, 210, 227, 0.26), transparent 30%), linear-gradient(180deg, #f4fbff 0%, #e7f7f7 52%, #f6f1e8 100%)",
+        "panel_background": "rgba(247, 252, 253, 0.84)",
+        "surface": "#f7fdff",
+        "surface_alt": "#e3f3f2",
+        "text": "#103549",
+        "muted": "#4f7081",
+        "accent": "#0ea5b7",
+        "accent_soft": "rgba(14, 165, 183, 0.14)",
+        "border": "rgba(16, 53, 73, 0.12)",
+        "button_bg": "#103549",
+        "button_text": "#eefcfe",
+        "shadow": "0 26px 72px rgba(28, 82, 102, 0.14)",
+        "display_font": "'Fraunces', serif",
+        "body_font": "'Space Grotesk', sans-serif",
+        "frame_background": "linear-gradient(180deg, rgba(244, 251, 255, 0.98) 0%, rgba(230, 246, 245, 0.98) 60%, rgba(245, 239, 231, 0.98) 100%)",
+        "frame_border": "rgba(16, 53, 73, 0.1)",
+        "frame_glow": "0 30px 82px rgba(21, 84, 109, 0.16)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(255, 255, 255, 0.32), rgba(14, 165, 183, 0.06))",
+        "spotlight": "radial-gradient(circle at 86% 10%, rgba(255, 255, 255, 0.74), transparent 26%)",
+        "card_fill": "rgba(248, 253, 254, 0.82)",
+        "card_stroke": "rgba(16, 53, 73, 0.08)",
+        "pill_background": "rgba(255, 255, 255, 0.7)",
+        "button_shadow": "0 18px 44px rgba(14, 165, 183, 0.18)",
+        "section_radius": "34px",
+        "card_radius": "26px",
+    },
+    "mono_signal": {
+        "key": "mono_signal",
+        "name": "Mono Signal",
+        "canvas_background": "linear-gradient(180deg, #f4f4f1 0%, #e9e9e4 100%)",
+        "panel_background": "rgba(252, 252, 248, 0.86)",
+        "surface": "#fbfbf7",
+        "surface_alt": "#ecece6",
+        "text": "#0e0f0d",
+        "muted": "#4e524b",
+        "accent": "#9de43a",
+        "accent_soft": "rgba(157, 228, 58, 0.16)",
+        "border": "rgba(14, 15, 13, 0.14)",
+        "button_bg": "#0e0f0d",
+        "button_text": "#f5f7ef",
+        "shadow": "0 24px 64px rgba(23, 25, 19, 0.12)",
+        "display_font": "'Space Grotesk', sans-serif",
+        "body_font": "'Manrope', sans-serif",
+        "frame_background": "linear-gradient(180deg, rgba(244, 244, 241, 0.98) 0%, rgba(233, 233, 228, 0.98) 100%)",
+        "frame_border": "rgba(14, 15, 13, 0.12)",
+        "frame_glow": "0 28px 78px rgba(23, 25, 19, 0.14)",
+        "backdrop_overlay": "linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(157, 228, 58, 0.04))",
+        "spotlight": "radial-gradient(circle at 18% 10%, rgba(255, 255, 255, 0.64), transparent 28%)",
+        "card_fill": "rgba(252, 252, 248, 0.84)",
+        "card_stroke": "rgba(14, 15, 13, 0.1)",
+        "pill_background": "rgba(247, 248, 242, 0.76)",
+        "button_shadow": "0 18px 40px rgba(14, 15, 13, 0.18)",
+        "section_radius": "18px",
+        "card_radius": "14px",
+    },
+    "botanical_noir": {
+        "key": "botanical_noir",
+        "name": "Botanical Noir",
+        "canvas_background": "radial-gradient(circle at top left, rgba(123, 168, 118, 0.18), transparent 28%), linear-gradient(180deg, #10231f 0%, #0d1a18 100%)",
+        "panel_background": "rgba(15, 31, 27, 0.84)",
+        "surface": "#122924",
+        "surface_alt": "#17352e",
+        "text": "#ecf4e8",
+        "muted": "#a6b7a4",
+        "accent": "#91c36f",
+        "accent_soft": "rgba(145, 195, 111, 0.16)",
+        "border": "rgba(145, 195, 111, 0.16)",
+        "button_bg": "#91c36f",
+        "button_text": "#10231f",
+        "shadow": "0 28px 84px rgba(4, 12, 10, 0.44)",
+        "display_font": "'Cormorant Garamond', serif",
+        "body_font": "'Manrope', sans-serif",
+        "frame_background": "linear-gradient(180deg, rgba(16, 35, 31, 0.98) 0%, rgba(13, 26, 24, 0.98) 100%)",
+        "frame_border": "rgba(145, 195, 111, 0.14)",
+        "frame_glow": "0 32px 92px rgba(3, 10, 8, 0.52)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(16, 35, 31, 0.14), rgba(145, 195, 111, 0.06))",
+        "spotlight": "radial-gradient(circle at 82% 12%, rgba(145, 195, 111, 0.16), transparent 24%)",
+        "card_fill": "rgba(18, 41, 36, 0.8)",
+        "card_stroke": "rgba(145, 195, 111, 0.1)",
+        "pill_background": "rgba(18, 34, 29, 0.78)",
+        "button_shadow": "0 18px 44px rgba(145, 195, 111, 0.16)",
+        "section_radius": "30px",
+        "card_radius": "22px",
+    },
+    "studio_pop": {
+        "key": "studio_pop",
+        "name": "Studio Pop",
+        "canvas_background": "radial-gradient(circle at top left, rgba(255, 125, 87, 0.22), transparent 30%), linear-gradient(135deg, #f7f2e8 0%, #e8eeff 48%, #fff2cf 100%)",
+        "panel_background": "rgba(252, 249, 242, 0.88)",
+        "surface": "#fffaf1",
+        "surface_alt": "#e7edff",
+        "text": "#13254d",
+        "muted": "#4b5d84",
+        "accent": "#2451ff",
+        "accent_soft": "rgba(36, 81, 255, 0.14)",
+        "border": "rgba(19, 37, 77, 0.14)",
+        "button_bg": "#2451ff",
+        "button_text": "#fff8ee",
+        "shadow": "0 26px 70px rgba(36, 81, 255, 0.16)",
+        "display_font": "'Bricolage Grotesque', sans-serif",
+        "body_font": "'Space Grotesk', sans-serif",
+        "frame_background": "linear-gradient(135deg, rgba(247, 242, 232, 0.98) 0%, rgba(231, 237, 255, 0.98) 52%, rgba(255, 242, 207, 0.98) 100%)",
+        "frame_border": "rgba(19, 37, 77, 0.12)",
+        "frame_glow": "0 28px 80px rgba(28, 44, 113, 0.18)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(36, 81, 255, 0.08))",
+        "spotlight": "radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.78), transparent 28%)",
+        "card_fill": "rgba(255, 250, 241, 0.86)",
+        "card_stroke": "rgba(19, 37, 77, 0.1)",
+        "pill_background": "rgba(255, 255, 255, 0.72)",
+        "button_shadow": "0 18px 46px rgba(36, 81, 255, 0.2)",
+        "section_radius": "22px",
+        "card_radius": "18px",
     },
 }
 
@@ -151,6 +334,8 @@ STATUS_BLUEPRINT = (
 SECTION_CONTENT_MAP: dict[str, tuple[str, ...]] = {
     "hero": ("hero_eyebrow", "hero_title", "hero_subtitle", "cta_text", "cta_note", "price_badge", "about_text"),
     "metrics": (
+        "metrics_title",
+        "metrics_intro",
         "stat_1_value",
         "stat_1_label",
         "stat_2_value",
@@ -158,13 +343,47 @@ SECTION_CONTENT_MAP: dict[str, tuple[str, ...]] = {
         "stat_3_value",
         "stat_3_label",
     ),
-    "features": ("features",),
-    "projects": ("projects",),
-    "pricing": ("offers",),
+    "features": ("features_title", "features_intro", "features"),
+    "projects": ("projects_title", "projects_intro", "projects"),
+    "pricing": ("pricing_title", "pricing_intro", "offers"),
     "proof": ("proof_quote", "proof_author"),
     "cta": ("cta_text", "cta_note"),
-    "about": ("about_text",),
-    "capabilities": ("capabilities",),
+    "about": ("about_title", "about_intro", "about_text"),
+    "capabilities": ("capabilities_title", "capabilities_intro", "capabilities"),
+}
+
+ART_DIRECTION_COPY_GUIDES: dict[str, str] = {
+    "modern_editorial": "Write with composed precision and clear sequencing. Let the copy feel sharp, spacious, and deliberate.",
+    "luxury_serif": "Write with restraint, texture, and premium confidence. Favor sensory details and elegant understatement.",
+    "playful_blocks": "Write with bright momentum and human warmth. Keep the energy upbeat without becoming childish filler.",
+    "cyber_signal": "Write with punch, contrast, and a sense of forward motion. Use crisp verbs and specific stakes.",
+    "brutalist_poster": "Write with tension and conviction. Prefer cut-down, decisive lines over polished corporate phrasing.",
+    "warm_gradient": "Write with optimism and emotional clarity. Make the brand feel welcoming, modern, and easy to trust.",
+    "coastal_breeze": "Write with lightness and clarity. Keep the tone fresh, breathable, and quietly premium.",
+    "mono_signal": "Write with precision and restraint. Favor short, exact phrasing with strong contrast and no fluff.",
+    "botanical_noir": "Write with calm confidence and tactile detail. Let the copy feel grounded, natural, and premium without drifting into cliches.",
+    "studio_pop": "Write with expressive rhythm and confident creative energy. Make the language feel designed, not merely descriptive.",
+}
+
+LAYOUT_COPY_GUIDES: dict[str, str] = {
+    "split_hero": "Open with a clear point of view, then let the supporting content widen the case.",
+    "staggered_bands": "Let each section shift the rhythm slightly so the page feels paced instead of repetitive.",
+    "immersive_layers": "Use more atmospheric and cinematic phrasing that rewards scrolling.",
+    "proof_first": "Earn trust immediately, then bring the pitch in after credibility is established.",
+    "editorial_casebook": "Treat the page like a curated body of work with a strong editorial spine.",
+    "masonry_showcase": "Let each project feel visually distinct and collectible rather than part of a flat list.",
+    "minimal_cv": "Stay precise and useful. Keep the language lean and grounded.",
+    "story_panels": "Make each section feel like a scene that adds a different layer to the narrative.",
+    "pricing_first": "Frame the buying decision clearly and make the offer structure easy to compare.",
+    "feature_scroll": "Reveal the product through workflow-oriented sections, not a generic feature dump.",
+    "contrast_split": "Balance premium positioning with practical proof so the page feels both elevated and usable.",
+    "launch_countdown": "Lean into urgency, anticipation, and release energy without sounding gimmicky.",
+}
+
+TEMPLATE_COPY_GUIDES: dict[str, str] = {
+    "landing": "The page should feel like a focused argument for one offer and one next step.",
+    "portfolio": "The page should feel like authored work with perspective, curation, and memorable framing.",
+    "product": "The page should make the product and pricing feel tangible fast, then deepen trust through proof.",
 }
 
 
@@ -182,17 +401,80 @@ def _taste_model(provider: AIProvider | None) -> object | None:
     return ProviderModelAdapter(provider)
 
 
+def _require_provider(provider: AIProvider | None, *, action: str) -> AIProvider:
+    if provider is not None:
+        return provider
+    return require_default_provider(action=action)
+
+
 def _slot_fallback(slot_name: str, *, render_plan: RenderPlan, brief: BriefInput) -> str:
-    name = brief.name or "your brand"
-    industry = render_plan.industry.title()
+    name = (brief.name or "your brand").strip()
+    industry = render_plan.industry.replace("_", " ").title()
     audience = (brief.audience or "general audiences").strip().lower()
     tone = (brief.brand_tone or render_plan.art_direction.replace("_", " ")).strip().lower()
+    art_direction = render_plan.art_direction.replace("_", " ")
+    template_defaults: dict[str, dict[str, str]] = {
+        "landing": {
+            "hero_title": f"{name.title()} makes {industry.lower()} feel considered." if brief.name else f"A sharper story for {industry}",
+            "hero_subtitle": f"A conversion-focused experience for {audience} with a {tone} rhythm and a clearer point of view.",
+            "cta_text": "See the Story",
+            "cta_note": "Lead with conviction, then let the details earn trust.",
+            "metrics_title": "Proof that gives the promise some weight.",
+            "metrics_intro": f"Ground the story with a few signals that help {audience} trust the next step.",
+            "features_title": f"Why {name.title()} lands." if brief.name else "Why the offer lands.",
+            "features_intro": f"Give {audience} concrete reasons to care, not a recycled feature list.",
+            "proof_quote": "It feels designed around the promise, not just arranged into sections.",
+            "proof_author": "Launch review",
+        },
+        "portfolio": {
+            "hero_title": f"{name.title()} builds work with a point of view." if brief.name else "A portfolio with editorial gravity.",
+            "hero_subtitle": f"Curated for {audience} with a {tone} voice that turns process into a memorable narrative.",
+            "cta_text": "View Projects",
+            "cta_note": "Let the craft feel authored before anyone reads the case studies.",
+            "projects_title": f"Selected work from {name.title()}." if brief.name else "Selected work with a point of view.",
+            "projects_intro": "Each project should show a different kind of judgment so the body of work feels memorable.",
+            "about_title": f"The practice behind {name.title()}." if brief.name else "The practice behind the work.",
+            "about_intro": "A short narrative that adds perspective and authorship beyond the project grid.",
+            "about_text": "A practice shaped by strategy, visual tension, and the patience to make digital work feel intentional.",
+            "capabilities_title": "Capabilities that hold the work together.",
+            "capabilities_intro": "Frame the supporting strengths like a system, not a generic services menu.",
+            "proof_quote": "It reads like a real body of work instead of a generic template fill.",
+            "proof_author": "Portfolio review",
+        },
+        "product": {
+            "hero_title": f"{name.title()} gives {industry.lower()} teams a cleaner operating surface." if brief.name else f"An easier way to launch {industry.lower()} workflows.",
+            "hero_subtitle": f"Built for {audience} with a {tone} launch story, sharper proof, and a product-first rhythm.",
+            "cta_text": "Start Free",
+            "cta_note": "Show the value quickly, then let pricing and proof carry the close.",
+            "metrics_title": "Signals that sharpen the buying decision.",
+            "metrics_intro": f"Show {audience} why the product matters before they compare the details.",
+            "features_title": f"What {name.title()} unlocks." if brief.name else "What the product unlocks.",
+            "features_intro": "Reveal the workflow, the advantage, and the payoff instead of listing generic functionality.",
+            "pricing_title": f"Pick the {name.title()} path." if brief.name else "Pick the right plan fast.",
+            "pricing_intro": "Make the tier story feel clear, credible, and easy to act on.",
+            "price_badge": "Launch pricing from $29/mo",
+            "proof_quote": "The product feels differentiated before the features even begin.",
+            "proof_author": "Beta tester",
+        },
+    }
     defaults = {
-        "hero_eyebrow": brief.brand_tone or render_plan.art_direction.replace("_", " ").title(),
+        "hero_eyebrow": brief.brand_tone or f"{art_direction.title()} system",
         "hero_title": f"{name.title()} for {industry}" if brief.name else f"Move faster in {industry}",
         "hero_subtitle": f"Built for {audience} with a {tone} voice.".strip(),
         "cta_text": "Start Now",
         "cta_note": "Generated as a studio-ready concept with editable sections.",
+        "metrics_title": "A few numbers with real signal.",
+        "metrics_intro": "Use concise proof points that reinforce the main story.",
+        "features_title": "Reasons to lean in.",
+        "features_intro": "Let each section build a different part of the case.",
+        "projects_title": "Selected work.",
+        "projects_intro": "Show range without losing the through-line.",
+        "pricing_title": "Clear paths forward.",
+        "pricing_intro": "Frame the options so the next move is obvious.",
+        "about_title": "A bit of context.",
+        "about_intro": "Add perspective without rehashing the hero.",
+        "capabilities_title": "The system behind it.",
+        "capabilities_intro": "Give the supporting strengths a coherent shape.",
         "about_text": "A focused practice that blends strategy, design, and delivery into a coherent digital story.",
         "price_badge": "Plans from $29/mo",
         "proof_quote": "This concept feels distinct, confident, and easy to build on.",
@@ -204,6 +486,7 @@ def _slot_fallback(slot_name: str, *, render_plan: RenderPlan, brief: BriefInput
         "stat_3_value": "1",
         "stat_3_label": "Studio workflow",
     }
+    defaults.update(template_defaults.get(render_plan.template_key, {}))
     return defaults.get(slot_name, slot_name.replace("_", " ").title())
 
 
@@ -211,27 +494,48 @@ def _default_list_items(list_name: str, *, render_plan: RenderPlan) -> list[dict
     industry = render_plan.industry.title()
     defaults = {
         "features": [
-            {"title": "Clear narrative", "desc": f"Frame {industry.lower()} value in a sharper story."},
-            {"title": "Adaptive sections", "desc": "Swap structure without rebuilding the whole page."},
-            {"title": "Studio controls", "desc": "Tune layout, motion, density, and section visibility quickly."},
+            {"title": "Sharper hook", "desc": f"Frame the {industry.lower()} promise with a stronger first impression and less generic copy."},
+            {"title": "Narrative sections", "desc": "Give each block a role in the story so the page feels authored, not assembled."},
+            {"title": "Visual range", "desc": "Use layout, pacing, and emphasis shifts so every section earns its space."},
         ],
         "offers": [
-            {"title": "Starter", "desc": "Essential structure for a fast launch.", "meta": "$29"},
-            {"title": "Growth", "desc": "More sections, richer proof, stronger conversion framing.", "meta": "$79"},
-            {"title": "Studio", "desc": "Full design-system range with layered storytelling.", "meta": "$149"},
+            {"title": "Starter", "desc": "A focused launch with the key story beats and one clear conversion path.", "meta": "$29"},
+            {"title": "Growth", "desc": "Richer proof, stronger positioning, and a more persuasive page rhythm.", "meta": "$79"},
+            {"title": "Signature", "desc": "A deeper experience with fuller storytelling, stronger systems, and more personality.", "meta": "$149"},
         ],
         "projects": [
-            {"title": "Identity Refresh", "desc": "A system-level redesign focused on clarity and confidence.", "meta": "Brand system"},
-            {"title": "Launch Experience", "desc": "A narrative-heavy site designed to win attention quickly.", "meta": "Web launch"},
-            {"title": "Conversion Narrative", "desc": "Messaging, structure, and proof aligned into one funnel.", "meta": "Growth design"},
+            {"title": "Signal Shift", "desc": "A system-level redesign that gave the work more tension, clarity, and recall.", "meta": "Brand system"},
+            {"title": "Launch Sequence", "desc": "A narrative-heavy site where structure, motion, and proof all reinforced the same promise.", "meta": "Web launch"},
+            {"title": "Conversion Story", "desc": "Messaging, hierarchy, and interaction rebuilt into one coherent decision path.", "meta": "Growth design"},
         ],
         "capabilities": [
-            {"title": "Strategy", "desc": "Translate positioning into structure and language."},
-            {"title": "Systems", "desc": "Build reusable patterns instead of one-off screens."},
-            {"title": "Execution", "desc": "Ship polished work with practical constraints in mind."},
+            {"title": "Positioning", "desc": "Turn strategy into a page architecture people can feel immediately."},
+            {"title": "Art direction", "desc": "Build a visual language that belongs to the brand instead of the template."},
+            {"title": "Delivery", "desc": "Ship polished systems that still respect practical product constraints."},
         ],
     }
     return defaults.get(list_name, [{"title": "Value", "desc": "Practical results for the audience."}])
+
+
+def _brand_asset_prompt_block(brief: BriefInput) -> str:
+    assets = brief.brand_assets or []
+    if not assets and not brief.icon_style:
+        return "- uploaded brand assets: none provided\n- icon direction: none provided"
+
+    asset_lines: list[str] = []
+    for asset in assets[:4]:
+        name = str(asset.get("name", "Brand asset")).strip() or "Brand asset"
+        mime_type = str(asset.get("mime_type", "image")).strip() or "image"
+        asset_lines.append(f"  - {name} ({mime_type})")
+
+    lines = [
+        "- uploaded brand assets:",
+        *(asset_lines or ["  - none provided"]),
+        f"- icon direction: {brief.icon_style or 'none provided'}",
+        "- Treat uploaded assets as implementation references in the final site. If their visual details are not explicitly described, do not invent exact colors or shapes.",
+        "- When useful, make feature or capability titles compact enough to work as badge or icon labels.",
+    ]
+    return "\n".join(lines)
 
 
 def _build_content_prompt(*, brief: BriefInput, render_plan: RenderPlan, theme_name: str) -> str:
@@ -248,6 +552,10 @@ def _build_content_prompt(*, brief: BriefInput, render_plan: RenderPlan, theme_n
 
     schema_blob = json.dumps(schema_example, indent=2)
     keywords = ", ".join(render_plan.keywords)
+    art_guide = ART_DIRECTION_COPY_GUIDES.get(render_plan.art_direction, "")
+    layout_guide = LAYOUT_COPY_GUIDES.get(render_plan.layout_mode, "")
+    template_guide = TEMPLATE_COPY_GUIDES.get(render_plan.template_key, "")
+    brand_guidance = _brand_asset_prompt_block(brief)
 
     return f"""
 You generate website copy as JSON only. No markdown.
@@ -263,10 +571,31 @@ Context:
 - vibe: {render_plan.vibe}
 - keywords: {keywords}
 - visual theme: {theme_name}
+- narrative goal: {template_guide}
+- art direction writing guide: {art_guide}
+- layout writing guide: {layout_guide}
 - project name: {brief.name or "Not provided"}
 - audience: {brief.audience}
 - tone: {brief.brand_tone}
+- branding guidance:
+{brand_guidance}
 - request: {brief.to_prompt_text()}
+
+Writing rules:
+- Make the site feel authored for this exact brand and audience, not like generic startup filler.
+- The finished result should read like a real launched website with clear hierarchy, not like a moodboard, poster, or abstract brand poem.
+- Think in website modules: a confident hero, a scannable proof or metrics block, a clear highlights/features section, and a decisive CTA.
+- Avoid empty phrases such as "innovative solutions", "cutting-edge", "seamless experience", "world-class", or "next-generation".
+- Let the art direction influence the language: editorial should feel composed, brutalist should feel decisive, cyber should feel electric, warm should feel human.
+- Write section titles and intros like real page copy, not placeholder labels. Avoid default headings like "Features", "Pricing", "Projects", or "About Us" unless the brief clearly calls for plain language.
+- Every section title slot must feel like a strong web headline with a distinct job to do: frame proof, introduce benefits, reduce friction, or tee up the next action.
+- Section titles should usually be 2 to 7 words, concrete, and easy to scan in a navigation-style website layout.
+- Make section intros do different jobs across the page: one can frame proof, another can create intrigue, another can reduce purchase friction.
+- Give each list item a distinct angle. Do not repeat the same idea with synonyms.
+- Keep hero titles punchy, memorable, and under 10 words when possible.
+- Keep CTA text short and active, usually 2 to 4 words.
+- Use concrete nouns, outcomes, and imagery instead of vague claims.
+- If uploaded brand assets or icon notes exist, keep the naming system compatible with a cohesive branded icon treatment.
 
 Return only JSON matching this schema shape:
 {schema_blob}
@@ -341,9 +670,18 @@ def _generate_content(
     brief: BriefInput,
     render_plan: RenderPlan,
     seed_content: dict[str, object] | None = None,
+    action: str = "Website generation",
+    allow_fallback_on_error: bool = False,
 ) -> GeneratedContent:
+    fallback_warning: str | None = None
     if provider is None:
-        return _validate_content(seed_content or {}, brief=brief, render_plan=render_plan)
+        content = _validate_content(seed_content or {}, brief=brief, render_plan=render_plan)
+        if action == "Website generation":
+            return _with_validation_warning(
+                content,
+                "Gemini was unavailable, so Studio generated local fallback copy for this concept.",
+            )
+        return content
 
     prompt = _build_content_prompt(
         brief=brief,
@@ -352,9 +690,43 @@ def _generate_content(
     )
     try:
         parsed = provider.generate_json(prompt)
-    except Exception:
-        parsed = seed_content or {}
-    return _validate_content(parsed, brief=brief, render_plan=render_plan)
+    except Exception as exc:
+        if allow_fallback_on_error:
+            parsed = seed_content or {}
+            fallback_warning = (
+                "Gemini was unavailable during generation, so Studio filled this concept with local fallback copy."
+            )
+        elif isinstance(exc, AIProviderUnavailableError):
+            raise
+        else:
+            raise AIProviderUnavailableError(
+                f"{action} is unavailable because the Gemini request failed."
+            ) from exc
+    content = _validate_content(parsed, brief=brief, render_plan=render_plan)
+    if fallback_warning:
+        return _with_validation_warning(content, fallback_warning)
+    return content
+
+
+def _with_validation_warning(content: GeneratedContent, warning: str) -> GeneratedContent:
+    normalized_warning = warning.strip()
+    if not normalized_warning:
+        return content
+
+    validation = content.validation
+    warnings = list(validation.warnings)
+    if normalized_warning not in warnings:
+        warnings.insert(0, normalized_warning)
+
+    return GeneratedContent(
+        data=content.data,
+        validation=ValidationResult(
+            valid=validation.valid,
+            errors=list(validation.errors),
+            warnings=warnings,
+            fallback_used=True,
+        ),
+    )
 
 
 def _variant_label(index: int, render_plan: RenderPlan) -> str:
@@ -621,7 +993,16 @@ Context:
 - template: {render_plan.template_key}
 - art direction: {render_plan.art_direction}
 - layout: {render_plan.layout_mode}
+- branding guidance:
+{_brand_asset_prompt_block(brief)}
 - instruction: {safe_instruction}
+
+Rules:
+- Keep the rewrite specific and brandable, not generic.
+- Match the cadence to the art direction and the structure to the layout.
+- Prefer vivid, concrete language over vague marketing filler.
+- Preserve the role of the original text so it still fits the design slot.
+- Keep the rewrite compatible with any uploaded brand assets and icon-direction notes.
 
 Return only the rewritten copy.
 Current copy:
@@ -630,7 +1011,7 @@ Current copy:
     try:
         rewritten = provider.generate_text(prompt).strip()
     except Exception:
-        rewritten = ""
+        return _fallback_text_rewrite(current_value, instruction=safe_instruction, is_cta=is_cta)
     return rewritten or _fallback_text_rewrite(current_value, instruction=safe_instruction, is_cta=is_cta)
 
 
@@ -671,6 +1052,14 @@ Context:
 - tone: {brief.brand_tone or render_plan.art_direction.replace("_", " ")}
 - motion: {render_plan.motion_level}
 - density: {render_plan.density}
+- branding guidance:
+{_brand_asset_prompt_block(brief)}
+
+Rules:
+- Make the section feel more intentional and visually suggestive.
+- Keep each item distinct and avoid generic B2B filler.
+- Stay concise enough to fit a designed layout.
+- Keep labels and phrasing compatible with a branded icon or badge system when the brief asks for it.
 
 Current section JSON:
 {schema_blob}
@@ -678,7 +1067,13 @@ Current section JSON:
     try:
         raw = provider.generate_json(prompt)
     except Exception:
-        raw = {}
+        improved: dict[str, Any] = {}
+        for path, value in current_slice.items():
+            if isinstance(value, str):
+                improved[path] = _fallback_text_rewrite(value, instruction="Improve this section")
+            elif isinstance(value, list):
+                improved[path] = deepcopy(value)
+        return improved
 
     improved = deepcopy(current_slice)
     if isinstance(raw, dict):
@@ -734,8 +1129,30 @@ def generate_project_manifest(
 
     variants: list[VariantPayload] = []
     for index, plan in enumerate(plans, start=1):
-        content = _generate_content(provider=provider, brief=brief_input, render_plan=plan)
+        content = _generate_content(
+            provider=provider,
+            brief=brief_input,
+            render_plan=plan,
+            action="Website generation",
+            allow_fallback_on_error=True,
+        )
         variants.append(_variant_payload(index=index, render_plan=plan, content=content))
+
+    statuses = _default_statuses()
+    if any(variant.content.validation.fallback_used for variant in variants):
+        statuses = [
+            GenerationStage(
+                key=stage.key,
+                label=stage.label,
+                state=stage.state,
+                detail=(
+                    "Gemini was unavailable, so Studio used deterministic routing and local fallback copy."
+                    if stage.key == "generate"
+                    else stage.detail
+                ),
+            )
+            for stage in statuses
+        ]
 
     return ProjectManifest(
         preview_id=preview_id,
@@ -743,7 +1160,7 @@ def generate_project_manifest(
         brief=brief_input,
         selected_variant_id=variants[0].variant_id if variants else "",
         variants=variants,
-        statuses=_default_statuses(),
+        statuses=statuses,
     )
 
 
@@ -795,6 +1212,8 @@ def apply_variant_override_to_manifest(
         brief=manifest.brief,
         render_plan=remixed_plan,
         seed_content=_resolved_content(target_variant, brief=manifest.brief).data,
+        action="Website remix",
+        allow_fallback_on_error=True,
     )
 
     next_variant = _variant_payload(
@@ -834,6 +1253,36 @@ def regenerate_manifest(
 ) -> ProjectManifest:
     provider = provider if provider is not None else get_default_provider()
     if scope == "all":
+        if provider is None:
+            refreshed_variants: list[VariantPayload] = []
+            for index, variant in enumerate(manifest.variants, start=1):
+                effective_plan = _resolved_render_plan(variant)
+                refreshed_content = _generate_content(
+                    provider=None,
+                    brief=manifest.brief,
+                    render_plan=effective_plan,
+                    seed_content=_resolved_content(variant, brief=manifest.brief, render_plan=effective_plan).data,
+                )
+                refreshed_variants.append(
+                    _variant_payload(
+                        index=index,
+                        render_plan=variant.render_plan,
+                        content=refreshed_content,
+                        variant_id=variant.variant_id,
+                        content_overrides=variant.content_overrides,
+                        layout_overrides=variant.layout_overrides,
+                        edited_nodes=variant.edited_nodes,
+                    )
+                )
+            return ProjectManifest(
+                preview_id=manifest.preview_id,
+                prompt=manifest.prompt,
+                brief=manifest.brief,
+                selected_variant_id=manifest.selected_variant_id,
+                variants=refreshed_variants,
+                statuses=_default_statuses(),
+            )
+
         fresh_manifest = generate_project_manifest(
             manifest.prompt,
             brief=manifest.brief,
@@ -873,12 +1322,22 @@ def regenerate_manifest(
     target_variant_id = variant_id or manifest.selected_variant_id
     target_variant = next((item for item in manifest.variants if item.variant_id == target_variant_id), manifest.variants[0])
     resolved_content = _resolved_content(target_variant, brief=manifest.brief).data
-    fresh_content = _generate_content(
-        provider=provider,
-        brief=manifest.brief,
-        render_plan=_resolved_render_plan(target_variant),
-        seed_content=resolved_content,
-    )
+    if provider is None:
+        fresh_content = _generate_content(
+            provider=None,
+            brief=manifest.brief,
+            render_plan=_resolved_render_plan(target_variant),
+            seed_content=resolved_content,
+        )
+    else:
+        fresh_content = _generate_content(
+            provider=provider,
+            brief=manifest.brief,
+            render_plan=_resolved_render_plan(target_variant),
+            seed_content=resolved_content,
+            action="Website regeneration",
+            allow_fallback_on_error=True,
+        )
     next_content = fresh_content.data
     next_overrides = dict(target_variant.content_overrides)
 
@@ -975,7 +1434,7 @@ def apply_canvas_command_to_manifest(
     next_layout_overrides = dict(target_variant.layout_overrides)
     next_edited_nodes = _record_edited_node(target_variant.edited_nodes, node_id)
     changed_paths: list[str] = []
-    provider = provider if provider is not None else get_default_provider()
+    provider = provider
 
     if action == "set_text":
         if not edit_path:
@@ -991,6 +1450,7 @@ def apply_canvas_command_to_manifest(
         next_content_overrides[edit_path] = sanitized
         changed_paths = [edit_path]
     elif action in {"rewrite_text", "rewrite_cta"}:
+        provider = _require_provider(provider, action="Copy rewrite")
         if not edit_path:
             raise ValueError("Edit path is required.")
         current_value = _get_path_value(resolved_content, edit_path)
@@ -1023,6 +1483,7 @@ def apply_canvas_command_to_manifest(
             raise ValueError("Only text nodes can be rewritten.")
         changed_paths = [edit_path]
     elif action == "improve_section":
+        provider = _require_provider(provider, action="Section improvement")
         if not section_name:
             raise ValueError("Section name is required.")
         improved = _improve_section_content(

@@ -3,7 +3,25 @@ services:
     name: velosite-ai
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python run.py
+    startCommand: python start_gunicorn.py
+    healthCheckPath: /healthz
+    autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
-        value: 3.13.0
+        value: 3.11.11
+      - key: PREVIEW_TTL_SECONDS
+        value: 3600
+      - key: PREVIEW_MAX_ITEMS
+        value: 200
+      - key: PREVIEW_KEY_PREFIX
+        value: velosite:preview
+      - key: PUBLISHED_TTL_SECONDS
+        value: 2592000
+      - key: PUBLISHED_MAX_ITEMS
+        value: 500
+      - key: PUBLISHED_KEY_PREFIX
+        value: velosite:published
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false

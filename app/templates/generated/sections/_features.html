@@ -1,16 +1,29 @@
+{% set is_consumer = consumer_mode|default(false) %}
+{% set features_title = selected_variant.content.features_title or ("What this delivers" if is_consumer else "Distinct sections with actual jobs to do.") %}
+{% set features_intro = selected_variant.content.features_intro or ("Each point should add a different reason to care." if is_consumer else "Every feature card should carry a different idea so the page keeps building meaning as people move through it.") %}
 <section
-    class="preview-section"
+    id="section-features"
+    class="preview-section section-features"
     data-section="features"
     data-node-id="section-features"
     data-node-type="section"
     data-section-name="features"
 >
     <div class="section-pad">
-        <p class="section-overline">Features</p>
-        <div class="section-grid-3">
+        <div class="section-header">
+            <div class="section-header-copy">
+                <p class="section-overline">{{ "Features" if is_consumer else "Why it lands" }}</p>
+                <h3 class="section-title" data-node-id="features-title" data-node-type="text" data-edit-path="features_title" data-section="features">{{ features_title }}</h3>
+                <p class="section-copy" data-node-id="features-intro" data-node-type="text" data-edit-path="features_intro" data-section="features">{{ features_intro }}</p>
+            </div>
+            {% if not is_consumer %}
+            <span class="section-chip">{{ selected_variant.render_plan.template_key|title }}</span>
+            {% endif %}
+        </div>
+        <div class="feature-grid">
             {% for feature in selected_variant.content.features %}
             <article
-                class="grid-card"
+                class="feature-card"
                 data-node-id="features-{{ loop.index0 }}"
                 data-node-type="list-item"
                 data-edit-path="features.{{ loop.index0 }}"
@@ -19,8 +32,12 @@
                 data-edit-fields="title,desc"
                 data-section="features"
             >
+                <div class="feature-card-head">
+                    <span class="feature-icon">{{ feature.title[:2]|upper }}</span>
+                    <span class="section-chip">{{ selected_variant.render_plan.art_direction|replace("_", " ")|title }}</span>
+                </div>
                 <h3 data-node-id="features-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.title" data-item-field="title" data-section="features">{{ feature.title }}</h3>
-                <p data-node-id="features-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.desc" data-item-field="desc" data-section="features">{{ feature.desc }}</p>
+                <p class="feature-copy" data-node-id="features-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.desc" data-item-field="desc" data-section="features">{{ feature.desc }}</p>
             </article>
             {% endfor %}
         </div>

@@ -110,6 +110,12 @@
     font-size: 0.84rem;
 }
 
+.field-hint {
+    color: var(--muted);
+    font-size: 0.76rem;
+    line-height: 1.5;
+}
+
 .field input,
 .field select,
 .field textarea {
@@ -124,6 +130,38 @@
 .field textarea {
     min-height: 132px;
     resize: vertical;
+}
+
+.asset-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.asset-preview-card {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+}
+
+.asset-preview-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: calc(var(--radius-sm) - 4px);
+    background: rgba(15, 23, 42, 0.04);
+}
+
+.asset-preview-card figcaption,
+.asset-preview-empty {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.76rem;
+    line-height: 1.45;
 }
 
 .field input:focus,

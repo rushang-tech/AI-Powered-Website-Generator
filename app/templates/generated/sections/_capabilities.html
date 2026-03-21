@@ -1,16 +1,29 @@
+{% set is_consumer = consumer_mode|default(false) %}
+{% set capabilities_title = selected_variant.content.capabilities_title or ("Capabilities" if is_consumer else "The supporting system behind the visible work.") %}
+{% set capabilities_intro = selected_variant.content.capabilities_intro or ("The core strengths that shape the work." if is_consumer else "Capabilities read better when they feel like a framework for the practice rather than a generic services list.") %}
 <section
-    class="preview-section"
+    id="section-capabilities"
+    class="preview-section section-capabilities"
     data-section="capabilities"
     data-node-id="section-capabilities"
     data-node-type="section"
     data-section-name="capabilities"
 >
     <div class="section-pad">
-        <p class="section-overline">Capabilities</p>
-        <div class="section-grid-3">
+        <div class="section-header">
+            <div class="section-header-copy">
+                <p class="section-overline">Capabilities</p>
+                <h3 class="section-title" data-node-id="capabilities-title" data-node-type="text" data-edit-path="capabilities_title" data-section="capabilities">{{ capabilities_title }}</h3>
+                <p class="section-copy" data-node-id="capabilities-intro" data-node-type="text" data-edit-path="capabilities_intro" data-section="capabilities">{{ capabilities_intro }}</p>
+            </div>
+            {% if not is_consumer %}
+            <span class="section-chip">{{ brief.brand_tone or "Clear and modern" }}</span>
+            {% endif %}
+        </div>
+        <div class="capability-grid">
             {% for item in selected_variant.content.capabilities %}
             <article
-                class="grid-card"
+                class="capability-card"
                 data-node-id="capabilities-{{ loop.index0 }}"
                 data-node-type="list-item"
                 data-edit-path="capabilities.{{ loop.index0 }}"
@@ -19,8 +32,11 @@
                 data-edit-fields="title,desc"
                 data-section="capabilities"
             >
-                <h3 data-node-id="capabilities-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="capabilities.{{ loop.index0 }}.title" data-item-field="title" data-section="capabilities">{{ item.title }}</h3>
-                <p data-node-id="capabilities-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="capabilities.{{ loop.index0 }}.desc" data-item-field="desc" data-section="capabilities">{{ item.desc }}</p>
+                <div class="capability-card-head">
+                    <h3 data-node-id="capabilities-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="capabilities.{{ loop.index0 }}.title" data-item-field="title" data-section="capabilities">{{ item.title }}</h3>
+                    <span class="section-index">{{ "%02d"|format(loop.index) }}</span>
+                </div>
+                <p class="capability-copy" data-node-id="capabilities-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="capabilities.{{ loop.index0 }}.desc" data-item-field="desc" data-section="capabilities">{{ item.desc }}</p>
             </article>
             {% endfor %}
         </div>
