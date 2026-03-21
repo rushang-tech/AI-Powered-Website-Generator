@@ -742,6 +742,20 @@ def _variant_summary(render_plan: RenderPlan) -> str:
     )
 
 
+def _conversation_history_block(messages: list[dict[str, Any]] | None) -> str:
+    if not messages:
+        return "- no prior conversation history"
+
+    lines: list[str] = []
+    for item in messages[-12:]:
+        role = str(item.get("role", "system")).strip().lower() or "system"
+        body = " ".join(str(item.get("body", "")).split()).strip()
+        if not body:
+            continue
+        lines.append(f"- {role}: {body[:320]}")
+    return "\n".join(lines) if lines else "- no prior conversation history"
+
+
 def _variant_payload(
     *,
     index: int,
@@ -1171,6 +1185,116 @@ def generate_website_content(
     overrides: dict[str, object] | None = None,
 ) -> dict[str, object]:
     return generate_project_manifest(user_prompt, brief=brief, overrides=overrides).to_dict()
+
+
+def continue_project_manifest(
+    current_manifest: ProjectManifest,
+    instruction: str,
+    variant_id: str | None = None,
+    *,
+    messages: list[dict[str, Any]] | None = None,
+    provider: AIProvider | None = None,
+) -> tuple[ProjectManifest, str]:
+    if not current_manifest.variants:
+        raise ValueError("Preview does not contain editable variants.")
+
+    target_variant_id = variant_id or current_manifest.selected_variant_id
+    target_variant = next(
+        (item for item in current_manifest.variants if item.variant_id == target_variant_id),
+        current_manifest.variants[0],
+    )
+    effective_plan = _resolved_render_plan(target_variant)
+    resolved_content = _resolved_content(
+        target_variant,
+        brief=current_manifest.brief,
+        render_plan=effective_plan,
+    ).data
+    provider = provider if provider is not None else get_default_provider()
+    cleaned_instruction = " ".join(str(instruction or "").split()).strip()
+    if not cleaned_instruction:
+        raise ValueError("A follow-up message is required.")
+
+    updated_content = deepcopy(resolved_content)
+    assistant_reply = "Updated the current direction and kept the existing project context intact."
+
+    if provider is None:
+        for slot_name in effective_plan.slot_schema.get("text_slots", []):
+            current_value = updated_content.get(slot_name)
+            if isinstance(current_value, str) and current_value.strip():
+                updated_content[slot_name] = _fallback_text_rewrite(
+                    current_value,
+                    instruction=cleaned_instruction,
+                    is_cta="cta" in slot_name,
+                )
+        assistant_reply = "Applied a local revision pass to the current direction using your latest note."
+    else:
+        content_schema = json.dumps(resolved_content, indent=2)
+        prompt = f"""
+You are continuing an existing website-generation conversation.
+Return JSON only with this exact top-level shape:
+{{
+  "assistant_reply": "short explanation of what changed",
+  "content": {content_schema}
+}}
+
+Context:
+- project name: {current_manifest.brief.name or "Not provided"}
+- audience: {current_manifest.brief.audience or "General audience"}
+- tone: {current_manifest.brief.brand_tone or effective_plan.art_direction.replace("_", " ")}
+- template: {effective_plan.template_key}
+- art direction: {effective_plan.art_direction}
+- layout: {effective_plan.layout_mode}
+- density: {effective_plan.density}
+- motion: {effective_plan.motion_level}
+- branding guidance:
+{_brand_asset_prompt_block(current_manifest.brief)}
+- recent conversation:
+{_conversation_history_block(messages)}
+- latest instruction: {cleaned_instruction}
+
+Rules:
+- Update only the current selected design direction.
+- Keep the result compatible with the same layout and slot structure.
+- Preserve what is already working unless the instruction clearly asks to change it.
+- Keep copy concrete, concise, and suitable for a designed website.
+- Keep CTA text short and active.
+- Do not add or remove JSON keys.
+""".strip()
+        try:
+            raw = provider.generate_json(prompt)
+            if isinstance(raw.get("assistant_reply"), str) and raw["assistant_reply"].strip():
+                assistant_reply = raw["assistant_reply"].strip()
+            candidate_content = raw.get("content")
+            if isinstance(candidate_content, dict):
+                updated_content = candidate_content
+        except Exception:
+            for slot_name in effective_plan.slot_schema.get("text_slots", []):
+                current_value = updated_content.get(slot_name)
+                if isinstance(current_value, str) and current_value.strip():
+                    updated_content[slot_name] = _fallback_text_rewrite(
+                        current_value,
+                        instruction=cleaned_instruction,
+                        is_cta="cta" in slot_name,
+                    )
+            assistant_reply = "Applied a best-effort local revision because the live AI continuation step was unavailable."
+
+    next_content = _validate_content(updated_content, brief=current_manifest.brief, render_plan=effective_plan)
+    next_variant = _variant_payload(
+        index=current_manifest.variants.index(target_variant) + 1,
+        render_plan=target_variant.render_plan,
+        content=next_content,
+        variant_id=target_variant.variant_id,
+        content_overrides={},
+        layout_overrides=target_variant.layout_overrides,
+        edited_nodes=target_variant.edited_nodes,
+    )
+    updated_manifest = _replace_variant(
+        current_manifest,
+        target_variant=target_variant,
+        next_variant=next_variant,
+        selected_variant_id=target_variant.variant_id,
+    )
+    return updated_manifest, assistant_reply
 
 
 def apply_variant_override_to_manifest(

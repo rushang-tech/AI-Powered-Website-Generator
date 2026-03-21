@@ -7,8 +7,25 @@ from threading import Lock
 from typing import Any, Callable
 from uuid import uuid4
 
-from flask import Blueprint, abort, current_app, g, jsonify, make_response, render_template, request, send_file, url_for
+from flask import (
+    Blueprint,
+    abort,
+    current_app,
+    flash,
+    g,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    send_file,
+    url_for,
+)
+from flask_login import current_user, login_required, login_user, logout_user
+from werkzeug.security import check_password_hash, generate_password_hash
 
+from app.extensions import db
+from app.models import User
 from app.services.ai_provider import AIProviderUnavailableError, configured_api_key_count
 from app.services.ai_engine import (
     TEMPLATE_CATALOG,
@@ -16,14 +33,29 @@ from app.services.ai_engine import (
     apply_canvas_command_to_manifest,
     apply_variant_override_to_manifest,
     build_preview_variant,
+    continue_project_manifest,
     generate_project_manifest,
     regenerate_manifest,
     selected_preview_data,
     status_blueprint,
 )
 from app.services.contracts import ProjectManifest
+from app.services.conversation_service import (
+    append_message,
+    create_conversation,
+    delete_conversation,
+    get_conversation_by_preview,
+    get_conversation_for_user,
+    history_messages,
+    list_recent_conversations,
+    manifest_from_conversation,
+    record_system_event,
+    rename_conversation,
+    save_manifest,
+    serialize_conversation_summary,
+    visible_messages,
+)
 from app.services.export_service import build_export_bundle, render_export_site
-from app.services.manifest_service import MANIFEST_SERVICE
 from app.services.published_site_service import PUBLISHED_SITE_SERVICE
 from app.services.taste_engine import LAYOUT_LIBRARY, normalize_brief
 
@@ -154,9 +186,41 @@ def _clean_bool(value: object) -> bool | None:
     return None
 
 
+def _safe_next_url(raw_value: object, *, fallback_endpoint: str = "main.index") -> str:
+    value = str(raw_value or "").strip()
+    if value.startswith("/") and not value.startswith("//"):
+        return value
+    return url_for(fallback_endpoint)
+
+
+def _user_defaults() -> dict[str, str]:
+    return {
+        "brand_tone": _clean_text(getattr(current_user, "default_brand_tone", ""), max_length=160),
+        "content_density": _clean_text(getattr(current_user, "default_content_density", "balanced"), max_length=24)
+        or "balanced",
+        "motion_level": _clean_text(getattr(current_user, "default_motion_level", "moderate"), max_length=24)
+        or "moderate",
+        "icon_style": _clean_text(getattr(current_user, "default_icon_style", ""), max_length=220),
+    }
+
+
+def _apply_user_defaults_to_brief(raw_brief: dict[str, object]) -> dict[str, object]:
+    brief = dict(raw_brief)
+    defaults = _user_defaults()
+    if not _clean_text(brief.get("brand_tone"), max_length=160):
+        brief["brand_tone"] = defaults["brand_tone"]
+    if not _clean_text(brief.get("content_density"), max_length=24):
+        brief["content_density"] = defaults["content_density"]
+    if not _clean_text(brief.get("motion_level"), max_length=24):
+        brief["motion_level"] = defaults["motion_level"]
+    if not _clean_text(brief.get("icon_style"), max_length=220):
+        brief["icon_style"] = defaults["icon_style"]
+    return brief
+
+
 def _normalized_brief(body: dict[str, object]) -> tuple[str, dict[str, object]]:
     prompt = _clean_text(body.get("prompt"), max_length=800)
-    raw_brief = _brief_payload(body)
+    raw_brief = _apply_user_defaults_to_brief(_brief_payload(body))
     brief = {
         "goal": _clean_text(raw_brief.get("goal"), max_length=300),
         "audience": _clean_text(raw_brief.get("audience"), max_length=160),
@@ -171,15 +235,199 @@ def _normalized_brief(body: dict[str, object]) -> tuple[str, dict[str, object]]:
     return prompt, brief
 
 
+def _recent_conversation_payload(*, active_conversation_id: int | None = None, limit: int = 12) -> list[dict[str, Any]]:
+    if not getattr(current_user, "is_authenticated", False):
+        return []
+
+    payload: list[dict[str, Any]] = []
+    for conversation in list_recent_conversations(current_user, limit=limit):
+        item = serialize_conversation_summary(conversation)
+        item["is_active"] = conversation.id == active_conversation_id
+        payload.append(item)
+    return payload
+
+
+def _conversation_for_preview(preview_id: str):
+    return get_conversation_by_preview(_clean_text(preview_id, max_length=80), current_user)
+
+
+def _conversation_for_preview_or_404(preview_id: str):
+    conversation = _conversation_for_preview(preview_id)
+    if not conversation:
+        abort(404)
+    return conversation
+
+
+def _conversation_for_preview_or_json(preview_id: str):
+    conversation = _conversation_for_preview(preview_id)
+    if not conversation:
+        return None, (jsonify({"error": "Preview not found."}), 404)
+    return conversation, None
+
+
+def _conversation_by_id_or_json(conversation_id: int):
+    conversation = get_conversation_for_user(conversation_id, current_user)
+    if not conversation:
+        return None, (jsonify({"error": "Conversation not found."}), 404)
+    return conversation, None
+
+
+def _initial_generation_message(prompt: str, brief: dict[str, object]) -> str:
+    goal = _clean_text(brief.get("goal"), max_length=220) or prompt
+    audience = _clean_text(brief.get("audience"), max_length=120)
+    tone = _clean_text(brief.get("brand_tone"), max_length=120)
+    pieces = [goal or "Create a new website project."]
+    if audience:
+        pieces.append(f"Audience: {audience}.")
+    if tone:
+        pieces.append(f"Tone: {tone}.")
+    return " ".join(piece for piece in pieces if piece)
+
+
+@main.route("/signup", methods=["GET", "POST"])
+def signup():
+    if current_user.is_authenticated:
+        return redirect(url_for("main.index"))
+
+    if request.method == "POST":
+        email = _clean_text(request.form.get("email"), max_length=255).lower()
+        password = str(request.form.get("password", ""))
+        display_name = _clean_text(request.form.get("display_name"), max_length=120)
+
+        if not email:
+            flash("Email is required.", "error")
+        elif len(password) < 8:
+            flash("Password must be at least 8 characters.", "error")
+        elif User.query.filter_by(email=email).first():
+            flash("That email is already registered.", "error")
+        else:
+            user = User(
+                email=email,
+                password_hash=generate_password_hash(password),
+                display_name=display_name,
+            )
+            db.session.add(user)
+            db.session.commit()
+            login_user(user)
+            flash("Your account is ready.", "success")
+            return redirect(_safe_next_url(request.args.get("next")))
+
+    return render_template("signup.html")
+
+
+@main.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("main.index"))
+
+    if request.method == "POST":
+        email = _clean_text(request.form.get("email"), max_length=255).lower()
+        password = str(request.form.get("password", ""))
+        user = User.query.filter_by(email=email).first()
+
+        if not user or not check_password_hash(user.password_hash, password):
+            flash("Email or password is incorrect.", "error")
+        else:
+            login_user(user)
+            flash("Welcome back.", "success")
+            return redirect(_safe_next_url(request.args.get("next")))
+
+    return render_template("login.html")
+
+
+@main.route("/logout", methods=["POST"])
+@login_required
+def logout():
+    logout_user()
+    flash("You have been logged out.", "success")
+    return redirect(url_for("main.login"))
+
+
 @main.route("/", methods=["GET"])
+@login_required
 def index():
     return render_template(
         "home.html",
+        hide_site_nav=True,
         examples=_example_prompts(),
         demo_brief=_demo_brief(),
         status_blueprint=status_blueprint(),
         density_options=["airy", "balanced", "dense"],
         motion_options=["calm", "moderate", "energetic"],
+        recent_conversations=_recent_conversation_payload(),
+        user_defaults=_user_defaults(),
+    )
+
+
+@main.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    if request.method == "POST":
+        action = _clean_text(request.form.get("action"), max_length=24).lower()
+
+        if action == "profile":
+            email = _clean_text(request.form.get("email"), max_length=255).lower()
+            display_name = _clean_text(request.form.get("display_name"), max_length=120)
+            brand_tone = _clean_text(request.form.get("default_brand_tone"), max_length=160)
+            density = _clean_text(request.form.get("default_content_density"), max_length=24).lower() or "balanced"
+            motion = _clean_text(request.form.get("default_motion_level"), max_length=24).lower() or "moderate"
+            icon_style = _clean_text(request.form.get("default_icon_style"), max_length=220)
+
+            existing = User.query.filter_by(email=email).first() if email else None
+            if not email:
+                flash("Email is required.", "error")
+            elif existing and existing.id != current_user.id:
+                flash("That email is already in use.", "error")
+            else:
+                current_user.email = email
+                current_user.display_name = display_name
+                current_user.default_brand_tone = brand_tone
+                current_user.default_content_density = density
+                current_user.default_motion_level = motion
+                current_user.default_icon_style = icon_style
+                db.session.add(current_user)
+                db.session.commit()
+                flash("Settings updated.", "success")
+                return redirect(url_for("main.settings"))
+
+        elif action == "password":
+            current_password = str(request.form.get("current_password", ""))
+            next_password = str(request.form.get("new_password", ""))
+            confirm_password = str(request.form.get("confirm_password", ""))
+
+            if not check_password_hash(current_user.password_hash, current_password):
+                flash("Current password is incorrect.", "error")
+            elif len(next_password) < 8:
+                flash("New password must be at least 8 characters.", "error")
+            elif next_password != confirm_password:
+                flash("New password confirmation does not match.", "error")
+            else:
+                current_user.password_hash = generate_password_hash(next_password)
+                db.session.add(current_user)
+                db.session.commit()
+                flash("Password updated.", "success")
+                return redirect(url_for("main.settings"))
+
+        elif action == "delete":
+            current_password = str(request.form.get("current_password", ""))
+            if not check_password_hash(current_user.password_hash, current_password):
+                flash("Current password is incorrect.", "error")
+            else:
+                user_id = current_user.id
+                logout_user()
+                user = db.session.get(User, user_id)
+                if user is not None:
+                    db.session.delete(user)
+                    db.session.commit()
+                flash("Your account and conversations were deleted.", "success")
+                return redirect(url_for("main.signup"))
+
+    conversation_count = len(list_recent_conversations(current_user, limit=500))
+    return render_template(
+        "settings.html",
+        density_options=["airy", "balanced", "dense"],
+        motion_options=["calm", "moderate", "energetic"],
+        conversation_count=conversation_count,
     )
 
 
@@ -188,7 +436,97 @@ def healthz():
     return jsonify({"ok": True, "service": "velosite-ai"}), 200
 
 
+@main.route("/conversations", methods=["GET"])
+@login_required
+def conversations():
+    return jsonify({"conversations": _recent_conversation_payload()})
+
+
+@main.route("/conversations/<int:conversation_id>/rename", methods=["POST"])
+@login_required
+def rename_user_conversation(conversation_id: int):
+    conversation, error = _conversation_by_id_or_json(conversation_id)
+    if error:
+        return error
+
+    body = request.get_json(silent=True) or {}
+    title = _clean_text(body.get("title"), max_length=120)
+    if not title:
+        return jsonify({"error": "Title is required."}), 400
+
+    rename_conversation(conversation, title)
+    return jsonify({"ok": True, "conversation": serialize_conversation_summary(conversation)})
+
+
+@main.route("/conversations/<int:conversation_id>", methods=["DELETE"])
+@login_required
+def delete_user_conversation(conversation_id: int):
+    conversation, error = _conversation_by_id_or_json(conversation_id)
+    if error:
+        return error
+
+    deleted_id = conversation.id
+    delete_conversation(conversation)
+    return jsonify({"ok": True, "deleted_id": deleted_id, "redirect_url": url_for("main.index")})
+
+
+@main.route("/conversations/<int:conversation_id>/messages", methods=["POST"])
+@login_required
+def continue_conversation(conversation_id: int):
+    conversation, error = _conversation_by_id_or_json(conversation_id)
+    if error:
+        return error
+
+    body = request.get_json(silent=True) or {}
+    instruction = _clean_text(body.get("message") or body.get("prompt"), max_length=1200)
+    variant_id = _clean_text(body.get("variant_id"), max_length=64) or None
+    if not instruction:
+        return jsonify({"error": "A follow-up message is required."}), 400
+
+    manifest = manifest_from_conversation(conversation)
+    try:
+        updated_manifest, assistant_reply = continue_project_manifest(
+            manifest,
+            instruction,
+            variant_id=variant_id,
+            messages=history_messages(conversation),
+        )
+    except AIProviderUnavailableError as exc:
+        body, status_code = _service_unavailable_response(exc)
+        return jsonify(body), status_code
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    save_manifest(conversation, updated_manifest, commit=False)
+    append_message(conversation, role="user", body=instruction, preview_id=updated_manifest.preview_id, commit=False)
+    append_message(
+        conversation,
+        role="assistant",
+        body=assistant_reply,
+        preview_id=updated_manifest.preview_id,
+        commit=False,
+    )
+    db.session.commit()
+
+    studio = selected_preview_data(updated_manifest)
+    return jsonify(
+        {
+            "ok": True,
+            "conversation_id": conversation.id,
+            "preview_id": updated_manifest.preview_id,
+            "preview_url": url_for("main.preview", preview_id=updated_manifest.preview_id),
+            "frame_url": url_for("main.preview_frame", preview_id=updated_manifest.preview_id),
+            "selected_variant_id": updated_manifest.selected_variant_id,
+            "selected_variant": studio.get("selected_variant", {}),
+            "messages": visible_messages(conversation),
+            "conversation": serialize_conversation_summary(conversation),
+            "recent_conversations": _recent_conversation_payload(active_conversation_id=conversation.id),
+        }
+    )
+
+
 @main.route("/generate", methods=["POST"])
+@login_required
 @observe_route("generate")
 def generate():
     body = request.get_json(silent=True) or {}
@@ -203,17 +541,20 @@ def generate():
     except AIProviderUnavailableError as exc:
         body, status_code = _service_unavailable_response(exc)
         return jsonify(body), status_code
-    preview_id = manifest.preview_id
-    if not preview_id:
-        return jsonify({"error": "Failed to generate preview ID."}), 500
 
-    MANIFEST_SERVICE.save(manifest)
-    preview_url = url_for("main.preview", preview_id=preview_id)
+    conversation = create_conversation(
+        current_user,
+        manifest=manifest,
+        user_message=_initial_generation_message(user_prompt, brief),
+    )
+
+    preview_url = url_for("main.preview", preview_id=manifest.preview_id)
     return jsonify(
         {
-            "preview_id": preview_id,
+            "conversation_id": conversation.id,
+            "preview_id": manifest.preview_id,
             "preview_url": preview_url,
-            "frame_url": url_for("main.preview_frame", preview_id=preview_id),
+            "frame_url": url_for("main.preview_frame", preview_id=manifest.preview_id),
             "selected_variant_id": manifest.selected_variant_id,
             "variants": [
                 {
@@ -230,11 +571,13 @@ def generate():
 
 
 @main.route("/preview/<preview_id>/branding", methods=["POST"])
+@login_required
 def update_branding(preview_id: str):
-    manifest = MANIFEST_SERVICE.get(preview_id)
-    if not manifest:
-        return jsonify({"error": "Preview not found."}), 404
+    conversation, error = _conversation_for_preview_or_json(preview_id)
+    if error:
+        return error
 
+    manifest = manifest_from_conversation(conversation)
     body = request.get_json(silent=True) or {}
     incoming = _brief_payload(body) if isinstance(body.get("brief"), dict) else body
 
@@ -253,7 +596,8 @@ def update_branding(preview_id: str):
         variants=manifest.variants,
         statuses=manifest.statuses,
     )
-    MANIFEST_SERVICE.save(updated)
+    save_manifest(conversation, updated)
+    record_system_event(conversation, "Updated brand assets or icon direction notes.")
     selected = selected_preview_data(updated).get("selected_variant", {})
 
     return jsonify(
@@ -269,11 +613,10 @@ def update_branding(preview_id: str):
 
 
 @main.route("/preview/<preview_id>", methods=["GET"])
+@login_required
 def preview(preview_id: str):
-    manifest = MANIFEST_SERVICE.get(preview_id)
-    if not manifest:
-        abort(404)
-
+    conversation = _conversation_for_preview_or_404(preview_id)
+    manifest = manifest_from_conversation(conversation)
     studio = selected_preview_data(manifest)
     selected_variant = studio.get("selected_variant") or {}
     render_plan = selected_variant.get("render_plan", {})
@@ -281,7 +624,12 @@ def preview(preview_id: str):
 
     return render_template(
         "preview_shell.html",
+        hide_site_nav=True,
         preview_id=preview_id,
+        conversation_id=conversation.id,
+        conversation=serialize_conversation_summary(conversation),
+        conversation_messages=visible_messages(conversation),
+        recent_conversations=_recent_conversation_payload(active_conversation_id=conversation.id),
         prompt=manifest.prompt,
         brief=studio.get("brief", {}),
         selected_variant=selected_variant,
@@ -299,10 +647,10 @@ def preview(preview_id: str):
 
 
 @main.route("/preview/<preview_id>/frame", methods=["GET"])
+@login_required
 def preview_frame(preview_id: str):
-    manifest = MANIFEST_SERVICE.get(preview_id)
-    if not manifest:
-        abort(404)
+    conversation = _conversation_for_preview_or_404(preview_id)
+    manifest = manifest_from_conversation(conversation)
 
     variant_id = _clean_text(request.args.get("variant_id"), max_length=64) or None
     remix_label = _clean_text(request.args.get("remix_label"), max_length=80) or None
@@ -330,14 +678,15 @@ def preview_frame(preview_id: str):
 
 
 @main.route("/preview/<preview_id>/override", methods=["POST"])
+@login_required
 def override_preview(preview_id: str):
-    manifest = MANIFEST_SERVICE.get(preview_id)
-    if not manifest:
-        return jsonify({"error": "Preview not found."}), 404
+    conversation, error = _conversation_for_preview_or_json(preview_id)
+    if error:
+        return error
 
+    manifest = manifest_from_conversation(conversation)
     body = request.get_json(silent=True) or {}
     variant_id = str(body.get("variant_id", "")).strip() or None
-
     overrides = _collect_overrides(body)
 
     try:
@@ -349,7 +698,9 @@ def override_preview(preview_id: str):
     except AIProviderUnavailableError as exc:
         body, status_code = _service_unavailable_response(exc)
         return jsonify(body), status_code
-    MANIFEST_SERVICE.save(updated)
+
+    save_manifest(conversation, updated)
+    record_system_event(conversation, "Applied layout or style overrides in Studio.")
     selected = selected_preview_data(updated).get("selected_variant", {})
 
     return jsonify(
@@ -365,11 +716,13 @@ def override_preview(preview_id: str):
 
 
 @main.route("/preview/<preview_id>/command", methods=["POST"])
+@login_required
 def canvas_command(preview_id: str):
-    manifest = MANIFEST_SERVICE.get(preview_id)
-    if not manifest:
-        return jsonify({"error": "Preview not found."}), 404
+    conversation, error = _conversation_for_preview_or_json(preview_id)
+    if error:
+        return error
 
+    manifest = manifest_from_conversation(conversation)
     body = request.get_json(silent=True) or {}
     action = _clean_text(body.get("action"), max_length=64).lower()
     variant_id = _clean_text(body.get("variant_id"), max_length=64) or None
@@ -407,7 +760,8 @@ def canvas_command(preview_id: str):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
-    MANIFEST_SERVICE.save(updated)
+    save_manifest(conversation, updated)
+    record_system_event(conversation, f"Applied Studio action: {action or 'edit'}.")
     selected = selected_preview_data(updated).get("selected_variant", {})
     return jsonify(
         {
@@ -422,12 +776,14 @@ def canvas_command(preview_id: str):
 
 
 @main.route("/preview/<preview_id>/regenerate", methods=["POST"])
+@login_required
 @observe_route("regenerate")
 def regenerate_preview(preview_id: str):
-    manifest = MANIFEST_SERVICE.get(preview_id)
-    if not manifest:
-        return jsonify({"error": "Preview not found."}), 404
+    conversation, error = _conversation_for_preview_or_json(preview_id)
+    if error:
+        return error
 
+    manifest = manifest_from_conversation(conversation)
     body = request.get_json(silent=True) or {}
     scope = _clean_text(body.get("scope"), max_length=32).lower() or "all"
     variant_id = _clean_text(body.get("variant_id"), max_length=64) or None
@@ -447,7 +803,9 @@ def regenerate_preview(preview_id: str):
     except AIProviderUnavailableError as exc:
         body, status_code = _service_unavailable_response(exc)
         return jsonify(body), status_code
-    MANIFEST_SERVICE.save(updated)
+
+    save_manifest(conversation, updated)
+    record_system_event(conversation, f"Regenerated {scope} for the current design direction.")
     selected = selected_preview_data(updated).get("selected_variant", {})
     return jsonify(
         {
@@ -462,12 +820,14 @@ def regenerate_preview(preview_id: str):
 
 
 @main.route("/preview/<preview_id>/publish", methods=["POST"])
+@login_required
 @observe_route("publish")
 def publish_preview(preview_id: str):
-    manifest = MANIFEST_SERVICE.get(preview_id)
-    if not manifest:
-        return jsonify({"error": "Preview not found."}), 404
+    conversation, error = _conversation_for_preview_or_json(preview_id)
+    if error:
+        return error
 
+    manifest = manifest_from_conversation(conversation)
     body = request.get_json(silent=True) or {}
     variant_id = _clean_text(body.get("variant_id"), max_length=64) or manifest.selected_variant_id
     publish_id = uuid4().hex[:12]
@@ -532,12 +892,14 @@ def published_site_css(publish_id: str):
 
 
 @main.route("/preview/<preview_id>/export", methods=["POST"])
+@login_required
 @observe_route("export")
 def export_preview(preview_id: str):
-    manifest = MANIFEST_SERVICE.get(preview_id)
-    if not manifest:
-        return jsonify({"error": "Preview not found."}), 404
+    conversation, error = _conversation_for_preview_or_json(preview_id)
+    if error:
+        return error
 
+    manifest = manifest_from_conversation(conversation)
     archive, filename = build_export_bundle(manifest)
     return send_file(
         archive,
