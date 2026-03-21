@@ -15,7 +15,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3) Add your Gemini API key
+### 3) Configure local auth/database and your Gemini API key
 
 Create a `.env` file in the project root:
 
@@ -23,7 +23,14 @@ Create a `.env` file in the project root:
 cp .env.example .env
 ```
 
-Then set at least one key:
+Set a local session secret and database path:
+
+```bash
+SECRET_KEY=change-me-for-local-dev
+DATABASE_URL=sqlite:///instance/velosite.db
+```
+
+Then set at least one Gemini key:
 
 ```bash
 GEMINI_API_KEY=your_key_here
@@ -54,6 +61,7 @@ Optional:
 
 The app also accepts `GOOGLE_API_KEY`, `GOOGLE_API_KEYS`, and `GOOGLE_API_KEY_1` style aliases.
 When multiple keys are configured, the app now tries fallback models on each key before rotating and can make another bounded pass for transient rate-limit/server failures.
+Without a Gemini key, initial generation and follow-up chat still work with local fallback copy behavior.
 
 ### 4) Run the app
 
@@ -62,6 +70,13 @@ python run.py
 ```
 
 The app starts on `http://localhost:5001` by default.
+
+## Local Accounts and Chat History
+
+- Accounts use local `email + password` authentication via Flask sessions.
+- User data, settings, conversations, and resumable Studio/chat history are stored in `SQLite` by default at `instance/velosite.db`.
+- The main dashboard and all `/preview/*` authoring routes require login.
+- Published share links under `/published/<publish_id>` stay public.
 
 ### 5) Run tests
 
@@ -96,6 +111,8 @@ Render uses `render.yaml` automatically:
 - `GEMINI_FALLBACK_MODELS` (optional, comma-separated backup models to try before switching keys)
 - `GEMINI_ROTATION_RETRY_ROUNDS` (optional, defaults to `2`)
 - `GEMINI_ROTATION_RETRY_BACKOFF_SECONDS` (optional, defaults to `0.35`)
+- `SECRET_KEY` (required for stable Flask sessions)
+- `DATABASE_URL` (optional, defaults to `sqlite:///instance/velosite.db`)
 - `REDIS_URL` (recommended if you want more than one web worker)
 
 Optional:
