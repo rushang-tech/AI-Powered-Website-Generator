@@ -26,6 +26,7 @@ if (shell) {
     const templateSelect = document.getElementById("template-select");
     const artDirectionSelect = document.getElementById("art-direction-select");
     const layoutModeSelect = document.getElementById("layout-mode-select");
+    const navigationModeSelect = document.getElementById("navigation-mode-select");
     const densitySelect = document.getElementById("density-select");
     const motionSelect = document.getElementById("motion-select");
     const applyStyleBtn = document.getElementById("apply-style-btn");
@@ -35,8 +36,10 @@ if (shell) {
     const previewFrame = document.getElementById("preview-frame");
     const remixGrid = document.getElementById("remix-grid");
     const layerList = document.getElementById("layer-list");
+    const pageSwitcher = document.getElementById("page-switcher");
     const frameBaseUrl = shell.getAttribute("data-frame-url") || `/preview/${previewId}/frame`;
     const layoutLibrary = config.layoutLibrary || {};
+    const structureLibrary = config.structureLibrary || {};
     const artDirectionKeys = Array.isArray(config.artDirectionKeys) ? config.artDirectionKeys : [];
 
     const navPublishBtn = document.getElementById("nav-publish-btn");
@@ -60,6 +63,7 @@ if (shell) {
     const sendMessageBtn = document.getElementById("send-message-btn");
 
     let busy = false;
+    let currentPageSlug = config.selectedPageSlug || selectedVariant.page_slug || "home";
 
     function setStatus(message) {
         statusEl.textContent = message || "";
@@ -247,7 +251,7 @@ if (shell) {
     }
 
     function refreshStudioFrame() {
-        previewFrame.src = buildFrameUrl({}, true);
+        previewFrame.src = buildFrameUrl({ page_slug: currentPageSlug }, true);
     }
 
     function refreshLayoutOptions() {
@@ -264,6 +268,38 @@ if (shell) {
         });
         if (!layouts.includes(currentValue) && layouts.length) {
             layoutModeSelect.value = layouts[0];
+        }
+        refreshNavigationOptions();
+    }
+
+    function currentPages(variant = selectedVariant) {
+        const plan = variant && variant.render_plan ? variant.render_plan : {};
+        return Array.isArray(plan.pages) ? plan.pages : [];
+    }
+
+    function activePage(variant = selectedVariant) {
+        const pages = currentPages(variant);
+        return pages.find((page) => page.slug === currentPageSlug) || variant.active_page || pages[0] || { slug: "home", section_order: [], section_visibility: {} };
+    }
+
+    function refreshNavigationOptions() {
+        if (!navigationModeSelect) {
+            return;
+        }
+        const templateKey = templateSelect.value;
+        const layoutKey = layoutModeSelect.value;
+        const allowedNavigationModes = (((structureLibrary[templateKey] || {})[layoutKey] || {}).navigation_modes) || [];
+        const currentValue = navigationModeSelect.value || (selectedVariant.render_plan || {}).navigation_mode || "";
+        navigationModeSelect.innerHTML = "";
+        allowedNavigationModes.forEach((navigationMode) => {
+            const option = document.createElement("option");
+            option.value = navigationMode;
+            option.textContent = formatLabel(navigationMode);
+            option.selected = navigationMode === currentValue;
+            navigationModeSelect.appendChild(option);
+        });
+        if (allowedNavigationModes.length && !allowedNavigationModes.includes(currentValue)) {
+            navigationModeSelect.value = allowedNavigationModes[0];
         }
     }
 
@@ -282,9 +318,11 @@ if (shell) {
     function remixFrameUrl(candidate) {
         const params = {
             variant_id: selectedVariantId,
+            page_slug: currentPageSlug,
             template_key: candidate.template_key,
             art_direction: candidate.art_direction,
             layout_mode: candidate.layout_mode,
+            navigation_mode: candidate.navigation_mode,
             density: candidate.density,
             motion_level: candidate.motion_level,
             remix_label: candidate.label,
@@ -298,6 +336,7 @@ if (shell) {
         const currentLayout = layoutModeSelect.value;
         const currentLayoutIndex = Math.max(0, layouts.indexOf(currentLayout));
         const currentArt = artDirectionSelect.value;
+        const currentNavigation = navigationModeSelect ? navigationModeSelect.value : "";
         const artPool = artDirectionKeys.filter((key) => key !== currentArt);
         const densityScale = ["airy", "balanced", "dense"];
         const motionScale = ["calm", "moderate", "energetic"];
@@ -307,12 +346,14 @@ if (shell) {
 
         for (let index = 0; index < 3; index += 1) {
             const layout = layouts[(currentLayoutIndex + index + 1) % layouts.length] || currentLayout;
+            const navigationModes = ((((structureLibrary[templateKey] || {})[layout] || {}).navigation_modes) || []).filter(Boolean);
             const artDirection = artPool.length ? artPool[index % artPool.length] : currentArt;
             candidates.push({
                 label: `Remix ${index + 1}`,
                 template_key: templateKey,
                 art_direction: artDirection,
                 layout_mode: layout,
+                navigation_mode: navigationModes.length ? (navigationModes[index % navigationModes.length] || navigationModes[0]) : currentNavigation,
                 density: densityPool[(index + 1) % densityPool.length] || densitySelect.value,
                 motion_level: motionPool[(index + 1) % motionPool.length] || motionSelect.value,
             });
@@ -325,12 +366,14 @@ if (shell) {
         if (!selectedVariant) {
             return;
         }
+        currentPageSlug = selectedVariant.page_slug || currentPageSlug || "home";
         renderValidationState(selectedVariant);
         if (canvasVariantTitle) {
             canvasVariantTitle.textContent = selectedVariant.label || "Variant";
         }
         if (canvasVariantSummary) {
-            canvasVariantSummary.textContent = selectedVariant.summary || "";
+            const page = activePage(selectedVariant);
+            canvasVariantSummary.textContent = `${selectedVariant.summary || ""}${page && page.label ? ` Active page: ${page.label}.` : ""}`;
         }
     }
 
@@ -348,6 +391,10 @@ if (shell) {
         }
         if (layoutModeSelect) {
             layoutModeSelect.value = plan.layout_mode || layoutModeSelect.value;
+        }
+        if (navigationModeSelect) {
+            refreshNavigationOptions();
+            navigationModeSelect.value = plan.navigation_mode || navigationModeSelect.value;
         }
         if (densitySelect) {
             densitySelect.value = plan.density || densitySelect.value;
@@ -393,8 +440,9 @@ if (shell) {
         if (!layerList || !variant || !variant.render_plan) {
             return;
         }
-        const order = variant.render_plan.section_order || [];
-        const visibility = variant.render_plan.section_visibility || {};
+        const page = activePage(variant);
+        const order = page.section_order || [];
+        const visibility = page.section_visibility || {};
         layerList.innerHTML = "";
         order.forEach((sectionName, index) => {
             const row = document.createElement("div");
@@ -412,10 +460,38 @@ if (shell) {
         bindLayerControls();
     }
 
+    function renderPageSwitcher(variant) {
+        if (!pageSwitcher || !variant || !variant.render_plan) {
+            return;
+        }
+        const pages = currentPages(variant);
+        pageSwitcher.innerHTML = "";
+        pages.forEach((page) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = `variant-card ${page.slug === currentPageSlug ? "is-selected" : ""}`.trim();
+            button.setAttribute("data-page-slug", page.slug);
+            button.innerHTML = `
+                <span class="variant-title">${page.label}</span>
+                <span class="variant-meta">${formatLabel(page.page_role)}</span>
+                <span class="variant-copy">${(page.section_order || []).map((item) => formatLabel(item)).join(" / ")}</span>
+            `;
+            button.addEventListener("click", () => {
+                currentPageSlug = page.slug;
+                renderPageSwitcher(selectedVariant);
+                renderLayerList(selectedVariant);
+                refreshStudioFrame();
+                updateCanvasMeta(selectedVariant);
+            });
+            pageSwitcher.appendChild(button);
+        });
+    }
+
     function applyStudioResponse(data, successMessage) {
         selectedVariantId = data.selected_variant_id || selectedVariantId;
         updateCanvasMeta(data.selected_variant);
         syncControlsFromVariant(data.selected_variant);
+        renderPageSwitcher(data.selected_variant);
         renderLayerList(data.selected_variant);
         syncVariantSelection();
         refreshStudioFrame();
@@ -480,6 +556,7 @@ if (shell) {
             const data = await postJson(`/conversations/${conversationId}/messages`, {
                 message,
                 variant_id: selectedVariantId,
+                page_slug: currentPageSlug,
             });
             conversationInput.value = "";
             applyConversationData(data);
@@ -553,6 +630,7 @@ if (shell) {
         try {
             const data = await postJson(`/preview/${previewId}/command`, {
                 variant_id: selectedVariantId,
+                page_slug: currentPageSlug,
                 ...payload,
             });
             selectedVariantId = data.selected_variant_id || selectedVariantId;
@@ -577,9 +655,11 @@ if (shell) {
         try {
             const data = await postJson(`/preview/${previewId}/override`, {
                 variant_id: selectedVariantId,
+                page_slug: currentPageSlug,
                 template_key: candidate.template_key,
                 art_direction: candidate.art_direction,
                 layout_mode: candidate.layout_mode,
+                navigation_mode: candidate.navigation_mode,
                 density: candidate.density,
                 motion_level: candidate.motion_level,
                 section_visibility: collectSectionVisibility(),
@@ -606,7 +686,7 @@ if (shell) {
 
             const meta = document.createElement("p");
             meta.className = "remix-meta";
-            meta.textContent = `${formatLabel(candidate.art_direction)} / ${formatLabel(candidate.layout_mode)}`;
+            meta.textContent = `${formatLabel(candidate.art_direction)} / ${formatLabel(candidate.layout_mode)} / ${formatLabel(candidate.navigation_mode)}`;
             card.appendChild(meta);
 
             const frame = document.createElement("iframe");
@@ -640,9 +720,11 @@ if (shell) {
         try {
             const data = await postJson(`/preview/${previewId}/override`, {
                 variant_id: selectedVariantId,
+                page_slug: currentPageSlug,
                 template_key: templateSelect.value,
                 art_direction: artDirectionSelect.value,
                 layout_mode: layoutModeSelect.value,
+                navigation_mode: navigationModeSelect ? navigationModeSelect.value : "",
                 density: densitySelect.value,
                 motion_level: motionSelect.value,
                 section_visibility: collectSectionVisibility(),
@@ -664,6 +746,7 @@ if (shell) {
             const data = await postJson(`/preview/${previewId}/regenerate`, {
                 scope,
                 variant_id: selectedVariantId,
+                page_slug: currentPageSlug,
                 section_name: sectionName,
             });
             applyStudioResponse(data, "Preview regenerated.");
@@ -745,7 +828,10 @@ if (shell) {
             selectedVariantId = button.getAttribute("data-variant-id");
             setStatus("Switching variant...");
             try {
-                const data = await postJson(`/preview/${previewId}/override`, { variant_id: selectedVariantId });
+                const data = await postJson(`/preview/${previewId}/override`, {
+                    variant_id: selectedVariantId,
+                    page_slug: currentPageSlug,
+                });
                 applyStudioResponse(data, "Variant switched.");
             } catch (error) {
                 setStatus(error.message || "Failed to switch variant.");
@@ -804,9 +890,10 @@ if (shell) {
     });
 
     refreshLayoutOptions();
-    renderLayerList(selectedVariant);
     updateCanvasMeta(selectedVariant);
     syncControlsFromVariant(selectedVariant);
+    renderPageSwitcher(selectedVariant);
+    renderLayerList(selectedVariant);
     syncVariantSelection();
     renderAssetPreview(currentBrandAssets);
     renderConversationMessages(conversationMessages);

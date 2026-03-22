@@ -48,6 +48,7 @@ class VariantPayload:
     render_plan: RenderPlan
     content: GeneratedContent
     theme: dict[str, Any]
+    visuals: dict[str, Any] = field(default_factory=dict)
     content_overrides: dict[str, Any] = field(default_factory=dict)
     layout_overrides: dict[str, Any] = field(default_factory=dict)
     edited_nodes: list[str] = field(default_factory=list)
@@ -61,6 +62,7 @@ class VariantPayload:
             "content": self.content.data,
             "validation": self.content.validation.to_dict(),
             "theme": self.theme,
+            "visuals": self.visuals,
             "content_overrides": self.content_overrides,
             "layout_overrides": self.layout_overrides,
             "edited_nodes": self.edited_nodes,
@@ -113,6 +115,7 @@ class ProjectManifest:
                         validation=validation,
                     ),
                     theme=raw_variant.get("theme") if isinstance(raw_variant.get("theme"), dict) else {},
+                    visuals=raw_variant.get("visuals") if isinstance(raw_variant.get("visuals"), dict) else {},
                     content_overrides=raw_variant.get("content_overrides")
                     if isinstance(raw_variant.get("content_overrides"), dict)
                     else {},

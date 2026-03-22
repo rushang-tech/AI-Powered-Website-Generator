@@ -1,6 +1,7 @@
 {% set is_consumer = consumer_mode|default(false) %}
 {% set projects_title = selected_variant.content.projects_title or ("Selected projects" if is_consumer else "Projects arranged like a body of work, not a checklist.") %}
 {% set projects_intro = selected_variant.content.projects_intro or ("A few featured projects with enough framing to feel memorable." if is_consumer else "The mix of metadata, narrative, and layout gives each case study enough separation to feel memorable.") %}
+{% set project_images = visuals.get("project_images", []) if visuals else [] %}
 <section
     id="section-projects"
     class="preview-section section-projects"
@@ -22,8 +23,9 @@
         </div>
         <div class="projects-grid">
             {% for project in selected_variant.content.projects %}
+            {% set project_image = project_images[loop.index0] if loop.index0 < project_images|length else None %}
             <article
-                class="project-card"
+                class="project-card{% if project_image and project_image.url %} has-project-media{% endif %}"
                 data-node-id="projects-{{ loop.index0 }}"
                 data-node-type="list-item"
                 data-edit-path="projects.{{ loop.index0 }}"
@@ -32,6 +34,19 @@
                 data-edit-fields="meta,title,desc"
                 data-section="projects"
             >
+                {% if project_image and project_image.url %}
+                <div class="project-media" data-image-shell="project" data-image-state="ready">
+                    <div class="asset-image-fallback" aria-hidden="true"></div>
+                    <img
+                        class="project-image"
+                        src="{{ project_image.url }}"
+                        alt="{{ project_image.alt }}"
+                        loading="lazy"
+                        data-visual-role="project-image"
+                        onerror="var shell=this.closest('[data-image-shell]'); if (shell) shell.setAttribute('data-image-state', 'error'); this.remove();"
+                    >
+                </div>
+                {% endif %}
                 <div class="project-card-head">
                     <div>
                         <span class="project-meta" data-node-id="projects-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.meta" data-item-field="meta" data-section="projects">{{ project.meta }}</span>

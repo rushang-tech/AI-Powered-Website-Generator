@@ -4,21 +4,12 @@
 {% set is_consumer = consumer_mode|default(false) %}
 {% set brand_assets = brief.brand_assets or [] %}
 {% set primary_brand_asset = brand_assets[0] if brand_assets else None %}
-{% set primary_target = "cta" if plan.section_visibility.get("cta") else "hero" %}
+{% set visuals = selected_variant.visuals or {} %}
+{% set active_page = selected_variant.active_page or {"slug": "home", "label": "Home", "section_order": plan.section_order, "section_visibility": plan.section_visibility} %}
+{% set primary_target = "contact" if page_href_map and page_href_map.get("contact") else "cta" %}
 {% set top_target = "page-top" %}
-{% set section_labels = {
-    "hero": "Home",
-    "metrics": "Results",
-    "features": "Highlights",
-    "projects": "Work",
-    "pricing": "Pricing",
-    "proof": "Reviews",
-    "cta": "Contact",
-    "about": "About",
-    "capabilities": "Services",
-} %}
 <article
-    class="site-preview intent-{{ plan.template_key }} art-{{ plan.art_direction }} layout-{{ plan.layout_mode }} hero-variant-{{ plan.hero_variant }} density-{{ plan.density }} motion-{{ plan.motion_level }} industry-{{ plan.industry }} vibe-{{ plan.vibe }}"
+    class="site-preview intent-{{ plan.template_key }} art-{{ plan.art_direction }} layout-{{ plan.layout_mode }} nav-{{ plan.navigation_mode }} shell-{{ plan.page_shell }} page-{{ active_page.slug }} hero-variant-{{ plan.hero_variant }} density-{{ plan.density }} motion-{{ plan.motion_level }} industry-{{ plan.industry }} vibe-{{ plan.vibe }}"
     data-preview-root="true"
     style="
         --theme-canvas-background: {{ theme.get('canvas_background', 'linear-gradient(180deg, #f7f4ee 0%, #f1ede4 100%)') }};
@@ -48,37 +39,14 @@
         --theme-card-radius: {{ theme.get('card_radius', '24px') }};
     "
 >
+    {% include "generated/_site_chrome_styles.html" %}
     <div class="preview-backdrop"></div>
     <div class="preview-mesh"></div>
     <div class="preview-ornament preview-ornament-a"></div>
     <div class="preview-ornament preview-ornament-b"></div>
     <div id="{{ top_target }}" class="page-top-anchor" aria-hidden="true"></div>
     {% if is_consumer %}
-    <header class="site-header">
-        <a class="site-brand" href="#{{ top_target }}" data-site-home-link="true">
-            {% if primary_brand_asset %}
-            <span class="site-brand-mark has-image">
-                <img src="{{ primary_brand_asset.data_url }}" alt="{{ primary_brand_asset.alt }}">
-            </span>
-            {% else %}
-            <span class="site-brand-mark"></span>
-            {% endif %}
-            <span class="site-brand-copy">
-                <strong>{{ preview_name }}</strong>
-                <span>{{ brief.audience or "Designed for real visitors" }}</span>
-            </span>
-        </a>
-        <nav class="site-nav-links" aria-label="Primary">
-            {% for section in plan.section_order %}
-                {% if plan.section_visibility[section] and section != "hero" %}
-                <a class="site-nav-link" href="#section-{{ section }}" data-site-nav-link="true">{{ section_labels.get(section, section|replace("_", " ")|title) }}</a>
-                {% endif %}
-            {% endfor %}
-        </nav>
-        <div class="site-header-actions">
-            <a class="site-nav-cta" href="#section-{{ primary_target }}">{{ selected_variant.content.cta_text or "Get Started" }}</a>
-        </div>
-    </header>
+    {% include "generated/_site_chrome.html" %}
     {% endif %}
     {% if not is_consumer %}
     <div class="preview-topbar">
@@ -97,8 +65,8 @@
     </div>
     {% endif %}
     <div class="preview-inner">
-        {% for section in plan.section_order %}
-            {% if plan.section_visibility[section] %}
+        {% for section in active_page.section_order %}
+            {% if active_page.section_visibility[section] %}
                 {% if section == "hero" %}
                     {% include "generated/sections/_hero.html" %}
                 {% elif section == "metrics" %}
@@ -504,6 +472,25 @@
         font-size: 0.76rem;
         line-height: 1.4;
     }
+    .asset-image-fallback {
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 20% 18%, color-mix(in srgb, var(--theme-accent-soft) 80%, white 20%), transparent 24%),
+            radial-gradient(circle at 82% 24%, rgba(255, 255, 255, 0.24), transparent 22%),
+            linear-gradient(145deg, color-mix(in srgb, var(--theme-surface-alt) 74%, transparent), color-mix(in srgb, var(--theme-surface) 88%, transparent));
+    }
+    .asset-image-fallback::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(var(--theme-card-stroke) 1px, transparent 1px),
+            linear-gradient(90deg, var(--theme-card-stroke) 1px, transparent 1px);
+        background-size: 24px 24px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 80%);
+        opacity: 0.22;
+    }
     .detail-pill {
         display: inline-flex;
         align-items: center;
@@ -623,6 +610,39 @@
         gap: 16px;
         box-shadow: 0 20px 40px color-mix(in srgb, var(--theme-accent-soft) 34%, transparent);
     }
+    .hero-visual-media,
+    .project-media {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--theme-card-stroke);
+        border-radius: calc(var(--theme-card-radius) - 4px);
+        background: color-mix(in srgb, var(--theme-surface) 72%, transparent);
+    }
+    .hero-visual-media {
+        min-height: 220px;
+        aspect-ratio: 16 / 10;
+    }
+    .project-media {
+        aspect-ratio: 4 / 3;
+    }
+    .hero-visual-media::after,
+    .project-media::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(15, 23, 42, 0.16));
+        pointer-events: none;
+        z-index: 2;
+    }
+    .hero-visual-image,
+    .project-image {
+        position: relative;
+        z-index: 1;
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
     .hero-stage-card::before {
         content: "";
         position: absolute;
@@ -737,6 +757,25 @@
         font-weight: 800;
         letter-spacing: 0.08em;
     }
+    .feature-icon.is-masked {
+        font-size: 0;
+        letter-spacing: 0;
+        color: var(--theme-accent);
+    }
+    .feature-icon.is-masked::before {
+        content: "";
+        width: 20px;
+        height: 20px;
+        background: currentColor;
+        mask-image: var(--icon-mask-url);
+        -webkit-mask-image: var(--icon-mask-url);
+        mask-repeat: no-repeat;
+        -webkit-mask-repeat: no-repeat;
+        mask-position: center;
+        -webkit-mask-position: center;
+        mask-size: contain;
+        -webkit-mask-size: contain;
+    }
     .feature-card,
     .project-card,
     .pricing-card,
@@ -758,9 +797,26 @@
     .project-card {
         grid-template-rows: auto 1fr auto;
     }
+    .project-card.has-project-media {
+        grid-template-rows: auto auto 1fr auto;
+    }
     .project-meta {
         display: inline-flex;
         margin-bottom: 2px;
+    }
+    .capability-title-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+    .capability-title-group h3 {
+        min-width: 0;
+    }
+    .capability-icon {
+        min-width: 40px;
+        min-height: 40px;
+        border-radius: 12px;
     }
     .project-footer,
     .pricing-footer {

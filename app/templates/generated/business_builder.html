@@ -1,0 +1,329 @@
+{% set theme = selected_variant.theme or {} %}
+{% set plan = selected_variant.render_plan %}
+{% set preview_name = brief.name or selected_variant.content.hero_title or "VeloSite" %}
+{% set visuals = selected_variant.visuals or {} %}
+{% set hero_image = visuals.get("hero_image") or {} %}
+{% set service_media = visuals.get("section_media", {}).get("services", []) %}
+{% set active_page = selected_variant.active_page or {"slug": "home", "label": "Home", "section_order": plan.section_order, "section_visibility": plan.section_visibility} %}
+<article
+    class="business-site art-{{ plan.art_direction }} nav-{{ plan.navigation_mode }} shell-{{ plan.page_shell }} page-{{ active_page.slug }}"
+    style="
+        --theme-panel-background: {{ theme.get('panel_background', 'rgba(251, 253, 255, 0.88)') }};
+        --theme-surface: {{ theme.get('surface', '#fbfdff') }};
+        --theme-surface-alt: {{ theme.get('surface_alt', '#eef3f8') }};
+        --theme-text: {{ theme.get('text', '#111827') }};
+        --theme-muted: {{ theme.get('muted', '#586273') }};
+        --theme-accent: {{ theme.get('accent', '#88d92f') }};
+        --theme-accent-soft: {{ theme.get('accent_soft', 'rgba(136, 217, 47, 0.16)') }};
+        --theme-border: {{ theme.get('border', 'rgba(17, 24, 39, 0.12)') }};
+        --theme-button-bg: {{ theme.get('button_bg', '#111827') }};
+        --theme-button-text: {{ theme.get('button_text', '#f7fafc') }};
+        --theme-shadow: {{ theme.get('shadow', '0 22px 60px rgba(29, 45, 68, 0.12)') }};
+        --theme-display-font: {{ theme.get('display_font', "'Cormorant Garamond', serif") }};
+        --theme-body-font: {{ theme.get('body_font', "'Space Grotesk', sans-serif") }};
+    "
+>
+    {% include "generated/_site_chrome_styles.html" %}
+    {% include "generated/_site_chrome.html" %}
+
+    <div class="business-stack">
+        {% for section in active_page.section_order %}
+            {% if active_page.section_visibility.get(section) %}
+                {% if section == "hero" %}
+                <section id="section-hero" class="business-section business-hero" data-section="hero" data-node-id="section-hero" data-node-type="section" data-section-name="hero">
+                    <div class="business-hero-copy">
+                        <p class="business-overline" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                        <h2 class="business-display" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                        <p class="business-body" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+                        <div class="business-action-row">
+                            <button class="business-btn" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                            <span class="business-note" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</span>
+                        </div>
+                        <div class="business-trust-row">
+                            {% for item in selected_variant.content.services[:3] %}
+                            <span>{{ item.meta }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="business-hero-side">
+                        <div class="business-media-shell business-hero-media" data-image-shell="hero" data-image-state="{% if hero_image.get('url') %}ready{% else %}error{% endif %}">
+                            <div class="business-media-fallback"></div>
+                            {% if hero_image.get('url') %}
+                            <img class="business-media-img" src="{{ hero_image.url }}" alt="{{ hero_image.alt }}" loading="eager" data-visual-role="hero-image" onerror="var shell=this.closest('[data-image-shell]'); if (shell) shell.setAttribute('data-image-state', 'error'); this.remove();">
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+                {% elif section == "services" %}
+                <section id="section-services" class="business-section" data-section="services" data-node-id="section-services" data-node-type="section" data-section-name="services">
+                    <p class="business-overline">Services</p>
+                    <h3 class="business-title" data-node-id="services-title" data-node-type="text" data-edit-path="services_title" data-section="services">{{ selected_variant.content.services_title }}</h3>
+                    <p class="business-body" data-node-id="services-intro" data-node-type="text" data-edit-path="services_intro" data-section="services">{{ selected_variant.content.services_intro }}</p>
+                    <div class="business-service-grid">
+                        {% for item in selected_variant.content.services %}
+                        {% set media = service_media[loop.index0] if loop.index0 < service_media|length else None %}
+                        <article class="business-service-card" data-node-id="services-{{ loop.index0 }}" data-node-type="list-item" data-edit-path="services.{{ loop.index0 }}" data-list-key="services" data-item-index="{{ loop.index0 }}" data-edit-fields="meta,title,desc" data-section="services">
+                            <div class="business-media-shell business-service-media" data-image-shell="service" data-image-state="{% if media and media.url %}ready{% else %}error{% endif %}">
+                                <div class="business-media-fallback"></div>
+                                {% if media and media.url %}
+                                <img class="business-media-img" src="{{ media.url }}" alt="{{ media.alt }}" loading="lazy" data-visual-role="service-image" onerror="var shell=this.closest('[data-image-shell]'); if (shell) shell.setAttribute('data-image-state', 'error'); this.remove();">
+                                {% endif %}
+                            </div>
+                            <span class="business-meta" data-node-id="services-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="services.{{ loop.index0 }}.meta" data-item-field="meta" data-section="services">{{ item.meta }}</span>
+                            <h4 data-node-id="services-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="services.{{ loop.index0 }}.title" data-item-field="title" data-section="services">{{ item.title }}</h4>
+                            <p class="business-body" data-node-id="services-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="services.{{ loop.index0 }}.desc" data-item-field="desc" data-section="services">{{ item.desc }}</p>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "process" %}
+                <section id="section-process" class="business-section" data-section="process" data-node-id="section-process" data-node-type="section" data-section-name="process">
+                    <p class="business-overline">Process</p>
+                    <h3 class="business-title" data-node-id="process-title" data-node-type="text" data-edit-path="process_title" data-section="process">{{ selected_variant.content.process_title }}</h3>
+                    <p class="business-body" data-node-id="process-intro" data-node-type="text" data-edit-path="process_intro" data-section="process">{{ selected_variant.content.process_intro }}</p>
+                    <div class="business-process-grid">
+                        {% for item in selected_variant.content.process_steps %}
+                        <article class="business-process-card" data-node-id="process_steps-{{ loop.index0 }}" data-node-type="list-item" data-edit-path="process_steps.{{ loop.index0 }}" data-list-key="process_steps" data-item-index="{{ loop.index0 }}" data-edit-fields="title,desc" data-section="process">
+                            <span class="business-step">{{ "%02d"|format(loop.index) }}</span>
+                            <h4 data-node-id="process_steps-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="process_steps.{{ loop.index0 }}.title" data-item-field="title" data-section="process">{{ item.title }}</h4>
+                            <p class="business-body" data-node-id="process_steps-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="process_steps.{{ loop.index0 }}.desc" data-item-field="desc" data-section="process">{{ item.desc }}</p>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "proof" %}
+                <section id="section-proof" class="business-section business-proof" data-section="proof" data-node-id="section-proof" data-node-type="section" data-section-name="proof">
+                    <p class="business-overline">Proof</p>
+                    <blockquote class="business-proof-quote" data-node-id="proof-quote" data-node-type="text" data-edit-path="proof_quote" data-section="proof">"{{ selected_variant.content.proof_quote }}"</blockquote>
+                    <span class="business-meta" data-node-id="proof-author" data-node-type="text" data-edit-path="proof_author" data-section="proof">{{ selected_variant.content.proof_author }}</span>
+                </section>
+                {% elif section == "cta" %}
+                <section id="section-cta" class="business-section business-cta" data-section="cta" data-node-id="section-cta" data-node-type="section" data-section-name="cta">
+                    <div>
+                        <p class="business-overline">Next step</p>
+                        <h3 class="business-title" data-node-id="cta-title" data-node-type="text" data-edit-path="cta_text" data-section="cta">{{ selected_variant.content.cta_text }}</h3>
+                        <p class="business-body" data-node-id="cta-note" data-node-type="text" data-edit-path="cta_note" data-section="cta">{{ selected_variant.content.cta_note }}</p>
+                    </div>
+                    <button class="business-btn" type="button">{{ selected_variant.content.cta_text }}</button>
+                </section>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    </div>
+</article>
+
+<style>
+    .business-site {
+        color: var(--theme-text);
+        background:
+            radial-gradient(circle at top left, var(--theme-accent-soft), transparent 28%),
+            linear-gradient(180deg, var(--theme-surface) 0%, var(--theme-surface-alt) 100%);
+        border: 1px solid var(--theme-border);
+        border-radius: 28px;
+        box-shadow: var(--theme-shadow);
+        padding: 20px;
+        font-family: var(--theme-body-font);
+    }
+    .business-header,
+    .business-section {
+        border: 1px solid color-mix(in srgb, var(--theme-border) 92%, white 8%);
+        background: color-mix(in srgb, var(--theme-panel-background) 86%, white 14%);
+    }
+    .business-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 18px;
+        border-radius: 20px;
+        margin-bottom: 18px;
+    }
+    .business-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: inherit;
+        text-decoration: none;
+    }
+    .business-brand strong,
+    .business-display,
+    .business-title,
+    .business-proof-quote,
+    .business-service-card h4,
+    .business-process-card h4 {
+        margin: 0;
+        font-family: var(--theme-display-font);
+        letter-spacing: -0.04em;
+    }
+    .business-brand-mark {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--theme-accent);
+        box-shadow: 0 0 0 8px color-mix(in srgb, var(--theme-accent-soft) 82%, transparent);
+    }
+    .business-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .business-nav a,
+    .business-nav-cta,
+    .business-btn,
+    .business-trust-row span,
+    .business-step {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0 16px;
+        border-radius: 999px;
+        text-decoration: none;
+    }
+    .business-nav a,
+    .business-trust-row span,
+    .business-step {
+        color: var(--theme-text);
+        border: 1px solid var(--theme-border);
+        background: color-mix(in srgb, var(--theme-panel-background) 72%, white 28%);
+    }
+    .business-nav-cta,
+    .business-btn {
+        border: 0;
+        background: var(--theme-button-bg);
+        color: var(--theme-button-text);
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .business-stack {
+        display: grid;
+        gap: 18px;
+    }
+    .business-section {
+        padding: clamp(22px, 3vw, 34px);
+        border-radius: 24px;
+        overflow: hidden;
+        scroll-margin-top: 120px;
+    }
+    .business-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+        gap: 18px;
+    }
+    .business-display {
+        font-size: clamp(3rem, 7vw, 5.8rem);
+        line-height: 0.92;
+        max-width: 9ch;
+    }
+    .business-title {
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        line-height: 0.96;
+    }
+    .business-overline {
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.72rem;
+        color: var(--theme-accent);
+        font-weight: 700;
+    }
+    .business-body,
+    .business-note,
+    .business-meta {
+        margin: 0;
+        color: var(--theme-muted);
+        line-height: 1.7;
+    }
+    .business-hero-copy,
+    .business-hero-side,
+    .business-action-row,
+    .business-trust-row,
+    .business-service-grid,
+    .business-process-grid {
+        display: grid;
+        gap: 14px;
+    }
+    .business-trust-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .business-media-shell {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        min-height: 220px;
+        border: 1px solid var(--theme-border);
+        background: color-mix(in srgb, var(--theme-surface-alt) 86%, white 14%);
+    }
+    .business-hero-media {
+        min-height: 420px;
+    }
+    .business-media-fallback {
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--theme-accent-soft) 84%, white 16%), transparent 24%),
+            linear-gradient(145deg, color-mix(in srgb, var(--theme-surface) 82%, white 18%), color-mix(in srgb, var(--theme-surface-alt) 90%, transparent));
+    }
+    .business-media-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        position: relative;
+        z-index: 1;
+    }
+    .business-media-shell[data-image-state="ready"] .business-media-fallback {
+        opacity: 0.16;
+    }
+    .business-service-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 18px;
+    }
+    .business-service-card,
+    .business-process-card,
+    .business-proof,
+    .business-cta {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 20px;
+        border: 1px solid var(--theme-border);
+        background: color-mix(in srgb, var(--theme-panel-background) 88%, white 12%);
+    }
+    .business-service-media {
+        min-height: 220px;
+    }
+    .business-process-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 18px;
+    }
+    .business-proof-quote {
+        font-size: clamp(2rem, 4vw, 3.3rem);
+        line-height: 0.98;
+        max-width: 16ch;
+    }
+    .business-cta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+    @media (max-width: 960px) {
+        .business-header,
+        .business-cta,
+        .business-hero {
+            flex-direction: column;
+            align-items: flex-start;
+            grid-template-columns: 1fr;
+        }
+        .business-trust-row,
+        .business-service-grid,
+        .business-process-grid {
+            grid-template-columns: 1fr;
+        }
+        .business-hero-media,
+        .business-service-media {
+            min-height: 260px;
+        }
+    }
+</style>

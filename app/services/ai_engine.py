@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import replace
 from copy import deepcopy
 from types import SimpleNamespace
@@ -17,11 +18,15 @@ from app.services.contracts import (
 )
 from app.services.taste_engine import (
     BriefInput,
+    LAYOUT_LIBRARY,
+    NAVIGATION_PATTERNS,
+    PagePlan,
     RenderPlan,
     build_render_variants,
     normalize_brief,
     remix_render_plan,
 )
+from app.services.visual_asset_service import build_variant_visuals
 
 THEME_MAP: dict[str, dict[str, str]] = {
     "modern_editorial": {
@@ -317,8 +322,11 @@ THEME_MAP: dict[str, dict[str, str]] = {
 }
 
 TEMPLATE_CATALOG: dict[str, dict[str, str]] = {
+    "store": {"template_file": "generated/store_builder.html"},
+    "saas": {"template_file": "generated/saas_builder.html"},
+    "business": {"template_file": "generated/business_builder.html"},
+    "portfolio": {"template_file": "generated/portfolio_builder.html"},
     "landing": {"template_file": "generated/site_builder.html"},
-    "portfolio": {"template_file": "generated/site_builder.html"},
     "product": {"template_file": "generated/site_builder.html"},
 }
 
@@ -333,6 +341,8 @@ STATUS_BLUEPRINT = (
 
 SECTION_CONTENT_MAP: dict[str, tuple[str, ...]] = {
     "hero": ("hero_eyebrow", "hero_title", "hero_subtitle", "cta_text", "cta_note", "price_badge", "about_text"),
+    "collections": ("collections_title", "collections_intro", "collections"),
+    "products": ("products_title", "products_intro", "products"),
     "metrics": (
         "metrics_title",
         "metrics_intro",
@@ -344,13 +354,97 @@ SECTION_CONTENT_MAP: dict[str, tuple[str, ...]] = {
         "stat_3_label",
     ),
     "features": ("features_title", "features_intro", "features"),
+    "workflows": ("workflows_title", "workflows_intro", "workflows"),
     "projects": ("projects_title", "projects_intro", "projects"),
     "pricing": ("pricing_title", "pricing_intro", "offers"),
     "proof": ("proof_quote", "proof_author"),
     "cta": ("cta_text", "cta_note"),
     "about": ("about_title", "about_intro", "about_text"),
     "capabilities": ("capabilities_title", "capabilities_intro", "capabilities"),
+    "services": ("services_title", "services_intro", "services"),
+    "process": ("process_title", "process_intro", "process_steps"),
 }
+
+COLOR_HEX_MAP: dict[str, str] = {
+    "black": "#05060a",
+    "white": "#f8fafc",
+    "gray": "#6b7280",
+    "grey": "#6b7280",
+    "silver": "#cbd5e1",
+    "cream": "#f5efe3",
+    "beige": "#e9ddcb",
+    "brown": "#8b5e3c",
+    "gold": "#d4a24c",
+    "amber": "#f59e0b",
+    "yellow": "#facc15",
+    "orange": "#f97316",
+    "red": "#ef4444",
+    "pink": "#ec4899",
+    "magenta": "#d946ef",
+    "purple": "#8b5cf6",
+    "violet": "#7c3aed",
+    "indigo": "#6366f1",
+    "blue": "#3b82f6",
+    "cyan": "#22d3ee",
+    "teal": "#14b8a6",
+    "green": "#22c55e",
+    "lime": "#84cc16",
+}
+
+NEUTRAL_COLOR_KEYS = {"black", "white", "gray", "grey", "silver", "cream", "beige", "brown"}
+
+THEME_REQUEST_HINTS = (
+    "theme",
+    "palette",
+    "color",
+    "colors",
+    "colour",
+    "colours",
+    "background",
+    "accent",
+    "dark mode",
+    "light mode",
+)
+
+ART_DIRECTION_HINTS: dict[str, tuple[str, ...]] = {
+    "modern_editorial": ("editorial", "clean", "minimal", "professional", "sleek"),
+    "luxury_serif": ("luxury", "premium", "elegant", "serif", "timeless"),
+    "playful_blocks": ("playful", "fun", "friendly", "quirky", "vibrant"),
+    "cyber_signal": ("cyber", "futuristic", "neon", "tech noir", "hacker", "glow"),
+    "brutalist_poster": ("brutalist", "poster", "graphic", "raw", "experimental"),
+    "warm_gradient": ("warm", "gradient", "sunset", "approachable", "optimistic"),
+    "coastal_breeze": ("coastal", "ocean", "sea", "breeze", "resort"),
+    "mono_signal": ("monochrome", "black and white", "swiss", "grid", "minimalist"),
+    "botanical_noir": ("botanical", "organic", "earthy", "forest", "garden", "noir"),
+    "studio_pop": ("studio", "magazine", "expressive", "electric", "cobalt", "pop"),
+}
+
+DENSITY_HINTS: dict[str, tuple[str, ...]] = {
+    "airy": ("airy", "spacious", "more whitespace", "more white space", "less dense", "less crowded"),
+    "balanced": ("balanced",),
+    "dense": ("dense", "denser", "more detailed", "more information", "more content", "tighter"),
+}
+
+MOTION_HINTS: dict[str, tuple[str, ...]] = {
+    "calm": ("calm", "subtle motion", "less motion", "less animation", "minimal motion", "static"),
+    "moderate": ("moderate motion",),
+    "energetic": ("energetic", "more motion", "more animation", "kinetic", "dynamic", "animated"),
+}
+
+COPY_CHANGE_HINTS = (
+    "copy",
+    "headline",
+    "subheadline",
+    "title",
+    "subtitle",
+    "text",
+    "wording",
+    "message",
+    "messaging",
+    "cta",
+    "rewrite",
+    "reword",
+)
 
 ART_DIRECTION_COPY_GUIDES: dict[str, str] = {
     "modern_editorial": "Write with composed precision and clear sequencing. Let the copy feel sharp, spacious, and deliberate.",
@@ -366,14 +460,26 @@ ART_DIRECTION_COPY_GUIDES: dict[str, str] = {
 }
 
 LAYOUT_COPY_GUIDES: dict[str, str] = {
+    "editorial_lookbook": "Let the hero and collection frames feel styled and image-led before the product grid takes over.",
+    "conversion_storefront": "Move quickly from product promise to shoppable grid and proof without losing momentum.",
+    "catalog_first": "Make browsing feel easy, abundant, and structured around products instead of brand monologue.",
+    "product_story": "Introduce the software through a clear narrative arc, then ground it in visible workflows.",
+    "dashboard_proof": "Lead with product evidence and tangible outputs before feature explanation.",
+    "workflow_first": "Make the workflow the star so the product feels concrete before pricing or proof.",
     "split_hero": "Open with a clear point of view, then let the supporting content widen the case.",
     "staggered_bands": "Let each section shift the rhythm slightly so the page feels paced instead of repetitive.",
     "immersive_layers": "Use more atmospheric and cinematic phrasing that rewards scrolling.",
     "proof_first": "Earn trust immediately, then bring the pitch in after credibility is established.",
+    "casebook_editorial": "Treat the work like a curated body of projects with enough framing to feel authored.",
+    "gallery_wall": "Let the projects behave like a visual wall first, with short framing that supports the imagery.",
+    "minimal_identity": "Keep the portfolio lean, authored, and identity-led instead of overexplained.",
     "editorial_casebook": "Treat the page like a curated body of work with a strong editorial spine.",
     "masonry_showcase": "Let each project feel visually distinct and collectible rather than part of a flat list.",
     "minimal_cv": "Stay precise and useful. Keep the language lean and grounded.",
     "story_panels": "Make each section feel like a scene that adds a different layer to the narrative.",
+    "service_story": "Frame the offer as a clear service narrative: what you do, how you work, and why trust is deserved.",
+    "trust_first": "Use proof to earn attention early, then let services and process explain the delivery.",
+    "offer_stack": "Make the offer structure easy to scan and compare while still feeling premium and current.",
     "pricing_first": "Frame the buying decision clearly and make the offer structure easy to compare.",
     "feature_scroll": "Reveal the product through workflow-oriented sections, not a generic feature dump.",
     "contrast_split": "Balance premium positioning with practical proof so the page feels both elevated and usable.",
@@ -381,9 +487,19 @@ LAYOUT_COPY_GUIDES: dict[str, str] = {
 }
 
 TEMPLATE_COPY_GUIDES: dict[str, str] = {
+    "store": "The page should feel like a modern storefront with collections, product abundance, and clear shoppable hierarchy.",
+    "saas": "The page should make the software feel tangible through workflows, interface proof, and decisive product framing.",
+    "business": "The page should make the services, trust signals, and delivery process feel current, clear, and credible.",
     "landing": "The page should feel like a focused argument for one offer and one next step.",
     "portfolio": "The page should feel like authored work with perspective, curation, and memorable framing.",
     "product": "The page should make the product and pricing feel tangible fast, then deepen trust through proof.",
+}
+
+TEMPLATE_CONTENT_GUIDES: dict[str, str] = {
+    "store": "Write image-forward collection copy, product names, and short merch-style descriptions that support browsing.",
+    "saas": "Write product marketing copy that references workflows, dashboards, proofs, and practical adoption value.",
+    "portfolio": "Write with authorship, curation, and strong project framing rather than generic creator bio filler.",
+    "business": "Write like a modern service company: clear offers, trust, process, and outcome-oriented messaging.",
 }
 
 
@@ -414,6 +530,32 @@ def _slot_fallback(slot_name: str, *, render_plan: RenderPlan, brief: BriefInput
     tone = (brief.brand_tone or render_plan.art_direction.replace("_", " ")).strip().lower()
     art_direction = render_plan.art_direction.replace("_", " ")
     template_defaults: dict[str, dict[str, str]] = {
+        "store": {
+            "hero_title": f"{name.title()} turns browsing into a visual event." if brief.name else "A storefront built to be explored.",
+            "hero_subtitle": f"Designed for {audience} with a {tone} merchandising rhythm, sharper product framing, and a more current storefront feel.",
+            "cta_text": "Shop now",
+            "cta_note": "Lead with the collection story, then make the product grid feel irresistible.",
+            "collections_title": f"The {name.title()} edit." if brief.name else "Collections worth opening first.",
+            "collections_intro": "Frame the collection blocks like curated shop moments, not generic promo cards.",
+            "products_title": "A grid with real momentum.",
+            "products_intro": "Make the product list feel abundant, scannable, and ready to browse.",
+            "proof_quote": "It feels like a modern storefront, not a brochure pretending to sell products.",
+            "proof_author": "Store review",
+        },
+        "saas": {
+            "hero_title": f"{name.title()} makes workflows feel visible." if brief.name else "Software people can understand in one screen.",
+            "hero_subtitle": f"Built for {audience} with a {tone} product story, clearer workflow proof, and a modern SaaS rhythm.",
+            "cta_text": "Start trial",
+            "cta_note": "Make the workflow tangible fast, then let proof and pricing support the decision.",
+            "workflows_title": f"How {name.title()} actually runs." if brief.name else "What the workflow looks like in practice.",
+            "workflows_intro": "Explain the operating flow in concrete, dashboard-friendly language rather than abstract feature claims.",
+            "features_title": f"What {name.title()} unlocks." if brief.name else "What the product unlocks.",
+            "features_intro": "Keep the feature layer sharp and practical after the workflow story is clear.",
+            "pricing_title": f"Choose the {name.title()} fit." if brief.name else "Pick the right plan fast.",
+            "pricing_intro": "Make plans feel easy to compare once the value is already tangible.",
+            "proof_quote": "The product feels real before the reader even reaches pricing.",
+            "proof_author": "Product reviewer",
+        },
         "landing": {
             "hero_title": f"{name.title()} makes {industry.lower()} feel considered." if brief.name else f"A sharper story for {industry}",
             "hero_subtitle": f"A conversion-focused experience for {audience} with a {tone} rhythm and a clearer point of view.",
@@ -441,6 +583,18 @@ def _slot_fallback(slot_name: str, *, render_plan: RenderPlan, brief: BriefInput
             "proof_quote": "It reads like a real body of work instead of a generic template fill.",
             "proof_author": "Portfolio review",
         },
+        "business": {
+            "hero_title": f"{name.title()} makes the service easier to trust." if brief.name else "A service business with sharper structure.",
+            "hero_subtitle": f"Built for {audience} with a {tone} voice, clearer offers, and a more current delivery story.",
+            "cta_text": "Book now",
+            "cta_note": "Show the offer, explain the process, and make trust impossible to miss.",
+            "services_title": f"What {name.title()} actually delivers." if brief.name else "Services with enough shape to feel current.",
+            "services_intro": "Make the offer list concrete, scannable, and outcome-aware instead of generic service filler.",
+            "process_title": "A process people can picture.",
+            "process_intro": "Lay out the steps clearly so the service feels easy to start and easy to trust.",
+            "proof_quote": "It feels like a real modern business site, not a recycled marketing layout.",
+            "proof_author": "Client note",
+        },
         "product": {
             "hero_title": f"{name.title()} gives {industry.lower()} teams a cleaner operating surface." if brief.name else f"An easier way to launch {industry.lower()} workflows.",
             "hero_subtitle": f"Built for {audience} with a {tone} launch story, sharper proof, and a product-first rhythm.",
@@ -467,6 +621,12 @@ def _slot_fallback(slot_name: str, *, render_plan: RenderPlan, brief: BriefInput
         "metrics_intro": "Use concise proof points that reinforce the main story.",
         "features_title": "Reasons to lean in.",
         "features_intro": "Let each section build a different part of the case.",
+        "collections_title": "Collections worth browsing.",
+        "collections_intro": "Use curated groupings to create momentum before the product grid.",
+        "products_title": "Featured products.",
+        "products_intro": "Give the product selection enough range to feel real.",
+        "workflows_title": "Workflow scenes.",
+        "workflows_intro": "Show the operating flow in a way that feels tangible.",
         "projects_title": "Selected work.",
         "projects_intro": "Show range without losing the through-line.",
         "pricing_title": "Clear paths forward.",
@@ -475,6 +635,10 @@ def _slot_fallback(slot_name: str, *, render_plan: RenderPlan, brief: BriefInput
         "about_intro": "Add perspective without rehashing the hero.",
         "capabilities_title": "The system behind it.",
         "capabilities_intro": "Give the supporting strengths a coherent shape.",
+        "services_title": "What we do.",
+        "services_intro": "Make the service list feel specific and current.",
+        "process_title": "How it works.",
+        "process_intro": "Show a process people can understand in seconds.",
         "about_text": "A focused practice that blends strategy, design, and delivery into a coherent digital story.",
         "price_badge": "Plans from $29/mo",
         "proof_quote": "This concept feels distinct, confident, and easy to build on.",
@@ -493,6 +657,24 @@ def _slot_fallback(slot_name: str, *, render_plan: RenderPlan, brief: BriefInput
 def _default_list_items(list_name: str, *, render_plan: RenderPlan) -> list[dict[str, str]]:
     industry = render_plan.industry.title()
     defaults = {
+        "collections": [
+            {"title": "Signature Edit", "desc": "A curated collection framed as the fastest way into the catalog.", "meta": "Collection"},
+            {"title": "New Season Drop", "desc": "Fresh arrivals organized like a launch instead of a shelf dump.", "meta": "New in"},
+            {"title": "Best Sellers", "desc": "High-intent picks that make the storefront feel active and proven.", "meta": "Popular"},
+        ],
+        "products": [
+            {"title": "Studio Jacket", "desc": "A hero product with enough story to stop the scroll.", "meta": "$68"},
+            {"title": "Signal Tee", "desc": "An easy entry item that keeps the grid feeling accessible.", "meta": "$34"},
+            {"title": "Field Tote", "desc": "Utility-forward merchandising with a more editorial finish.", "meta": "$52"},
+            {"title": "Canvas Cap", "desc": "A clean impulse item that rounds out the collection.", "meta": "$26"},
+            {"title": "Weekend Set", "desc": "A paired offer that makes the assortment feel intentional.", "meta": "$84"},
+            {"title": "Archive Hoodie", "desc": "A heavier statement piece with stronger perceived value.", "meta": "$78"},
+        ],
+        "workflows": [
+            {"title": "Capture the signal", "desc": "Pull the right product and team inputs into one visible flow.", "meta": "Step 01"},
+            {"title": "Coordinate the work", "desc": "Turn scattered handoffs into one operating rhythm.", "meta": "Step 02"},
+            {"title": "Ship with proof", "desc": "Surface the outcomes fast enough to guide the next release.", "meta": "Step 03"},
+        ],
         "features": [
             {"title": "Sharper hook", "desc": f"Frame the {industry.lower()} promise with a stronger first impression and less generic copy."},
             {"title": "Narrative sections", "desc": "Give each block a role in the story so the page feels authored, not assembled."},
@@ -512,6 +694,16 @@ def _default_list_items(list_name: str, *, render_plan: RenderPlan) -> list[dict
             {"title": "Positioning", "desc": "Turn strategy into a page architecture people can feel immediately."},
             {"title": "Art direction", "desc": "Build a visual language that belongs to the brand instead of the template."},
             {"title": "Delivery", "desc": "Ship polished systems that still respect practical product constraints."},
+        ],
+        "services": [
+            {"title": "Offer design", "desc": "Clarify the main service so it reads instantly and feels easy to trust.", "meta": "Core service"},
+            {"title": "Experience polish", "desc": "Turn the delivery into a cleaner, more current customer experience.", "meta": "Delivery"},
+            {"title": "Growth support", "desc": "Frame the business for repeat demand and stronger word of mouth.", "meta": "Retention"},
+        ],
+        "process_steps": [
+            {"title": "Discover the real need", "desc": "Start by clarifying the goal, audience, and buying friction."},
+            {"title": "Shape the best path", "desc": "Translate the offer into a structure people can understand quickly."},
+            {"title": "Launch with confidence", "desc": "Deliver a polished system that is easy to maintain and extend."},
         ],
     }
     return defaults.get(list_name, [{"title": "Value", "desc": "Practical results for the audience."}])
@@ -555,6 +747,7 @@ def _build_content_prompt(*, brief: BriefInput, render_plan: RenderPlan, theme_n
     art_guide = ART_DIRECTION_COPY_GUIDES.get(render_plan.art_direction, "")
     layout_guide = LAYOUT_COPY_GUIDES.get(render_plan.layout_mode, "")
     template_guide = TEMPLATE_COPY_GUIDES.get(render_plan.template_key, "")
+    content_guide = TEMPLATE_CONTENT_GUIDES.get(render_plan.template_key, "")
     brand_guidance = _brand_asset_prompt_block(brief)
 
     return f"""
@@ -572,6 +765,7 @@ Context:
 - keywords: {keywords}
 - visual theme: {theme_name}
 - narrative goal: {template_guide}
+- archetype writing guide: {content_guide}
 - art direction writing guide: {art_guide}
 - layout writing guide: {layout_guide}
 - project name: {brief.name or "Not provided"}
@@ -584,7 +778,7 @@ Context:
 Writing rules:
 - Make the site feel authored for this exact brand and audience, not like generic startup filler.
 - The finished result should read like a real launched website with clear hierarchy, not like a moodboard, poster, or abstract brand poem.
-- Think in website modules: a confident hero, a scannable proof or metrics block, a clear highlights/features section, and a decisive CTA.
+- Think in website modules that match the intent: storefronts need collections and product grids, SaaS pages need workflows and proof, portfolios need curated projects, and business sites need services and process.
 - Avoid empty phrases such as "innovative solutions", "cutting-edge", "seamless experience", "world-class", or "next-generation".
 - Let the art direction influence the language: editorial should feel composed, brutalist should feel decisive, cyber should feel electric, warm should feel human.
 - Write section titles and intros like real page copy, not placeholder labels. Avoid default headings like "Features", "Pricing", "Projects", or "About Us" unless the brief clearly calls for plain language.
@@ -731,13 +925,16 @@ def _with_validation_warning(content: GeneratedContent, warning: str) -> Generat
 
 def _variant_label(index: int, render_plan: RenderPlan) -> str:
     layout_name = render_plan.layout_mode.replace("_", " ").title()
-    return f"Variant {index}: {layout_name}"
+    navigation_name = render_plan.navigation_mode.replace("_", " ").title()
+    return f"Variant {index}: {layout_name} / {navigation_name}"
 
 
 def _variant_summary(render_plan: RenderPlan) -> str:
     return (
         f"{render_plan.art_direction.replace('_', ' ').title()} with "
         f"{render_plan.layout_mode.replace('_', ' ')} structure, "
+        f"{render_plan.navigation_mode.replace('_', ' ')} navigation, "
+        f"{render_plan.page_shell.replace('_', ' ')}, "
         f"{render_plan.density} density, and {render_plan.motion_level} motion."
     )
 
@@ -756,8 +953,30 @@ def _conversation_history_block(messages: list[dict[str, Any]] | None) -> str:
     return "\n".join(lines) if lines else "- no prior conversation history"
 
 
+def _base_theme(art_direction: str) -> dict[str, Any]:
+    return deepcopy(THEME_MAP.get(art_direction, THEME_MAP["modern_editorial"]))
+
+
+def _theme_customizations(theme: dict[str, Any], art_direction: str) -> dict[str, Any]:
+    base_theme = _base_theme(art_direction)
+    delta: dict[str, Any] = {}
+    for key, value in theme.items():
+        if base_theme.get(key) != value:
+            delta[key] = deepcopy(value)
+    return delta
+
+
+def _merged_theme_for_variant(source_variant: VariantPayload | None, render_plan: RenderPlan) -> dict[str, Any]:
+    theme = _base_theme(render_plan.art_direction)
+    if source_variant is None or render_plan.art_direction != source_variant.render_plan.art_direction:
+        return theme
+    theme.update(_theme_customizations(source_variant.theme, source_variant.render_plan.art_direction))
+    return theme
+
+
 def _variant_payload(
     *,
+    brief: BriefInput,
     index: int,
     render_plan: RenderPlan,
     content: GeneratedContent,
@@ -765,17 +984,29 @@ def _variant_payload(
     content_overrides: dict[str, Any] | None = None,
     layout_overrides: dict[str, Any] | None = None,
     edited_nodes: list[str] | None = None,
+    source_variant: VariantPayload | None = None,
+    theme: dict[str, Any] | None = None,
 ) -> VariantPayload:
-    return VariantPayload(
+    variant = VariantPayload(
         variant_id=variant_id or f"variant-{index}",
         label=_variant_label(index, render_plan),
         summary=_variant_summary(render_plan),
         render_plan=render_plan,
         content=content,
-        theme=deepcopy(THEME_MAP.get(render_plan.art_direction, THEME_MAP["modern_editorial"])),
+        theme=deepcopy(theme if isinstance(theme, dict) else _merged_theme_for_variant(source_variant, render_plan)),
+        visuals={},
         content_overrides=deepcopy(content_overrides or {}),
         layout_overrides=deepcopy(layout_overrides or {}),
         edited_nodes=list(edited_nodes or []),
+    )
+    resolved_content = _resolved_content(variant, brief=brief, render_plan=render_plan)
+    return replace(
+        variant,
+        visuals=build_variant_visuals(
+            brief=brief,
+            render_plan=render_plan,
+            content=resolved_content.data,
+        ),
     )
 
 
@@ -888,6 +1119,84 @@ def _normalized_section_visibility(base_visibility: dict[str, bool], override: o
     return visibility
 
 
+def _page_by_slug(pages: list[PagePlan], slug: str | None, *, fallback_slug: str) -> PagePlan:
+    target_slug = str(slug or fallback_slug).strip() or fallback_slug
+    return next((page for page in pages if page.slug == target_slug), pages[0])
+
+
+def _apply_page_override(page: PagePlan, override: object) -> PagePlan:
+    if not isinstance(override, dict):
+        return page
+    section_order = _normalized_section_order(page.section_order, override.get("section_order"))
+    base_visibility = {section: bool(page.section_visibility.get(section, True)) for section in section_order}
+    section_visibility = _normalized_section_visibility(base_visibility, override.get("section_visibility"))
+    return replace(page, section_order=section_order, section_visibility=section_visibility)
+
+
+def _normalized_pages(
+    base_pages: list[PagePlan],
+    *,
+    primary_page_slug: str,
+    override: object,
+    legacy_section_order: object = None,
+    legacy_section_visibility: object = None,
+) -> list[PagePlan]:
+    pages = [page for page in base_pages]
+    override_map = override if isinstance(override, dict) else {}
+    updated_pages: list[PagePlan] = []
+    for page in pages:
+        page_override = override_map.get(page.slug)
+        if page.slug == primary_page_slug and (
+            isinstance(legacy_section_order, list) or isinstance(legacy_section_visibility, dict)
+        ):
+            merged_override: dict[str, Any] = dict(page_override) if isinstance(page_override, dict) else {}
+            if isinstance(legacy_section_order, list):
+                merged_override["section_order"] = legacy_section_order
+            if isinstance(legacy_section_visibility, dict):
+                merged_override["section_visibility"] = legacy_section_visibility
+            page_override = merged_override
+        updated_pages.append(_apply_page_override(page, page_override))
+    return updated_pages
+
+
+def _apply_layout_overrides_to_plan(render_plan: RenderPlan, layout_overrides: dict[str, Any] | None = None) -> RenderPlan:
+    next_layout_overrides = layout_overrides or {}
+    pages = _normalized_pages(
+        render_plan.pages,
+        primary_page_slug=render_plan.primary_page_slug,
+        override=next_layout_overrides.get("pages"),
+        legacy_section_order=next_layout_overrides.get("section_order"),
+        legacy_section_visibility=next_layout_overrides.get("section_visibility"),
+    )
+    primary_page = _page_by_slug(pages, render_plan.primary_page_slug, fallback_slug=render_plan.primary_page_slug)
+    navigation_mode = render_plan.navigation_mode
+    raw_navigation_mode = next_layout_overrides.get("navigation_mode")
+    if isinstance(raw_navigation_mode, str):
+        allowed_navigation_modes = {
+            str(item).strip()
+            for item in _recipe_navigation_modes(render_plan.template_key, render_plan.layout_mode)
+            if str(item).strip()
+        }
+        candidate = raw_navigation_mode.strip().lower()
+        if candidate in allowed_navigation_modes:
+            navigation_mode = candidate
+    return replace(
+        render_plan,
+        section_order=list(primary_page.section_order),
+        section_visibility=dict(primary_page.section_visibility),
+        navigation_mode=navigation_mode,
+        pages=pages,
+    )
+
+
+def _recipe_navigation_modes(template_key: str, layout_mode: str) -> list[str]:
+    recipe = LAYOUT_LIBRARY.get(template_key, {}).get(layout_mode, {})
+    values = recipe.get("navigation_modes")
+    if isinstance(values, list):
+        return [str(item).strip().lower() for item in values if str(item).strip()]
+    return list(NAVIGATION_PATTERNS)
+
+
 def _record_edited_node(existing: list[str], node_id: str | None) -> list[str]:
     if not node_id:
         return list(existing)
@@ -906,14 +1215,262 @@ def _remove_override_prefix(overrides: dict[str, Any], path_prefix: str) -> dict
     return cleaned
 
 
-def _resolved_render_plan(variant: VariantPayload) -> RenderPlan:
-    base_plan = variant.render_plan
-    section_order = _normalized_section_order(base_plan.section_order, variant.layout_overrides.get("section_order"))
-    section_visibility = _normalized_section_visibility(
-        base_plan.section_visibility,
-        variant.layout_overrides.get("section_visibility"),
+def _contains_phrase(text: str, phrase: str) -> bool:
+    normalized = phrase.strip().lower()
+    if not normalized:
+        return False
+    if " " in normalized or "-" in normalized:
+        return normalized in text
+    return bool(re.search(rf"\b{re.escape(normalized)}\b", text))
+
+
+def _has_any_phrase(text: str, phrases: tuple[str, ...] | list[str]) -> bool:
+    return any(_contains_phrase(text, phrase) for phrase in phrases)
+
+
+def _hex_to_rgb(value: str) -> tuple[int, int, int]:
+    hex_value = str(value or "").strip().lstrip("#")
+    if len(hex_value) == 3:
+        hex_value = "".join(char * 2 for char in hex_value)
+    if len(hex_value) != 6 or any(char not in "0123456789abcdefABCDEF" for char in hex_value):
+        raise ValueError(f"Invalid hex color: {value}")
+    return tuple(int(hex_value[index : index + 2], 16) for index in range(0, 6, 2))
+
+
+def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
+    red, green, blue = (max(0, min(int(channel), 255)) for channel in rgb)
+    return f"#{red:02x}{green:02x}{blue:02x}"
+
+
+def _mix_hex(first: str, second: str, ratio: float) -> str:
+    mix = max(0.0, min(float(ratio), 1.0))
+    first_rgb = _hex_to_rgb(first)
+    second_rgb = _hex_to_rgb(second)
+    mixed = tuple(round(a + (b - a) * mix) for a, b in zip(first_rgb, second_rgb))
+    return _rgb_to_hex(mixed)
+
+
+def _rgba(value: str, alpha: float) -> str:
+    red, green, blue = _hex_to_rgb(value)
+    return f"rgba({red}, {green}, {blue}, {max(0.0, min(float(alpha), 1.0)):.2f})"
+
+
+def _is_dark_hex(value: str) -> bool:
+    red, green, blue = _hex_to_rgb(value)
+    luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255
+    return luminance < 0.55
+
+
+def _extract_requested_colors(text: str) -> list[str]:
+    matches: list[str] = []
+    for color_name in sorted(COLOR_HEX_MAP.keys(), key=len, reverse=True):
+        if _contains_phrase(text, color_name) and color_name not in matches:
+            matches.append(color_name)
+    return matches
+
+
+def _theme_request_details(text: str) -> dict[str, Any] | None:
+    colors = _extract_requested_colors(text)
+    wants_theme_change = bool(colors) or _has_any_phrase(text, THEME_REQUEST_HINTS)
+    if not wants_theme_change:
+        return None
+
+    accent_name = next((color for color in colors if color not in NEUTRAL_COLOR_KEYS), "")
+    dark_requested = _has_any_phrase(text, ("dark", "darker", "black", "night", "noir"))
+    light_requested = _has_any_phrase(text, ("light", "lighter", "bright", "brighter", "white", "cream", "beige"))
+    wants_dark = dark_requested or ("black" in colors and "white" not in colors)
+    wants_light = light_requested and not wants_dark
+    ordered_colors = colors or (["dark"] if wants_dark else ["light"] if wants_light else [])
+    return {
+        "accent_name": accent_name,
+        "accent_hex": COLOR_HEX_MAP.get(accent_name, ""),
+        "colors": ordered_colors,
+        "dark": wants_dark,
+        "light": wants_light,
+    }
+
+
+def _requested_density(text: str) -> str:
+    for density, hints in DENSITY_HINTS.items():
+        if _has_any_phrase(text, hints):
+            return density
+    return ""
+
+
+def _requested_motion(text: str) -> str:
+    for motion_level, hints in MOTION_HINTS.items():
+        if _has_any_phrase(text, hints):
+            return motion_level
+    return ""
+
+
+def _requests_art_direction_change(text: str) -> bool:
+    return any(_has_any_phrase(text, hints) for hints in ART_DIRECTION_HINTS.values())
+
+
+def _requests_copy_change(text: str, *, design_change_requested: bool) -> bool:
+    if _has_any_phrase(text, COPY_CHANGE_HINTS):
+        return True
+    return not design_change_requested
+
+
+def _palette_label(theme_request: dict[str, Any]) -> str:
+    colors = [str(color).replace("_", " ") for color in theme_request.get("colors", []) if str(color).strip()]
+    if colors:
+        if len(colors) == 1:
+            return colors[0]
+        if len(colors) == 2:
+            return f"{colors[0]} and {colors[1]}"
+        return ", ".join(colors[:-1]) + f", and {colors[-1]}"
+    if theme_request.get("dark"):
+        return "darker"
+    if theme_request.get("light"):
+        return "lighter"
+    return "refined"
+
+
+def _build_custom_theme(base_theme: dict[str, Any], theme_request: dict[str, Any]) -> dict[str, Any]:
+    accent = theme_request.get("accent_hex") or base_theme.get("accent") or "#8b5cf6"
+    dark_theme = bool(theme_request.get("dark"))
+    light_theme = bool(theme_request.get("light"))
+    label = _palette_label(theme_request).title()
+    theme = deepcopy(base_theme)
+
+    if dark_theme:
+        surface = _mix_hex("#09090d", accent, 0.08)
+        surface_alt = _mix_hex("#14121c", accent, 0.18)
+        frame_background = (
+            f"radial-gradient(circle at top right, {_rgba(accent, 0.24)}, transparent 30%), "
+            f"linear-gradient(180deg, {surface_alt} 0%, #040408 100%)"
+        )
+        theme.update(
+            {
+                "name": f"{label} Noir",
+                "canvas_background": frame_background,
+                "panel_background": _rgba(surface_alt, 0.84),
+                "surface": surface,
+                "surface_alt": surface_alt,
+                "text": _mix_hex("#f8f6ff", accent, 0.08),
+                "muted": _mix_hex("#b7b1c7", accent, 0.35),
+                "accent": accent,
+                "accent_soft": _rgba(accent, 0.18),
+                "border": _rgba(accent, 0.18),
+                "button_bg": accent,
+                "button_text": "#05060a" if not _is_dark_hex(accent) else "#f8f6ff",
+                "shadow": f"0 28px 84px {_rgba(accent, 0.18)}",
+                "frame_background": frame_background,
+                "frame_border": _rgba(accent, 0.16),
+                "frame_glow": f"0 30px 92px {_rgba('#05060a', 0.58)}",
+                "backdrop_overlay": f"linear-gradient(145deg, rgba(8, 8, 14, 0.14), {_rgba(accent, 0.08)})",
+                "spotlight": f"radial-gradient(circle at 84% 14%, {_rgba(accent, 0.18)}, transparent 24%)",
+                "card_fill": _rgba(surface_alt, 0.8),
+                "card_stroke": _rgba(accent, 0.12),
+                "pill_background": _rgba(surface, 0.74),
+                "button_shadow": f"0 18px 44px {_rgba(accent, 0.18)}",
+            }
+        )
+        return theme
+
+    if light_theme:
+        surface = _mix_hex("#ffffff", accent, 0.04)
+        surface_alt = _mix_hex("#f7f4ff", accent, 0.12)
+    else:
+        surface = _mix_hex(base_theme.get("surface", "#ffffff"), accent, 0.08)
+        surface_alt = _mix_hex(base_theme.get("surface_alt", "#f3f4f6"), accent, 0.16)
+
+    frame_background = (
+        f"radial-gradient(circle at top left, {_rgba(accent, 0.22)}, transparent 28%), "
+        f"linear-gradient(180deg, {surface} 0%, {surface_alt} 100%)"
     )
-    return replace(base_plan, section_order=section_order, section_visibility=section_visibility)
+    theme.update(
+        {
+            "name": f"{label} Studio",
+            "canvas_background": frame_background,
+            "panel_background": _rgba(surface, 0.9),
+            "surface": surface,
+            "surface_alt": surface_alt,
+            "text": _mix_hex(base_theme.get("text", "#111827"), "#111827", 0.88),
+            "muted": _mix_hex(base_theme.get("muted", "#586273"), accent, 0.18),
+            "accent": accent,
+            "accent_soft": _rgba(accent, 0.16),
+            "border": _rgba(accent, 0.12),
+            "button_bg": accent if _is_dark_hex(accent) else _mix_hex(accent, "#111827", 0.12),
+            "button_text": "#f8fafc" if _is_dark_hex(accent) else "#05060a",
+            "shadow": f"0 24px 72px {_rgba(accent, 0.14)}",
+            "frame_background": frame_background,
+            "frame_border": _rgba(accent, 0.12),
+            "frame_glow": f"0 26px 80px {_rgba(accent, 0.16)}",
+            "backdrop_overlay": f"linear-gradient(145deg, rgba(255, 255, 255, 0.24), {_rgba(accent, 0.08)})",
+            "spotlight": f"radial-gradient(circle at 16% 12%, rgba(255, 255, 255, 0.76), transparent 28%)",
+            "card_fill": _rgba(surface, 0.86),
+            "card_stroke": _rgba(accent, 0.1),
+            "pill_background": _rgba(surface, 0.76),
+            "button_shadow": f"0 18px 42px {_rgba(accent, 0.18)}",
+        }
+    )
+    return theme
+
+
+def _conversation_plan_overrides(
+    instruction: str,
+    *,
+    brief: BriefInput,
+    current_plan: RenderPlan,
+) -> dict[str, Any]:
+    art_direction_requested = _requests_art_direction_change(instruction)
+    density = _requested_density(instruction)
+    motion_level = _requested_motion(instruction)
+    if not art_direction_requested and not density and not motion_level:
+        return {}
+
+    routed = build_render_variants(
+        instruction,
+        brief=brief,
+        overrides={
+            "template_key": current_plan.template_key,
+            "layout_mode": current_plan.layout_mode,
+        },
+        theme_catalog=THEME_MAP,
+        template_catalog=TEMPLATE_CATALOG,
+    )[0]
+    overrides: dict[str, Any] = {}
+    if art_direction_requested:
+        overrides["art_direction"] = routed.art_direction
+    if density:
+        overrides["density"] = density
+    if motion_level:
+        overrides["motion_level"] = motion_level
+    return overrides
+
+
+def _visual_update_reply(
+    *,
+    previous_plan: RenderPlan,
+    next_plan: RenderPlan,
+    theme_request: dict[str, Any] | None = None,
+    copy_changed: bool,
+) -> str:
+    changes: list[str] = []
+    if theme_request:
+        changes.append(f"shifted the palette toward {_palette_label(theme_request)}")
+    if previous_plan.art_direction != next_plan.art_direction:
+        changes.append(f"leaned the art direction into {next_plan.art_direction.replace('_', ' ')}")
+    if previous_plan.density != next_plan.density:
+        changes.append(f"set the density to {next_plan.density}")
+    if previous_plan.motion_level != next_plan.motion_level:
+        changes.append(f"set the motion to {next_plan.motion_level}")
+
+    if not changes:
+        return "Updated the current direction and kept the existing project context intact."
+
+    detail = changes[0] if len(changes) == 1 else ", ".join(changes[:-1]) + f", and {changes[-1]}"
+    if copy_changed:
+        return f"Updated the current direction, {detail}, and refreshed the copy to match."
+    return f"Updated the visual direction, {detail}, while keeping the existing copy and structure intact."
+
+
+def _resolved_render_plan(variant: VariantPayload) -> RenderPlan:
+    return _apply_layout_overrides_to_plan(variant.render_plan, variant.layout_overrides)
 
 
 def _resolved_content(
@@ -932,21 +1489,46 @@ def _resolved_content(
     return _validate_content(content_data, brief=brief, render_plan=effective_plan)
 
 
+def _resolved_visuals(
+    variant: VariantPayload,
+    *,
+    brief: BriefInput,
+    render_plan: RenderPlan,
+    content: GeneratedContent,
+) -> dict[str, Any]:
+    return build_variant_visuals(
+        brief=brief,
+        render_plan=render_plan,
+        content=content.data,
+    )
+
+
 def _resolved_variant_payload(
     variant: VariantPayload,
     *,
     brief: BriefInput,
     remix_label: str | None = None,
     override_plan: RenderPlan | None = None,
+    page_slug: str | None = None,
 ) -> dict[str, object]:
     effective_plan = override_plan or _resolved_render_plan(variant)
     effective_content = _resolved_content(variant, brief=brief, render_plan=effective_plan)
+    active_page = effective_plan.page(page_slug)
     payload = variant.to_dict()
     payload["render_plan"] = effective_plan.to_dict()
+    payload["theme"] = _merged_theme_for_variant(variant, effective_plan)
     payload["content"] = effective_content.data
     payload["validation"] = effective_content.validation.to_dict()
+    payload["visuals"] = _resolved_visuals(
+        variant,
+        brief=brief,
+        render_plan=effective_plan,
+        content=effective_content,
+    )
     payload["label"] = remix_label or variant.label
     payload["summary"] = _variant_summary(effective_plan)
+    payload["page_slug"] = active_page.slug
+    payload["active_page"] = active_page.to_dict()
     return payload
 
 
@@ -1150,7 +1732,7 @@ def generate_project_manifest(
             action="Website generation",
             allow_fallback_on_error=True,
         )
-        variants.append(_variant_payload(index=index, render_plan=plan, content=content))
+        variants.append(_variant_payload(brief=brief_input, index=index, render_plan=plan, content=content))
 
     statuses = _default_statuses()
     if any(variant.content.validation.fallback_used for variant in variants):
@@ -1203,21 +1785,52 @@ def continue_project_manifest(
         (item for item in current_manifest.variants if item.variant_id == target_variant_id),
         current_manifest.variants[0],
     )
-    effective_plan = _resolved_render_plan(target_variant)
-    resolved_content = _resolved_content(
-        target_variant,
-        brief=current_manifest.brief,
-        render_plan=effective_plan,
-    ).data
-    provider = provider if provider is not None else get_default_provider()
     cleaned_instruction = " ".join(str(instruction or "").split()).strip()
     if not cleaned_instruction:
         raise ValueError("A follow-up message is required.")
 
-    updated_content = deepcopy(resolved_content)
-    assistant_reply = "Updated the current direction and kept the existing project context intact."
+    instruction_text = cleaned_instruction.lower()
+    current_plan = _resolved_render_plan(target_variant)
+    plan_overrides = _conversation_plan_overrides(
+        instruction_text,
+        brief=current_manifest.brief,
+        current_plan=current_plan,
+    )
+    theme_request = _theme_request_details(instruction_text)
+    design_change_requested = bool(plan_overrides or theme_request)
+    copy_change_requested = _requests_copy_change(
+        instruction_text,
+        design_change_requested=design_change_requested,
+    )
+    provider = provider if provider is not None else get_default_provider()
 
-    if provider is None:
+    next_plan = target_variant.render_plan
+    if plan_overrides:
+        try:
+            next_plan = remix_render_plan(
+                target_variant.render_plan,
+                overrides=plan_overrides,
+                theme_catalog=THEME_MAP,
+                template_catalog=TEMPLATE_CATALOG,
+            )
+        except Exception:
+            next_plan = target_variant.render_plan
+
+    effective_plan = _apply_layout_overrides_to_plan(next_plan, target_variant.layout_overrides)
+    resolved_content = _resolved_content(
+        target_variant,
+        brief=current_manifest.brief,
+        render_plan=current_plan,
+    ).data
+    updated_content = deepcopy(resolved_content)
+    assistant_reply = _visual_update_reply(
+        previous_plan=current_plan,
+        next_plan=effective_plan,
+        theme_request=theme_request,
+        copy_changed=copy_change_requested,
+    )
+
+    if copy_change_requested and provider is None:
         for slot_name in effective_plan.slot_schema.get("text_slots", []):
             current_value = updated_content.get(slot_name)
             if isinstance(current_value, str) and current_value.strip():
@@ -1226,8 +1839,9 @@ def continue_project_manifest(
                     instruction=cleaned_instruction,
                     is_cta="cta" in slot_name,
                 )
-        assistant_reply = "Applied a local revision pass to the current direction using your latest note."
-    else:
+        if not design_change_requested:
+            assistant_reply = "Applied a local revision pass to the current direction using your latest note."
+    elif copy_change_requested:
         content_schema = json.dumps(resolved_content, indent=2)
         prompt = f"""
 You are continuing an existing website-generation conversation.
@@ -1262,7 +1876,7 @@ Rules:
 """.strip()
         try:
             raw = provider.generate_json(prompt)
-            if isinstance(raw.get("assistant_reply"), str) and raw["assistant_reply"].strip():
+            if not design_change_requested and isinstance(raw.get("assistant_reply"), str) and raw["assistant_reply"].strip():
                 assistant_reply = raw["assistant_reply"].strip()
             candidate_content = raw.get("content")
             if isinstance(candidate_content, dict):
@@ -1276,17 +1890,24 @@ Rules:
                         instruction=cleaned_instruction,
                         is_cta="cta" in slot_name,
                     )
-            assistant_reply = "Applied a best-effort local revision because the live AI continuation step was unavailable."
+            if not design_change_requested:
+                assistant_reply = "Applied a best-effort local revision because the live AI continuation step was unavailable."
 
     next_content = _validate_content(updated_content, brief=current_manifest.brief, render_plan=effective_plan)
+    next_theme = _merged_theme_for_variant(target_variant, next_plan)
+    if theme_request:
+        next_theme = _build_custom_theme(next_theme, theme_request)
     next_variant = _variant_payload(
+        brief=current_manifest.brief,
         index=current_manifest.variants.index(target_variant) + 1,
-        render_plan=target_variant.render_plan,
+        render_plan=next_plan,
         content=next_content,
         variant_id=target_variant.variant_id,
         content_overrides={},
         layout_overrides=target_variant.layout_overrides,
         edited_nodes=target_variant.edited_nodes,
+        source_variant=target_variant,
+        theme=next_theme,
     )
     updated_manifest = _replace_variant(
         current_manifest,
@@ -1341,6 +1962,7 @@ def apply_variant_override_to_manifest(
     )
 
     next_variant = _variant_payload(
+        brief=manifest.brief,
         index=manifest.variants.index(target_variant) + 1,
         render_plan=remixed_plan,
         content=content,
@@ -1348,6 +1970,7 @@ def apply_variant_override_to_manifest(
         content_overrides=target_variant.content_overrides,
         layout_overrides=target_variant.layout_overrides,
         edited_nodes=target_variant.edited_nodes,
+        source_variant=target_variant,
     )
     return _replace_variant(
         manifest,
@@ -1389,6 +2012,7 @@ def regenerate_manifest(
                 )
                 refreshed_variants.append(
                     _variant_payload(
+                        brief=manifest.brief,
                         index=index,
                         render_plan=variant.render_plan,
                         content=refreshed_content,
@@ -1396,6 +2020,7 @@ def regenerate_manifest(
                         content_overrides=variant.content_overrides,
                         layout_overrides=variant.layout_overrides,
                         edited_nodes=variant.edited_nodes,
+                        source_variant=variant,
                     )
                 )
             return ProjectManifest(
@@ -1422,6 +2047,7 @@ def regenerate_manifest(
                 continue
             merged_variants.append(
                 _variant_payload(
+                    brief=fresh_manifest.brief,
                     index=fresh_manifest.variants.index(fresh_variant) + 1,
                     render_plan=fresh_variant.render_plan,
                     content=fresh_variant.content,
@@ -1429,6 +2055,7 @@ def regenerate_manifest(
                     content_overrides=old_variant.content_overrides,
                     layout_overrides=old_variant.layout_overrides,
                     edited_nodes=old_variant.edited_nodes,
+                    source_variant=old_variant,
                 )
             )
         return ProjectManifest(
@@ -1474,6 +2101,7 @@ def regenerate_manifest(
         fresh_content = GeneratedContent(data=next_content, validation=fresh_content.validation)
 
     next_variant = _variant_payload(
+        brief=manifest.brief,
         index=manifest.variants.index(target_variant) + 1,
         render_plan=target_variant.render_plan,
         content=fresh_content,
@@ -1481,6 +2109,7 @@ def regenerate_manifest(
         content_overrides=next_overrides,
         layout_overrides=target_variant.layout_overrides,
         edited_nodes=target_variant.edited_nodes,
+        source_variant=target_variant,
     )
     return _replace_variant(
         manifest,
@@ -1490,14 +2119,14 @@ def regenerate_manifest(
     )
 
 
-def selected_preview_data(payload: dict[str, object] | ProjectManifest) -> dict[str, object]:
+def selected_preview_data(payload: dict[str, object] | ProjectManifest, *, page_slug: str | None = None) -> dict[str, object]:
     manifest = payload if isinstance(payload, ProjectManifest) else ProjectManifest.from_dict(payload)
     selected = _selected_variant(manifest)
     return {
         "brief": manifest.brief.to_dict(),
         "selected_variant_id": manifest.selected_variant_id,
-        "selected_variant": _resolved_variant_payload(selected, brief=manifest.brief) if selected else {},
-        "variants": [_resolved_variant_payload(variant, brief=manifest.brief) for variant in manifest.variants],
+        "selected_variant": _resolved_variant_payload(selected, brief=manifest.brief, page_slug=page_slug) if selected else {},
+        "variants": [_resolved_variant_payload(variant, brief=manifest.brief, page_slug=page_slug) for variant in manifest.variants],
         "statuses": [stage.to_dict() for stage in manifest.statuses],
     }
 
@@ -1508,6 +2137,7 @@ def build_preview_variant(
     variant_id: str | None = None,
     overrides: dict[str, object] | None = None,
     remix_label: str | None = None,
+    page_slug: str | None = None,
 ) -> dict[str, object]:
     if not manifest.variants:
         return {}
@@ -1531,6 +2161,7 @@ def build_preview_variant(
         brief=manifest.brief,
         remix_label=remix_label,
         override_plan=plan,
+        page_slug=page_slug,
     )
 
 
@@ -1539,6 +2170,7 @@ def apply_canvas_command_to_manifest(
     *,
     action: str,
     variant_id: str | None = None,
+    page_slug: str | None = None,
     node_id: str | None = None,
     edit_path: str | None = None,
     section_name: str | None = None,
@@ -1553,9 +2185,11 @@ def apply_canvas_command_to_manifest(
     target_variant_id = variant_id or manifest.selected_variant_id
     target_variant = next((item for item in manifest.variants if item.variant_id == target_variant_id), manifest.variants[0])
     effective_plan = _resolved_render_plan(target_variant)
+    active_page = effective_plan.page(page_slug)
     resolved_content = _resolved_content(target_variant, brief=manifest.brief, render_plan=effective_plan).data
     next_content_overrides = dict(target_variant.content_overrides)
     next_layout_overrides = dict(target_variant.layout_overrides)
+    next_page_overrides = deepcopy(next_layout_overrides.get("pages")) if isinstance(next_layout_overrides.get("pages"), dict) else {}
     next_edited_nodes = _record_edited_node(target_variant.edited_nodes, node_id)
     changed_paths: list[str] = []
     provider = provider
@@ -1626,7 +2260,7 @@ def apply_canvas_command_to_manifest(
     elif action == "move_section":
         if not section_name:
             raise ValueError("Section name is required.")
-        section_order = list(effective_plan.section_order)
+        section_order = list(active_page.section_order)
         if section_name not in section_order:
             raise ValueError("Section is not part of this layout.")
         offset = -1 if direction == "up" else 1 if direction == "down" else 0
@@ -1637,18 +2271,28 @@ def apply_canvas_command_to_manifest(
         if next_index < 0 or next_index >= len(section_order):
             raise ValueError("Section cannot move further.")
         section_order[current_index], section_order[next_index] = section_order[next_index], section_order[current_index]
-        next_layout_overrides["section_order"] = section_order
-        changed_paths = ["render_plan.section_order"]
+        page_override = dict(next_page_overrides.get(active_page.slug, {}))
+        page_override["section_order"] = section_order
+        next_page_overrides[active_page.slug] = page_override
+        next_layout_overrides["pages"] = next_page_overrides
+        if active_page.slug == effective_plan.primary_page_slug:
+            next_layout_overrides["section_order"] = section_order
+        changed_paths = [f"render_plan.pages.{active_page.slug}.section_order"]
     elif action == "toggle_section":
         if not section_name:
             raise ValueError("Section name is required.")
         visibility = _normalized_section_visibility(
-            effective_plan.section_visibility,
-            next_layout_overrides.get("section_visibility"),
+            active_page.section_visibility,
+            (next_page_overrides.get(active_page.slug) or {}).get("section_visibility"),
         )
         visibility[section_name] = bool(value) if isinstance(value, bool) else not bool(visibility.get(section_name, True))
-        next_layout_overrides["section_visibility"] = visibility
-        changed_paths = [f"render_plan.section_visibility.{section_name}"]
+        page_override = dict(next_page_overrides.get(active_page.slug, {}))
+        page_override["section_visibility"] = visibility
+        next_page_overrides[active_page.slug] = page_override
+        next_layout_overrides["pages"] = next_page_overrides
+        if active_page.slug == effective_plan.primary_page_slug:
+            next_layout_overrides["section_visibility"] = visibility
+        changed_paths = [f"render_plan.pages.{active_page.slug}.section_visibility.{section_name}"]
     elif action in {"move_item", "delete_item"}:
         if not edit_path:
             raise ValueError("Edit path is required.")
@@ -1681,6 +2325,7 @@ def apply_canvas_command_to_manifest(
         raise ValueError("Unsupported canvas action.")
 
     next_variant = _variant_payload(
+        brief=manifest.brief,
         index=manifest.variants.index(target_variant) + 1,
         render_plan=target_variant.render_plan,
         content=target_variant.content,
@@ -1688,6 +2333,7 @@ def apply_canvas_command_to_manifest(
         content_overrides=next_content_overrides,
         layout_overrides=next_layout_overrides,
         edited_nodes=next_edited_nodes,
+        source_variant=target_variant,
     )
     updated_manifest = _replace_variant(
         manifest,

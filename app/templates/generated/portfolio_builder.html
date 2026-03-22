@@ -1,0 +1,373 @@
+{% set theme = selected_variant.theme or {} %}
+{% set plan = selected_variant.render_plan %}
+{% set preview_name = brief.name or selected_variant.content.hero_title or "VeloSite" %}
+{% set visuals = selected_variant.visuals or {} %}
+{% set hero_image = visuals.get("hero_image") or {} %}
+{% set project_images = visuals.get("project_images", []) or visuals.get("section_media", {}).get("projects", []) %}
+{% set capability_icons = visuals.get("capability_icons", []) %}
+{% set active_page = selected_variant.active_page or {"slug": "home", "label": "Home", "section_order": plan.section_order, "section_visibility": plan.section_visibility} %}
+<article
+    class="portfolio-site-v2 art-{{ plan.art_direction }} nav-{{ plan.navigation_mode }} shell-{{ plan.page_shell }} page-{{ active_page.slug }}"
+    style="
+        --theme-panel-background: {{ theme.get('panel_background', 'rgba(252, 249, 242, 0.88)') }};
+        --theme-surface: {{ theme.get('surface', '#fffaf1') }};
+        --theme-surface-alt: {{ theme.get('surface_alt', '#e7edff') }};
+        --theme-text: {{ theme.get('text', '#13254d') }};
+        --theme-muted: {{ theme.get('muted', '#4b5d84') }};
+        --theme-accent: {{ theme.get('accent', '#2451ff') }};
+        --theme-accent-soft: {{ theme.get('accent_soft', 'rgba(36, 81, 255, 0.14)') }};
+        --theme-border: {{ theme.get('border', 'rgba(19, 37, 77, 0.14)') }};
+        --theme-button-bg: {{ theme.get('button_bg', '#2451ff') }};
+        --theme-button-text: {{ theme.get('button_text', '#fff8ee') }};
+        --theme-shadow: {{ theme.get('shadow', '0 26px 70px rgba(36, 81, 255, 0.16)') }};
+        --theme-display-font: {{ theme.get('display_font', "'Bricolage Grotesque', sans-serif") }};
+        --theme-body-font: {{ theme.get('body_font', "'Space Grotesk', sans-serif") }};
+    "
+>
+    {% include "generated/_site_chrome_styles.html" %}
+    {% include "generated/_site_chrome.html" %}
+
+    <div class="portfolio-stack">
+        {% for section in active_page.section_order %}
+            {% if active_page.section_visibility.get(section) %}
+                {% if section == "hero" %}
+                <section id="section-hero" class="portfolio-section portfolio-hero" data-section="hero" data-node-id="section-hero" data-node-type="section" data-section-name="hero">
+                    <div class="portfolio-hero-copy">
+                        <p class="portfolio-overline" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                        <h2 class="portfolio-display" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                        <p class="portfolio-body" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+                        <button class="portfolio-btn" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                        <p class="portfolio-note" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</p>
+                    </div>
+                    <div class="portfolio-hero-visuals">
+                        <div class="portfolio-media-shell portfolio-media-hero" data-image-shell="hero" data-image-state="{% if hero_image.get('url') %}ready{% else %}error{% endif %}">
+                            <div class="portfolio-media-fallback"></div>
+                            {% if hero_image.get('url') %}
+                            <img class="portfolio-media-img" src="{{ hero_image.url }}" alt="{{ hero_image.alt }}" loading="eager" data-visual-role="hero-image" onerror="var shell=this.closest('[data-image-shell]'); if (shell) shell.setAttribute('data-image-state', 'error'); this.remove();">
+                            {% endif %}
+                        </div>
+                        <div class="portfolio-proof-list">
+                            {% for item in selected_variant.content.projects[:3] %}
+                            <article class="portfolio-proof-card">
+                                <span>{{ item.meta }}</span>
+                                <strong>{{ item.title }}</strong>
+                            </article>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+                {% elif section == "projects" %}
+                <section id="section-projects" class="portfolio-section" data-section="projects" data-node-id="section-projects" data-node-type="section" data-section-name="projects">
+                    <p class="portfolio-overline">Selected work</p>
+                    <h3 class="portfolio-title" data-node-id="projects-title" data-node-type="text" data-edit-path="projects_title" data-section="projects">{{ selected_variant.content.projects_title }}</h3>
+                    <p class="portfolio-body" data-node-id="projects-intro" data-node-type="text" data-edit-path="projects_intro" data-section="projects">{{ selected_variant.content.projects_intro }}</p>
+                    <div class="portfolio-project-grid">
+                        {% for item in selected_variant.content.projects %}
+                        {% set media = project_images[loop.index0] if loop.index0 < project_images|length else None %}
+                        <article class="portfolio-project-card" data-node-id="projects-{{ loop.index0 }}" data-node-type="list-item" data-edit-path="projects.{{ loop.index0 }}" data-list-key="projects" data-item-index="{{ loop.index0 }}" data-edit-fields="meta,title,desc" data-section="projects">
+                            <div class="portfolio-media-shell portfolio-project-media" data-image-shell="project" data-image-state="{% if media and media.url %}ready{% else %}error{% endif %}">
+                                <div class="portfolio-media-fallback"></div>
+                                {% if media and media.url %}
+                                <img class="portfolio-media-img" src="{{ media.url }}" alt="{{ media.alt }}" loading="lazy" data-visual-role="project-image" onerror="var shell=this.closest('[data-image-shell]'); if (shell) shell.setAttribute('data-image-state', 'error'); this.remove();">
+                                {% endif %}
+                            </div>
+                            <span class="portfolio-meta" data-node-id="projects-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.meta" data-item-field="meta" data-section="projects">{{ item.meta }}</span>
+                            <h4 data-node-id="projects-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.title" data-item-field="title" data-section="projects">{{ item.title }}</h4>
+                            <p class="portfolio-body" data-node-id="projects-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.desc" data-item-field="desc" data-section="projects">{{ item.desc }}</p>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "about" %}
+                <section id="section-about" class="portfolio-section portfolio-about" data-section="about" data-node-id="section-about" data-node-type="section" data-section-name="about">
+                    <p class="portfolio-overline">About</p>
+                    <h3 class="portfolio-title" data-node-id="about-title" data-node-type="text" data-edit-path="about_title" data-section="about">{{ selected_variant.content.about_title }}</h3>
+                    <p class="portfolio-body" data-node-id="about-intro" data-node-type="text" data-edit-path="about_intro" data-section="about">{{ selected_variant.content.about_intro }}</p>
+                    <p class="portfolio-body portfolio-about-copy" data-node-id="about-text" data-node-type="text" data-edit-path="about_text" data-section="about">{{ selected_variant.content.about_text }}</p>
+                </section>
+                {% elif section == "capabilities" %}
+                <section id="section-capabilities" class="portfolio-section" data-section="capabilities" data-node-id="section-capabilities" data-node-type="section" data-section-name="capabilities">
+                    <p class="portfolio-overline">Capabilities</p>
+                    <h3 class="portfolio-title" data-node-id="capabilities-title" data-node-type="text" data-edit-path="capabilities_title" data-section="capabilities">{{ selected_variant.content.capabilities_title }}</h3>
+                    <p class="portfolio-body" data-node-id="capabilities-intro" data-node-type="text" data-edit-path="capabilities_intro" data-section="capabilities">{{ selected_variant.content.capabilities_intro }}</p>
+                    <div class="portfolio-capability-grid">
+                        {% for item in selected_variant.content.capabilities %}
+                        {% set icon = capability_icons[loop.index0] if loop.index0 < capability_icons|length else None %}
+                        <article class="portfolio-capability-card" data-node-id="capabilities-{{ loop.index0 }}" data-node-type="list-item" data-edit-path="capabilities.{{ loop.index0 }}" data-list-key="capabilities" data-item-index="{{ loop.index0 }}" data-edit-fields="title,desc" data-section="capabilities">
+                            <span class="portfolio-icon{% if icon and icon.url %} is-masked{% endif %}" {% if icon and icon.url %}style="--icon-mask-url: url('{{ icon.url }}');"{% endif %} aria-hidden="true">{% if not icon or not icon.url %}{{ item.title[:2]|upper }}{% endif %}</span>
+                            <h4 data-node-id="capabilities-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="capabilities.{{ loop.index0 }}.title" data-item-field="title" data-section="capabilities">{{ item.title }}</h4>
+                            <p class="portfolio-body" data-node-id="capabilities-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="capabilities.{{ loop.index0 }}.desc" data-item-field="desc" data-section="capabilities">{{ item.desc }}</p>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "proof" %}
+                <section id="section-proof" class="portfolio-section portfolio-proof" data-section="proof" data-node-id="section-proof" data-node-type="section" data-section-name="proof">
+                    <p class="portfolio-overline">Proof</p>
+                    <blockquote class="portfolio-proof-quote" data-node-id="proof-quote" data-node-type="text" data-edit-path="proof_quote" data-section="proof">"{{ selected_variant.content.proof_quote }}"</blockquote>
+                    <span class="portfolio-meta" data-node-id="proof-author" data-node-type="text" data-edit-path="proof_author" data-section="proof">{{ selected_variant.content.proof_author }}</span>
+                </section>
+                {% elif section == "cta" %}
+                <section id="section-cta" class="portfolio-section portfolio-cta" data-section="cta" data-node-id="section-cta" data-node-type="section" data-section-name="cta">
+                    <div>
+                        <p class="portfolio-overline">Next conversation</p>
+                        <h3 class="portfolio-title" data-node-id="cta-title" data-node-type="text" data-edit-path="cta_text" data-section="cta">{{ selected_variant.content.cta_text }}</h3>
+                        <p class="portfolio-body" data-node-id="cta-note" data-node-type="text" data-edit-path="cta_note" data-section="cta">{{ selected_variant.content.cta_note }}</p>
+                    </div>
+                    <button class="portfolio-btn" type="button">{{ selected_variant.content.cta_text }}</button>
+                </section>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    </div>
+</article>
+
+<style>
+    .portfolio-site-v2 {
+        color: var(--theme-text);
+        background:
+            radial-gradient(circle at top left, var(--theme-accent-soft), transparent 30%),
+            linear-gradient(135deg, var(--theme-surface) 0%, var(--theme-surface-alt) 100%);
+        border: 1px solid var(--theme-border);
+        border-radius: 28px;
+        box-shadow: var(--theme-shadow);
+        padding: 20px;
+        font-family: var(--theme-body-font);
+    }
+    .portfolio-header,
+    .portfolio-section {
+        border: 1px solid color-mix(in srgb, var(--theme-border) 92%, white 8%);
+        background: color-mix(in srgb, var(--theme-panel-background) 84%, white 16%);
+    }
+    .portfolio-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 18px;
+        border-radius: 20px;
+        margin-bottom: 18px;
+    }
+    .portfolio-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: inherit;
+        text-decoration: none;
+    }
+    .portfolio-brand strong,
+    .portfolio-display,
+    .portfolio-title,
+    .portfolio-proof-quote,
+    .portfolio-project-card h4,
+    .portfolio-capability-card h4 {
+        margin: 0;
+        font-family: var(--theme-display-font);
+        letter-spacing: -0.04em;
+    }
+    .portfolio-brand-mark {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--theme-accent);
+        box-shadow: 0 0 0 8px color-mix(in srgb, var(--theme-accent-soft) 82%, transparent);
+    }
+    .portfolio-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .portfolio-nav a,
+    .portfolio-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0 16px;
+        border-radius: 999px;
+        text-decoration: none;
+    }
+    .portfolio-nav a {
+        color: var(--theme-text);
+        border: 1px solid var(--theme-border);
+        background: color-mix(in srgb, var(--theme-panel-background) 72%, white 28%);
+    }
+    .portfolio-btn {
+        border: 0;
+        background: var(--theme-button-bg);
+        color: var(--theme-button-text);
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .portfolio-stack {
+        display: grid;
+        gap: 18px;
+    }
+    .portfolio-section {
+        padding: clamp(22px, 3vw, 34px);
+        border-radius: 24px;
+        overflow: hidden;
+        scroll-margin-top: 120px;
+    }
+    .portfolio-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+        gap: 18px;
+    }
+    .portfolio-display {
+        font-size: clamp(3rem, 7vw, 6rem);
+        line-height: 0.92;
+        max-width: 8ch;
+    }
+    .portfolio-title {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        line-height: 0.96;
+    }
+    .portfolio-overline {
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.72rem;
+        color: var(--theme-accent);
+        font-weight: 700;
+    }
+    .portfolio-body,
+    .portfolio-note,
+    .portfolio-meta,
+    .portfolio-proof-card span {
+        margin: 0;
+        color: var(--theme-muted);
+        line-height: 1.7;
+    }
+    .portfolio-hero-copy,
+    .portfolio-about,
+    .portfolio-capability-grid,
+    .portfolio-proof-list {
+        display: grid;
+        gap: 14px;
+    }
+    .portfolio-hero-visuals {
+        display: grid;
+        gap: 14px;
+    }
+    .portfolio-media-shell {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        min-height: 220px;
+        border: 1px solid var(--theme-border);
+        background: color-mix(in srgb, var(--theme-surface-alt) 86%, white 14%);
+    }
+    .portfolio-media-hero {
+        min-height: 440px;
+    }
+    .portfolio-media-fallback {
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 16% 18%, color-mix(in srgb, var(--theme-accent-soft) 82%, white 18%), transparent 24%),
+            linear-gradient(145deg, color-mix(in srgb, var(--theme-surface) 80%, white 20%), color-mix(in srgb, var(--theme-surface-alt) 90%, transparent));
+    }
+    .portfolio-media-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        position: relative;
+        z-index: 1;
+    }
+    .portfolio-media-shell[data-image-state="ready"] .portfolio-media-fallback {
+        opacity: 0.16;
+    }
+    .portfolio-proof-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .portfolio-proof-card,
+    .portfolio-project-card,
+    .portfolio-capability-card,
+    .portfolio-proof,
+    .portfolio-cta,
+    .portfolio-about {
+        padding: 14px;
+        border-radius: 20px;
+        border: 1px solid var(--theme-border);
+        background: color-mix(in srgb, var(--theme-panel-background) 88%, white 12%);
+    }
+    .portfolio-project-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+    }
+    .portfolio-project-card {
+        display: grid;
+        gap: 12px;
+    }
+    .portfolio-project-card:nth-child(1) {
+        grid-column: span 2;
+    }
+    .portfolio-project-media {
+        min-height: 280px;
+    }
+    .portfolio-capability-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 18px;
+    }
+    .portfolio-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: color-mix(in srgb, var(--theme-accent-soft) 88%, white 12%);
+        color: var(--theme-accent);
+        font-size: 0.76rem;
+        font-weight: 700;
+    }
+    .portfolio-icon.is-masked {
+        color: transparent;
+        background: var(--theme-accent);
+        mask-image: var(--icon-mask-url);
+        -webkit-mask-image: var(--icon-mask-url);
+        mask-repeat: no-repeat;
+        -webkit-mask-repeat: no-repeat;
+        mask-position: center;
+        -webkit-mask-position: center;
+        mask-size: 22px 22px;
+        -webkit-mask-size: 22px 22px;
+    }
+    .portfolio-about-copy,
+    .portfolio-proof-quote {
+        max-width: 20ch;
+    }
+    .portfolio-proof-quote {
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        line-height: 0.98;
+    }
+    .portfolio-cta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+    @media (max-width: 960px) {
+        .portfolio-header,
+        .portfolio-cta,
+        .portfolio-proof-list,
+        .portfolio-project-grid,
+        .portfolio-capability-grid,
+        .portfolio-hero {
+            grid-template-columns: 1fr;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .portfolio-project-card:nth-child(1) {
+            grid-column: auto;
+        }
+        .portfolio-media-hero,
+        .portfolio-project-media {
+            min-height: 260px;
+        }
+    }
+</style>

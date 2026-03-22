@@ -1,0 +1,417 @@
+{% set theme = selected_variant.theme or {} %}
+{% set plan = selected_variant.render_plan %}
+{% set preview_name = brief.name or selected_variant.content.hero_title or "VeloSite" %}
+{% set visuals = selected_variant.visuals or {} %}
+{% set section_media = visuals.get("section_media", {}) %}
+{% set hero_image = visuals.get("hero_image") or {} %}
+{% set workflow_media = section_media.get("workflows", []) %}
+{% set feature_icons = visuals.get("feature_icons", []) %}
+{% set active_page = selected_variant.active_page or {"slug": "home", "label": "Home", "section_order": plan.section_order, "section_visibility": plan.section_visibility} %}
+<article
+    class="saas-site art-{{ plan.art_direction }} nav-{{ plan.navigation_mode }} shell-{{ plan.page_shell }} page-{{ active_page.slug }}"
+    style="
+        --theme-panel-background: {{ theme.get('panel_background', 'rgba(248, 252, 255, 0.88)') }};
+        --theme-surface: {{ theme.get('surface', '#0c1623') if theme.get('text', '').startswith('#d') else theme.get('surface', '#fbfdff') }};
+        --theme-surface-alt: {{ theme.get('surface_alt', '#102235') if theme.get('text', '').startswith('#d') else theme.get('surface_alt', '#eef3f8') }};
+        --theme-text: {{ theme.get('text', '#111827') }};
+        --theme-muted: {{ theme.get('muted', '#586273') }};
+        --theme-accent: {{ theme.get('accent', '#39e0c9') }};
+        --theme-accent-soft: {{ theme.get('accent_soft', 'rgba(57, 224, 201, 0.16)') }};
+        --theme-border: {{ theme.get('border', 'rgba(17, 24, 39, 0.12)') }};
+        --theme-button-bg: {{ theme.get('button_bg', '#111827') }};
+        --theme-button-text: {{ theme.get('button_text', '#f7fafc') }};
+        --theme-shadow: {{ theme.get('shadow', '0 26px 76px rgba(18, 33, 54, 0.18)') }};
+        --theme-display-font: {{ theme.get('display_font', "'Space Grotesk', sans-serif") }};
+        --theme-body-font: {{ theme.get('body_font', "'Manrope', sans-serif") }};
+    "
+>
+    {% include "generated/_site_chrome_styles.html" %}
+    {% include "generated/_site_chrome.html" %}
+
+    <div class="saas-stack">
+        {% for section in active_page.section_order %}
+            {% if active_page.section_visibility.get(section) %}
+                {% if section == "hero" %}
+                <section id="section-hero" class="saas-section saas-hero" data-section="hero" data-node-id="section-hero" data-node-type="section" data-section-name="hero">
+                    <div class="saas-hero-copy">
+                        <p class="saas-eyebrow" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                        <h2 class="saas-display" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                        <p class="saas-body" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+                        <div class="saas-action-row">
+                            <button class="saas-btn" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                            <span class="saas-note" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</span>
+                        </div>
+                    </div>
+                    <div class="saas-dashboard-grid">
+                        <div class="saas-screen saas-screen-hero" data-image-shell="hero" data-image-state="{% if hero_image.get('url') %}ready{% else %}error{% endif %}">
+                            <div class="saas-screen-fallback"></div>
+                            {% if hero_image.get('url') %}
+                            <img class="saas-screen-img" src="{{ hero_image.url }}" alt="{{ hero_image.alt }}" loading="eager" data-visual-role="hero-image" onerror="var shell=this.closest('[data-image-shell]'); if (shell) shell.setAttribute('data-image-state', 'error'); this.remove();">
+                            {% endif %}
+                        </div>
+                        {% for media in workflow_media[:2] %}
+                        <div class="saas-screen saas-screen-side" data-image-shell="workflow" data-image-state="ready">
+                            <div class="saas-screen-fallback"></div>
+                            <img class="saas-screen-img" src="{{ media.url }}" alt="{{ media.alt }}" loading="lazy" data-visual-role="workflow-image" onerror="var shell=this.closest('[data-image-shell]'); if (shell) shell.setAttribute('data-image-state', 'error'); this.remove();">
+                        </div>
+                        {% endfor %}
+                        {% if workflow_media|length < 2 %}
+                            {% for _ in range(2 - workflow_media|length) %}
+                            <div class="saas-screen saas-screen-side" data-image-shell="workflow" data-image-state="error">
+                                <div class="saas-screen-fallback"></div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </section>
+                {% elif section == "workflows" %}
+                <section id="section-workflows" class="saas-section" data-section="workflows" data-node-id="section-workflows" data-node-type="section" data-section-name="workflows">
+                    <div class="saas-section-head">
+                        <div>
+                            <p class="saas-overline">Workflow</p>
+                            <h3 class="saas-title" data-node-id="workflows-title" data-node-type="text" data-edit-path="workflows_title" data-section="workflows">{{ selected_variant.content.workflows_title }}</h3>
+                            <p class="saas-body" data-node-id="workflows-intro" data-node-type="text" data-edit-path="workflows_intro" data-section="workflows">{{ selected_variant.content.workflows_intro }}</p>
+                        </div>
+                    </div>
+                    <div class="saas-workflow-grid">
+                        {% for item in selected_variant.content.workflows %}
+                        {% set media = workflow_media[loop.index0] if loop.index0 < workflow_media|length else None %}
+                        <article class="saas-workflow-card" data-node-id="workflows-{{ loop.index0 }}" data-node-type="list-item" data-edit-path="workflows.{{ loop.index0 }}" data-list-key="workflows" data-item-index="{{ loop.index0 }}" data-edit-fields="meta,title,desc" data-section="workflows">
+                            <div class="saas-screen saas-workflow-media" data-image-shell="workflow" data-image-state="{% if media and media.url %}ready{% else %}error{% endif %}">
+                                <div class="saas-screen-fallback"></div>
+                                {% if media and media.url %}
+                                <img class="saas-screen-img" src="{{ media.url }}" alt="{{ media.alt }}" loading="lazy" data-visual-role="workflow-image" onerror="var shell=this.closest('[data-image-shell]'); if (shell) shell.setAttribute('data-image-state', 'error'); this.remove();">
+                                {% endif %}
+                            </div>
+                            <span class="saas-meta" data-node-id="workflows-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="workflows.{{ loop.index0 }}.meta" data-item-field="meta" data-section="workflows">{{ item.meta }}</span>
+                            <h4 data-node-id="workflows-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="workflows.{{ loop.index0 }}.title" data-item-field="title" data-section="workflows">{{ item.title }}</h4>
+                            <p class="saas-body" data-node-id="workflows-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="workflows.{{ loop.index0 }}.desc" data-item-field="desc" data-section="workflows">{{ item.desc }}</p>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "features" %}
+                <section id="section-features" class="saas-section" data-section="features" data-node-id="section-features" data-node-type="section" data-section-name="features">
+                    <div class="saas-section-head">
+                        <div>
+                            <p class="saas-overline">Highlights</p>
+                            <h3 class="saas-title" data-node-id="features-title" data-node-type="text" data-edit-path="features_title" data-section="features">{{ selected_variant.content.features_title }}</h3>
+                            <p class="saas-body" data-node-id="features-intro" data-node-type="text" data-edit-path="features_intro" data-section="features">{{ selected_variant.content.features_intro }}</p>
+                        </div>
+                    </div>
+                    <div class="saas-feature-grid">
+                        {% for item in selected_variant.content.features %}
+                        {% set icon = feature_icons[loop.index0] if loop.index0 < feature_icons|length else None %}
+                        <article class="saas-feature-card" data-node-id="features-{{ loop.index0 }}" data-node-type="list-item" data-edit-path="features.{{ loop.index0 }}" data-list-key="features" data-item-index="{{ loop.index0 }}" data-edit-fields="title,desc" data-section="features">
+                            <span class="saas-icon{% if icon and icon.url %} is-masked{% endif %}" {% if icon and icon.url %}style="--icon-mask-url: url('{{ icon.url }}');"{% endif %} aria-hidden="true">{% if not icon or not icon.url %}{{ item.title[:2]|upper }}{% endif %}</span>
+                            <h4 data-node-id="features-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.title" data-item-field="title" data-section="features">{{ item.title }}</h4>
+                            <p class="saas-body" data-node-id="features-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.desc" data-item-field="desc" data-section="features">{{ item.desc }}</p>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "pricing" %}
+                <section id="section-pricing" class="saas-section" data-section="pricing" data-node-id="section-pricing" data-node-type="section" data-section-name="pricing">
+                    <div class="saas-section-head">
+                        <div>
+                            <p class="saas-overline">Plans</p>
+                            <h3 class="saas-title" data-node-id="pricing-title" data-node-type="text" data-edit-path="pricing_title" data-section="pricing">{{ selected_variant.content.pricing_title }}</h3>
+                            <p class="saas-body" data-node-id="pricing-intro" data-node-type="text" data-edit-path="pricing_intro" data-section="pricing">{{ selected_variant.content.pricing_intro }}</p>
+                        </div>
+                    </div>
+                    <div class="saas-pricing-grid">
+                        {% for item in selected_variant.content.offers %}
+                        <article class="saas-pricing-card" data-node-id="offers-{{ loop.index0 }}" data-node-type="list-item" data-edit-path="offers.{{ loop.index0 }}" data-list-key="offers" data-item-index="{{ loop.index0 }}" data-edit-fields="meta,title,desc" data-section="pricing">
+                            <span class="saas-meta" data-node-id="offers-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.meta" data-item-field="meta" data-section="pricing">{{ item.meta }}</span>
+                            <h4 data-node-id="offers-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.title" data-item-field="title" data-section="pricing">{{ item.title }}</h4>
+                            <p class="saas-body" data-node-id="offers-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.desc" data-item-field="desc" data-section="pricing">{{ item.desc }}</p>
+                            <button class="saas-card-btn" type="button">Select</button>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "proof" %}
+                <section id="section-proof" class="saas-section saas-proof" data-section="proof" data-node-id="section-proof" data-node-type="section" data-section-name="proof">
+                    <p class="saas-overline">Proof</p>
+                    <blockquote class="saas-proof-quote" data-node-id="proof-quote" data-node-type="text" data-edit-path="proof_quote" data-section="proof">"{{ selected_variant.content.proof_quote }}"</blockquote>
+                    <span class="saas-meta" data-node-id="proof-author" data-node-type="text" data-edit-path="proof_author" data-section="proof">{{ selected_variant.content.proof_author }}</span>
+                </section>
+                {% elif section == "cta" %}
+                <section id="section-cta" class="saas-section saas-cta" data-section="cta" data-node-id="section-cta" data-node-type="section" data-section-name="cta">
+                    <div>
+                        <p class="saas-overline">Launch</p>
+                        <h3 class="saas-title" data-node-id="cta-title" data-node-type="text" data-edit-path="cta_text" data-section="cta">{{ selected_variant.content.cta_text }}</h3>
+                        <p class="saas-body" data-node-id="cta-note" data-node-type="text" data-edit-path="cta_note" data-section="cta">{{ selected_variant.content.cta_note }}</p>
+                    </div>
+                    <button class="saas-btn" type="button">{{ selected_variant.content.cta_text }}</button>
+                </section>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    </div>
+</article>
+
+<style>
+    .saas-site {
+        color: var(--theme-text);
+        background:
+            radial-gradient(circle at top right, var(--theme-accent-soft), transparent 30%),
+            linear-gradient(180deg, color-mix(in srgb, var(--theme-surface) 94%, white 6%) 0%, color-mix(in srgb, var(--theme-surface-alt) 96%, transparent) 100%);
+        border: 1px solid var(--theme-border);
+        border-radius: 28px;
+        box-shadow: var(--theme-shadow);
+        padding: 20px;
+        font-family: var(--theme-body-font);
+    }
+    .saas-header,
+    .saas-section {
+        border: 1px solid color-mix(in srgb, var(--theme-border) 92%, white 8%);
+        background: color-mix(in srgb, var(--theme-panel-background) 82%, white 18%);
+    }
+    .saas-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 18px;
+        border-radius: 20px;
+        margin-bottom: 18px;
+        backdrop-filter: blur(16px);
+    }
+    .saas-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: inherit;
+        text-decoration: none;
+    }
+    .saas-brand strong,
+    .saas-display,
+    .saas-title,
+    .saas-proof-quote,
+    .saas-feature-card h4,
+    .saas-workflow-card h4,
+    .saas-pricing-card h4 {
+        margin: 0;
+        font-family: var(--theme-display-font);
+        letter-spacing: -0.04em;
+    }
+    .saas-brand-mark {
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        background: var(--theme-accent);
+        box-shadow: 0 0 0 8px color-mix(in srgb, var(--theme-accent-soft) 80%, transparent);
+    }
+    .saas-brand small,
+    .saas-body,
+    .saas-note,
+    .saas-meta {
+        color: var(--theme-muted);
+    }
+    .saas-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .saas-nav a,
+    .saas-nav-cta,
+    .saas-btn,
+    .saas-card-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0 16px;
+        border-radius: 14px;
+        text-decoration: none;
+    }
+    .saas-nav a {
+        border: 1px solid var(--theme-border);
+        color: var(--theme-text);
+        background: color-mix(in srgb, var(--theme-panel-background) 74%, white 26%);
+    }
+    .saas-nav-cta,
+    .saas-btn,
+    .saas-card-btn {
+        border: 0;
+        background: var(--theme-button-bg);
+        color: var(--theme-button-text);
+        cursor: pointer;
+        font-weight: 700;
+    }
+    .saas-stack {
+        display: grid;
+        gap: 18px;
+    }
+    .saas-section {
+        border-radius: 24px;
+        padding: clamp(22px, 3vw, 34px);
+        overflow: hidden;
+        scroll-margin-top: 120px;
+        box-shadow: 0 18px 40px color-mix(in srgb, var(--theme-accent-soft) 18%, transparent);
+    }
+    .saas-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(340px, 1.05fr);
+        gap: 20px;
+    }
+    .saas-display {
+        font-size: clamp(3rem, 6vw, 5.8rem);
+        line-height: 0.92;
+        max-width: 10ch;
+    }
+    .saas-title {
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        line-height: 0.96;
+    }
+    .saas-eyebrow,
+    .saas-overline {
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-size: 0.72rem;
+        color: var(--theme-accent);
+        font-weight: 700;
+    }
+    .saas-body {
+        margin: 0;
+        line-height: 1.7;
+        font-size: 0.98rem;
+    }
+    .saas-action-row,
+    .saas-section-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .saas-dashboard-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.85fr);
+        gap: 12px;
+        min-height: 520px;
+    }
+    .saas-screen {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        min-height: 180px;
+        border: 1px solid color-mix(in srgb, var(--theme-border) 90%, white 10%);
+        background: color-mix(in srgb, var(--theme-surface-alt) 92%, transparent);
+    }
+    .saas-screen-hero {
+        min-height: 520px;
+    }
+    .saas-screen-side {
+        min-height: 254px;
+    }
+    .saas-screen-fallback {
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent),
+            radial-gradient(circle at 16% 18%, color-mix(in srgb, var(--theme-accent-soft) 84%, white 16%), transparent 24%),
+            linear-gradient(145deg, color-mix(in srgb, var(--theme-surface-alt) 94%, transparent), color-mix(in srgb, var(--theme-surface) 88%, white 12%));
+    }
+    .saas-screen-fallback::after {
+        content: "";
+        position: absolute;
+        inset: 20px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background:
+            linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: 26px 26px;
+        opacity: 0.8;
+    }
+    .saas-screen-img {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .saas-screen[data-image-state="ready"] .saas-screen-fallback {
+        opacity: 0.18;
+    }
+    .saas-workflow-grid,
+    .saas-feature-grid,
+    .saas-pricing-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .saas-workflow-card,
+    .saas-feature-card,
+    .saas-pricing-card,
+    .saas-proof,
+    .saas-cta {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 20px;
+        border: 1px solid var(--theme-border);
+        background: color-mix(in srgb, var(--theme-panel-background) 88%, white 12%);
+    }
+    .saas-workflow-media {
+        min-height: 220px;
+    }
+    .saas-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: color-mix(in srgb, var(--theme-accent-soft) 90%, white 10%);
+        color: var(--theme-accent);
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+    .saas-icon.is-masked {
+        color: transparent;
+        background: var(--theme-accent);
+        mask-image: var(--icon-mask-url);
+        -webkit-mask-image: var(--icon-mask-url);
+        mask-repeat: no-repeat;
+        -webkit-mask-repeat: no-repeat;
+        mask-position: center;
+        -webkit-mask-position: center;
+        mask-size: 24px 24px;
+        -webkit-mask-size: 24px 24px;
+    }
+    .saas-proof-quote {
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        line-height: 0.98;
+        max-width: 16ch;
+    }
+    .saas-cta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+    }
+    @media (max-width: 960px) {
+        .saas-header,
+        .saas-cta,
+        .saas-section-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+        .saas-hero,
+        .saas-dashboard-grid,
+        .saas-workflow-grid,
+        .saas-feature-grid,
+        .saas-pricing-grid {
+            grid-template-columns: 1fr;
+        }
+        .saas-screen-hero,
+        .saas-screen-side {
+            min-height: 280px;
+        }
+    }
+</style>

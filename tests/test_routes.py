@@ -426,6 +426,10 @@ class RouteTests(unittest.TestCase):
         self.assertIn("<!DOCTYPE html>", site_html)
         self.assertIn("Build momentum", site_html)
 
+        contact_response = public_client.get(f"/published/{data['publish_id']}/contact")
+        self.assertEqual(contact_response.status_code, 200)
+        self.assertIn("Current page", contact_response.get_data(as_text=True))
+
         css_response = public_client.get(f"/published/{data['publish_id']}/assets/export-frame.css")
         self.assertEqual(css_response.status_code, 200)
         self.assertEqual(css_response.mimetype, "text/css")
@@ -450,6 +454,16 @@ class RouteTests(unittest.TestCase):
         body = response.get_data(as_text=True)
         self.assertIn("Remix 1", body)
         self.assertIn("--theme-frame-background", body)
+        self.assertIn("Contact", body)
+
+    def test_preview_frame_can_render_secondary_pages(self):
+        self._signup_and_login()
+        self._seed_conversation(preview_id="preview-pages")
+
+        response = self.client.get("/preview/preview-pages/frame?page_slug=contact")
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertIn("Current page", body)
         self.assertIn("Contact", body)
 
     def test_branding_and_canvas_actions_persist_to_conversation(self):

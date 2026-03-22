@@ -1,6 +1,7 @@
 {% set is_consumer = consumer_mode|default(false) %}
 {% set features_title = selected_variant.content.features_title or ("What this delivers" if is_consumer else "Distinct sections with actual jobs to do.") %}
 {% set features_intro = selected_variant.content.features_intro or ("Each point should add a different reason to care." if is_consumer else "Every feature card should carry a different idea so the page keeps building meaning as people move through it.") %}
+{% set feature_icons = visuals.get("feature_icons", []) if visuals else [] %}
 <section
     id="section-features"
     class="preview-section section-features"
@@ -22,6 +23,7 @@
         </div>
         <div class="feature-grid">
             {% for feature in selected_variant.content.features %}
+            {% set feature_icon = feature_icons[loop.index0] if loop.index0 < feature_icons|length else None %}
             <article
                 class="feature-card"
                 data-node-id="features-{{ loop.index0 }}"
@@ -33,7 +35,14 @@
                 data-section="features"
             >
                 <div class="feature-card-head">
-                    <span class="feature-icon">{{ feature.title[:2]|upper }}</span>
+                    <span
+                        class="feature-icon{% if feature_icon and feature_icon.url %} is-masked{% endif %}"
+                        {% if feature_icon and feature_icon.url %}
+                        style="--icon-mask-url: url('{{ feature_icon.url }}');"
+                        title="{{ feature_icon.label }}"
+                        {% endif %}
+                        aria-hidden="true"
+                    >{% if not feature_icon or not feature_icon.url %}{{ feature.title[:2]|upper }}{% endif %}</span>
                     <span class="section-chip">{{ selected_variant.render_plan.art_direction|replace("_", " ")|title }}</span>
                 </div>
                 <h3 data-node-id="features-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.title" data-item-field="title" data-section="features">{{ feature.title }}</h3>

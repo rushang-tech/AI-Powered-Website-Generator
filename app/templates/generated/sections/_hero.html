@@ -1,5 +1,6 @@
 {% set plan = selected_variant.render_plan %}
 {% set is_consumer = consumer_mode|default(false) %}
+{% set hero_image = visuals.get("hero_image") if visuals else None %}
 <section
     id="section-hero"
     class="preview-section section-emphasis hero-section hero-section-{{ plan.art_direction }} hero-template-{{ plan.template_key }}"
@@ -67,6 +68,19 @@
         </div>
         <div class="hero-stage hero-stage-{{ plan.art_direction }}">
             <article class="hero-stage-card hero-stage-card-primary">
+                <div class="hero-visual-media" data-image-shell="hero" data-image-state="{% if hero_image and hero_image.url %}ready{% else %}error{% endif %}">
+                    <div class="asset-image-fallback" aria-hidden="true"></div>
+                    {% if hero_image and hero_image.url %}
+                    <img
+                        class="hero-visual-image"
+                        src="{{ hero_image.url }}"
+                        alt="{{ hero_image.alt }}"
+                        loading="eager"
+                        data-visual-role="hero-image"
+                        onerror="var shell=this.closest('[data-image-shell]'); if (shell) shell.setAttribute('data-image-state', 'error'); this.remove();"
+                    >
+                    {% endif %}
+                </div>
                 {% if plan.template_key == "product" %}
                 <p class="hero-stage-label">{{ "Pricing" if is_consumer else "Launch pricing" }}</p>
                 <h3 class="stage-title" data-node-id="hero-price-badge" data-node-type="text" data-edit-path="price_badge" data-section="hero">{{ selected_variant.content.price_badge }}</h3>

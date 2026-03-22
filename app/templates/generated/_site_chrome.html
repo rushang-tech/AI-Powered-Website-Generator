@@ -1,0 +1,38 @@
+{% set plan = selected_variant.render_plan %}
+{% set active_page = selected_variant.active_page or {"slug": "home", "label": "Home", "section_order": plan.section_order, "section_visibility": plan.section_visibility} %}
+{% set chrome_pages = plan.pages if plan.pages else [active_page] %}
+{% set chrome_page_href_map = page_href_map or {} %}
+{% set chrome_contact_href = chrome_page_href_map.get("contact", chrome_page_href_map.get(plan.primary_page_slug or "home", "#")) %}
+{% set chrome_preview_name = preview_name or brief.name or selected_variant.content.hero_title or "VeloSite" %}
+{% set chrome_brand_asset = (brief.brand_assets or [])[0] if brief.brand_assets else None %}
+<header class="site-chrome site-chrome-{{ plan.navigation_mode }}" data-site-chrome="true">
+    <a class="site-chrome-brand" href="{{ chrome_page_href_map.get(plan.primary_page_slug or 'home', '#') }}">
+        {% if chrome_brand_asset %}
+        <span class="site-chrome-brand-mark has-image">
+            <img src="{{ chrome_brand_asset.data_url }}" alt="{{ chrome_brand_asset.alt }}">
+        </span>
+        {% else %}
+        <span class="site-chrome-brand-mark"></span>
+        {% endif %}
+        <span class="site-chrome-brand-copy">
+            <strong>{{ chrome_preview_name }}</strong>
+            <span>{{ brief.audience or active_page.label or "Designed for real visitors" }}</span>
+        </span>
+    </a>
+    <div class="site-chrome-page-label">
+        <span>Current page</span>
+        <strong>{{ active_page.label or "Home" }}</strong>
+    </div>
+    <nav class="site-chrome-nav" aria-label="Primary">
+        {% for page in chrome_pages %}
+        <a
+            class="site-chrome-link"
+            href="{{ chrome_page_href_map.get(page.slug, '#') }}"
+            {% if page.slug == active_page.slug %}aria-current="page"{% endif %}
+        >{{ page.label }}</a>
+        {% endfor %}
+    </nav>
+    <div class="site-chrome-actions">
+        <a class="site-chrome-cta" href="{{ chrome_contact_href }}">{{ selected_variant.content.cta_text or "Get Started" }}</a>
+    </div>
+</header>

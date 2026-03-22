@@ -114,10 +114,18 @@
                                 </select>
                             </label>
                             <label>
-                                Layout mode
+                                Site structure
                                 <select id="layout-mode-select">
                                     {% for key in layout_modes %}
                                     <option value="{{ key }}" {% if key == selected_variant.render_plan.layout_mode %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label>
+                                Navigation pattern
+                                <select id="navigation-mode-select">
+                                    {% for key in structure_library.get(selected_variant.render_plan.template_key, {}).get(selected_variant.render_plan.layout_mode, {}).get("navigation_modes", []) %}
+                                    <option value="{{ key }}" {% if key == selected_variant.render_plan.navigation_mode %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
                                     {% endfor %}
                                 </select>
                             </label>
@@ -146,8 +154,8 @@
                             </div>
                         </div>
                         <div class="remix-actions">
-                            <button id="style-remix-btn" class="btn" type="button">Style Remix x3</button>
-                            <p class="muted-copy">Generate three visual remixes instantly and apply your favorite in one click.</p>
+                            <button id="style-remix-btn" class="btn" type="button">Design Remix x3</button>
+                            <p class="muted-copy">Generate three structural and visual remixes instantly and apply your favorite in one click.</p>
                         </div>
                     </div>
                 </details>
@@ -228,6 +236,28 @@
                 <section class="panel-block">
                     <div class="section-heading-row">
                         <div>
+                            <p class="panel-kicker">Pages</p>
+                            <p class="muted-copy compact-copy">Switch the active page and keep edits scoped to that page.</p>
+                        </div>
+                    </div>
+                    <div class="variant-list" id="page-switcher">
+                        {% for page in selected_variant.render_plan.pages %}
+                        <button
+                            class="variant-card {% if page.slug == selected_variant.page_slug %}is-selected{% endif %}"
+                            type="button"
+                            data-page-slug="{{ page.slug }}"
+                        >
+                            <span class="variant-title">{{ page.label }}</span>
+                            <span class="variant-meta">{{ page.page_role|replace("_", " ")|title }}</span>
+                            <span class="variant-copy">{{ page.section_order|join(" / ")|replace("_", " ")|title }}</span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="panel-block">
+                    <div class="section-heading-row">
+                        <div>
                             <p class="panel-kicker">Variants</p>
                             <p class="muted-copy compact-copy">Switch directions without leaving the canvas workflow.</p>
                         </div>
@@ -240,7 +270,7 @@
                             data-variant-id="{{ variant.variant_id }}"
                         >
                             <span class="variant-title">{{ variant.label }}</span>
-                            <span class="variant-meta">{{ variant.render_plan.art_direction|replace("_", " ")|title }} / {{ variant.render_plan.layout_mode|replace("_", " ")|title }}</span>
+                            <span class="variant-meta">{{ variant.render_plan.art_direction|replace("_", " ")|title }} / {{ variant.render_plan.layout_mode|replace("_", " ")|title }} / {{ variant.render_plan.navigation_mode|replace("_", " ")|title }}</span>
                             <span class="variant-copy">{{ variant.summary }}</span>
                         </button>
                         {% endfor %}
@@ -255,13 +285,13 @@
                         </div>
                     </div>
                     <div class="layer-list" id="layer-list">
-                        {% for section in selected_variant.render_plan.section_order %}
+                        {% for section in selected_variant.active_page.section_order %}
                         <div class="layer-row">
                             <span class="layer-order">{{ "%02d"|format(loop.index) }}</span>
                             <span class="layer-name">{{ section|replace("_", " ")|title }}</span>
                             <span class="layer-actions">
                                 <button class="layer-regen" type="button" data-regenerate-section="{{ section }}">Regenerate</button>
-                                <input type="checkbox" data-layer-section="{{ section }}" {% if selected_variant.render_plan.section_visibility[section] %}checked{% endif %}>
+                                <input type="checkbox" data-layer-section="{{ section }}" {% if selected_variant.active_page.section_visibility[section] %}checked{% endif %}>
                             </span>
                         </div>
                         {% endfor %}
@@ -282,10 +312,12 @@
 <script id="studio-config" type="application/json">
 {{ {
     "layoutLibrary": layout_library,
+    "structureLibrary": structure_library,
     "artDirectionKeys": art_direction_keys,
     "previewId": preview_id,
     "conversationId": conversation_id,
     "selectedVariantId": selected_variant_id,
+    "selectedPageSlug": selected_variant.page_slug,
     "selectedVariant": selected_variant,
     "brief": brief,
     "conversationMessages": conversation_messages,

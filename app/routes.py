@@ -55,7 +55,7 @@ from app.services.conversation_service import (
     serialize_conversation_summary,
     visible_messages,
 )
-from app.services.export_service import build_export_bundle, render_export_site
+from app.services.export_service import build_export_bundle, render_export_pages
 from app.services.published_site_service import PUBLISHED_SITE_SERVICE
 from app.services.taste_engine import LAYOUT_LIBRARY, normalize_brief
 
@@ -150,15 +150,26 @@ def _demo_brief() -> dict[str, str]:
 
 def _collect_overrides(body: dict[str, object]) -> dict[str, object]:
     overrides: dict[str, object] = {}
-    for key in ("template_key", "layout_mode", "art_direction", "theme_key", "density", "motion_level"):
+    for key in ("template_key", "layout_mode", "art_direction", "theme_key", "density", "motion_level", "navigation_mode"):
         value = str(body.get(key, "")).strip().lower()
         if value:
             overrides[key] = value
+    page_slug = str(body.get("page_slug", "")).strip().lower()
+    if page_slug:
+        overrides["page_slug"] = page_slug
 
     raw_visibility = body.get("section_visibility")
     if isinstance(raw_visibility, dict):
         overrides["section_visibility"] = {str(key): bool(value) for key, value in raw_visibility.items()}
     return overrides
+
+
+def _variant_page_hrefs(
+    *,
+    page_slugs: list[str],
+    href_builder: callable,
+) -> dict[str, str]:
+    return {slug: href_builder(slug) for slug in page_slugs if slug}
 
 
 def _brief_payload(body: dict[str, object]) -> dict[str, object]:
@@ -480,6 +491,7 @@ def continue_conversation(conversation_id: int):
     body = request.get_json(silent=True) or {}
     instruction = _clean_text(body.get("message") or body.get("prompt"), max_length=1200)
     variant_id = _clean_text(body.get("variant_id"), max_length=64) or None
+    page_slug = _clean_text(body.get("page_slug"), max_length=64) or None
     if not instruction:
         return jsonify({"error": "A follow-up message is required."}), 400
 
@@ -508,7 +520,7 @@ def continue_conversation(conversation_id: int):
     )
     db.session.commit()
 
-    studio = selected_preview_data(updated_manifest)
+    studio = selected_preview_data(updated_manifest, page_slug=page_slug)
     return jsonify(
         {
             "ok": True,
@@ -617,10 +629,22 @@ def update_branding(preview_id: str):
 def preview(preview_id: str):
     conversation = _conversation_for_preview_or_404(preview_id)
     manifest = manifest_from_conversation(conversation)
-    studio = selected_preview_data(manifest)
+    requested_page_slug = _clean_text(request.args.get("page_slug"), max_length=64) or None
+    studio = selected_preview_data(manifest, page_slug=requested_page_slug)
     selected_variant = studio.get("selected_variant") or {}
     render_plan = selected_variant.get("render_plan", {})
     current_template = str(render_plan.get("template_key", "landing"))
+    structure_library = {
+        template_key: {
+            layout_key: {
+                "navigation_modes": value.get("navigation_modes", []),
+                "page_shell": value.get("page_shell", ""),
+                "pages": value.get("default_page_map", []),
+            }
+            for layout_key, value in layouts.items()
+        }
+        for template_key, layouts in LAYOUT_LIBRARY.items()
+    }
 
     return render_template(
         "preview_shell.html",
@@ -641,6 +665,7 @@ def preview(preview_id: str):
         art_direction_keys=list(THEME_MAP.keys()),
         layout_modes=list(LAYOUT_LIBRARY.get(current_template, {}).keys()),
         layout_library={key: list(value.keys()) for key, value in LAYOUT_LIBRARY.items()},
+        structure_library=structure_library,
         density_options=["airy", "balanced", "dense"],
         motion_options=["calm", "moderate", "energetic"],
     )
@@ -653,6 +678,7 @@ def preview_frame(preview_id: str):
     manifest = manifest_from_conversation(conversation)
 
     variant_id = _clean_text(request.args.get("variant_id"), max_length=64) or None
+    page_slug = _clean_text(request.args.get("page_slug"), max_length=64) or None
     remix_label = _clean_text(request.args.get("remix_label"), max_length=80) or None
     overrides = _collect_overrides(request.args.to_dict(flat=True))
 
@@ -662,16 +688,33 @@ def preview_frame(preview_id: str):
             variant_id=variant_id,
             overrides=overrides or None,
             remix_label=remix_label,
+            page_slug=page_slug,
         )
     else:
-        studio = selected_preview_data(manifest)
+        studio = selected_preview_data(manifest, page_slug=page_slug)
         selected_variant = studio.get("selected_variant", {})
+
+    page_slugs = [
+        str(page.get("slug", "")).strip()
+        for page in selected_variant.get("render_plan", {}).get("pages", [])
+        if isinstance(page, dict) and str(page.get("slug", "")).strip()
+    ]
+    query_args = request.args.to_dict(flat=True)
+    page_href_map = _variant_page_hrefs(
+        page_slugs=page_slugs,
+        href_builder=lambda slug: url_for(
+            "main.preview_frame",
+            preview_id=preview_id,
+            **{key: value for key, value in {**query_args, "page_slug": slug, "variant_id": selected_variant.get("variant_id")}.items() if value},
+        ),
+    )
 
     return render_template(
         "preview_frame.html",
         page_title=manifest.brief.name or "VeloSite Preview",
         brief=manifest.brief.to_dict(),
         selected_variant=selected_variant,
+        page_href_map=page_href_map,
         studio_mode=request.args.get("studio", "").strip() == "1",
         consumer_mode=True,
     )
@@ -687,6 +730,7 @@ def override_preview(preview_id: str):
     manifest = manifest_from_conversation(conversation)
     body = request.get_json(silent=True) or {}
     variant_id = str(body.get("variant_id", "")).strip() or None
+    page_slug = _clean_text(body.get("page_slug"), max_length=64) or None
     overrides = _collect_overrides(body)
 
     try:
@@ -701,7 +745,7 @@ def override_preview(preview_id: str):
 
     save_manifest(conversation, updated)
     record_system_event(conversation, "Applied layout or style overrides in Studio.")
-    selected = selected_preview_data(updated).get("selected_variant", {})
+    selected = selected_preview_data(updated, page_slug=page_slug).get("selected_variant", {})
 
     return jsonify(
         {
@@ -710,6 +754,7 @@ def override_preview(preview_id: str):
             "preview_url": url_for("main.preview", preview_id=preview_id),
             "frame_url": url_for("main.preview_frame", preview_id=preview_id),
             "selected_variant_id": updated.selected_variant_id,
+            "selected_variant": selected,
             "render_plan": selected.get("render_plan", {}),
         }
     )
@@ -726,6 +771,7 @@ def canvas_command(preview_id: str):
     body = request.get_json(silent=True) or {}
     action = _clean_text(body.get("action"), max_length=64).lower()
     variant_id = _clean_text(body.get("variant_id"), max_length=64) or None
+    page_slug = _clean_text(body.get("page_slug"), max_length=64) or None
     node_id = _clean_text(body.get("node_id"), max_length=120) or None
     edit_path = _clean_text(body.get("edit_path"), max_length=160) or None
     section_name = _clean_text(body.get("section_name"), max_length=64) or None
@@ -747,6 +793,7 @@ def canvas_command(preview_id: str):
             manifest,
             action=action,
             variant_id=variant_id,
+            page_slug=page_slug,
             node_id=node_id,
             edit_path=edit_path,
             section_name=section_name,
@@ -762,7 +809,7 @@ def canvas_command(preview_id: str):
 
     save_manifest(conversation, updated)
     record_system_event(conversation, f"Applied Studio action: {action or 'edit'}.")
-    selected = selected_preview_data(updated).get("selected_variant", {})
+    selected = selected_preview_data(updated, page_slug=page_slug).get("selected_variant", {})
     return jsonify(
         {
             "ok": True,
@@ -787,6 +834,7 @@ def regenerate_preview(preview_id: str):
     body = request.get_json(silent=True) or {}
     scope = _clean_text(body.get("scope"), max_length=32).lower() or "all"
     variant_id = _clean_text(body.get("variant_id"), max_length=64) or None
+    page_slug = _clean_text(body.get("page_slug"), max_length=64) or None
     section_name = _clean_text(body.get("section_name"), max_length=64) or None
     if scope not in {"all", "copy", "section"}:
         return jsonify({"error": "Invalid regenerate scope."}), 400
@@ -806,7 +854,7 @@ def regenerate_preview(preview_id: str):
 
     save_manifest(conversation, updated)
     record_system_event(conversation, f"Regenerated {scope} for the current design direction.")
-    selected = selected_preview_data(updated).get("selected_variant", {})
+    selected = selected_preview_data(updated, page_slug=page_slug).get("selected_variant", {})
     return jsonify(
         {
             "ok": True,
@@ -832,10 +880,16 @@ def publish_preview(preview_id: str):
     variant_id = _clean_text(body.get("variant_id"), max_length=64) or manifest.selected_variant_id
     publish_id = uuid4().hex[:12]
     css_href = url_for("main.published_site_css", publish_id=publish_id)
-    rendered_html, css_text, selected_variant = render_export_site(
+    rendered_pages, css_text, selected_variant = render_export_pages(
         manifest,
         variant_id=variant_id,
         css_href=css_href,
+        page_href_builder=lambda slug: url_for(
+            "main.published_site",
+            publish_id=publish_id,
+        )
+        if slug == "home"
+        else url_for("main.published_site_page", publish_id=publish_id, page_slug=slug),
     )
     PUBLISHED_SITE_SERVICE.save(
         publish_id,
@@ -843,7 +897,7 @@ def publish_preview(preview_id: str):
             "preview_id": preview_id,
             "variant_id": selected_variant.get("variant_id"),
             "page_title": manifest.brief.name or "VeloSite Export",
-            "html": rendered_html,
+            "pages": rendered_pages,
             "css": css_text,
         },
     )
@@ -865,7 +919,25 @@ def published_site(publish_id: str):
     if not payload:
         abort(404)
 
-    html = payload.get("html")
+    pages = payload.get("pages") if isinstance(payload.get("pages"), dict) else {}
+    html = pages.get("home") if isinstance(pages.get("home"), str) else payload.get("html")
+    if not isinstance(html, str) or not html.strip():
+        abort(404)
+
+    response = make_response(html)
+    response.headers["Content-Type"] = "text/html; charset=utf-8"
+    response.headers["Cache-Control"] = "public, max-age=120"
+    return response
+
+
+@main.route("/published/<publish_id>/<page_slug>", methods=["GET"])
+def published_site_page(publish_id: str, page_slug: str):
+    payload = PUBLISHED_SITE_SERVICE.get(_clean_text(publish_id, max_length=80))
+    if not payload:
+        abort(404)
+
+    pages = payload.get("pages") if isinstance(payload.get("pages"), dict) else {}
+    html = pages.get(_clean_text(page_slug, max_length=80))
     if not isinstance(html, str) or not html.strip():
         abort(404)
 
