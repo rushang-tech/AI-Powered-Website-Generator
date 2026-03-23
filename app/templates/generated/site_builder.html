@@ -71,7 +71,12 @@
         <nav class="site-nav-links" aria-label="Primary">
             {% for section in plan.section_order %}
                 {% if plan.section_visibility[section] and section != "hero" %}
-                <a class="site-nav-link" href="#section-{{ section }}" data-site-nav-link="true">{{ section_labels.get(section, section|replace("_", " ")|title) }}</a>
+                {% set section_label = section_labels.get(section, section|replace("_", " ")|title) %}
+                <a
+                    class="site-nav-link"
+                    href="#section-{{ section }}"
+                    data-site-nav-link="true"
+                >{{ section_label }}</a>
                 {% endif %}
             {% endfor %}
         </nav>
@@ -305,6 +310,7 @@
     .site-nav-link {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         min-height: 38px;
         padding: 9px 14px;
         border: 1px solid transparent;

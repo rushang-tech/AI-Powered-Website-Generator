@@ -1,124 +1,210 @@
 {% extends "marketing/base.html" %}
 
 {% block content %}
-<section class="marketing-hero">
-    <div class="hero-grid">
-        <div class="page-hero">
-            <p class="section-kicker">Product deep-dive</p>
-            <h1>One brief becomes a routed, editable, publishable website project.</h1>
-            <p>
-                VeloSite is not just a hero generator. It pairs structured generation with a Studio workflow, so teams
-                can move from concept to reviewable site without flattening everything into a single static draft.
-            </p>
-            <div class="hero-actions">
-                <a class="hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
-                <a class="hero-secondary" href="{{ url_for('main.how_it_works') }}">See the workflow</a>
+<!-- ── Hero ── -->
+<div class="m-hero" style="min-height: 60vh;">
+    <div class="m-hero-grid">
+        <div>
+            <p class="m-kicker">Product</p>
+            <h1>One brief becomes a routed, editable, publishable website.</h1>
+            <p>VeloSite pairs structured generation with a Studio workflow, so teams move from concept to reviewable site without flattening everything into one static draft.</p>
+            <div class="m-hero-actions">
+                <a class="m-hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+                <a class="m-hero-secondary" href="{{ url_for('main.how_it_works') }}">See the workflow</a>
             </div>
         </div>
 
-        <aside class="hero-preview">
-            <span class="preview-label">Inside the product</span>
-            <div class="preview-frame">
-                <div class="preview-lines">
-                    <div class="preview-line"></div>
-                    <div class="preview-line is-mid"></div>
-                    <div class="preview-line is-short"></div>
+        <aside>
+            <span class="m-preview-label">Inside the product</span>
+            <div class="m-preview-frame">
+                <div class="m-preview-lines">
+                    <div class="m-preview-line"></div>
+                    <div class="m-preview-line is-mid"></div>
+                    <div class="m-preview-line is-short"></div>
                 </div>
-                <div class="preview-tiles">
-                    <article class="preview-tile">
+                <div class="m-preview-tiles">
+                    <article class="m-preview-tile">
                         <strong>Guided brief</strong>
-                        <p>Goal, audience, tone, density, motion, notes, and brand assets all live in one entry flow.</p>
+                        <p>Goal, audience, tone, density, motion, and brand assets in one flow.</p>
                     </article>
-                    <article class="preview-tile">
+                    <article class="m-preview-tile">
                         <strong>Variants</strong>
-                        <p>Switch among routed design directions rather than regenerating from zero every time.</p>
+                        <p>Switch among routed directions without regenerating.</p>
                     </article>
-                    <article class="preview-tile">
+                    <article class="m-preview-tile">
                         <strong>Controls</strong>
-                        <p>Template intent, art direction, layout mode, density, and motion can be adjusted in Studio.</p>
+                        <p>Template, art direction, layout, density, and motion.</p>
                     </article>
-                    <article class="preview-tile">
-                        <strong>Conversation memory</strong>
-                        <p>Continue the same thread while preserving context and recent workspace state.</p>
+                    <article class="m-preview-tile">
+                        <strong>Memory</strong>
+                        <p>Continue the same thread with full context.</p>
                     </article>
                 </div>
             </div>
         </aside>
     </div>
-</section>
+</div>
 
-<section class="marketing-section">
-    <div class="section-header">
-        <p class="section-kicker">Core capabilities</p>
-        <h2>The product is built around iteration, not one-off output.</h2>
+<!-- ── Core capabilities ── -->
+<section class="m-section">
+    <div class="m-section-header">
+        <p class="m-kicker">Core capabilities</p>
+        <h2>Built around iteration, not one-off output.</h2>
     </div>
 
-    <div class="proof-grid">
-        <article class="marketing-card">
-            <span class="card-kicker">Generator</span>
+    <div class="m-grid-3">
+        <article class="m-card">
+            <p class="m-kicker">Generator</p>
             <strong>Structured creation</strong>
-            <p>Generate a manifest-driven site with sections, variants, statuses, and deterministic routing support.</p>
+            <p>Generate a manifest-driven site with sections, variants, and deterministic routing.</p>
         </article>
-        <article class="marketing-card">
-            <span class="card-kicker">Studio</span>
+        <article class="m-card">
+            <p class="m-kicker">Studio</p>
             <strong>Direct editing loop</strong>
-            <p>Refine the canvas in place, send follow-up prompts, and change layout/style controls without losing flow.</p>
+            <p>Refine in place, send follow-ups, and change controls without losing flow.</p>
         </article>
-        <article class="marketing-card">
-            <span class="card-kicker">Branding</span>
+        <article class="m-card">
+            <p class="m-kicker">Branding</p>
             <strong>Asset-aware polish</strong>
-            <p>Upload logos or visual references and steer icon direction so results feel closer to a real brand system.</p>
+            <p>Upload logos and steer icon direction so results feel like a real brand system.</p>
         </article>
-        <article class="marketing-card">
-            <span class="card-kicker">Publishing</span>
+        <article class="m-card">
+            <p class="m-kicker">Publishing</p>
             <strong>Shareable previews</strong>
-            <p>Push a generated direction to a public link instantly, then export a ZIP when the concept is ready.</p>
+            <p>Push a direction to a public link or export a ZIP for handoff.</p>
         </article>
-        <article class="marketing-card">
-            <span class="card-kicker">Account state</span>
+        <article class="m-card">
+            <p class="m-kicker">Account</p>
             <strong>Saved conversations</strong>
-            <p>Recent chats, workspace state, profile defaults, and resumable Studio history stay tied to the account.</p>
+            <p>Workspace state, profile defaults, and resumable Studio history.</p>
         </article>
-        <article class="marketing-card">
-            <span class="card-kicker">Safety</span>
-            <strong>Fallback-aware generation</strong>
-            <p>When AI output comes back incomplete, VeloSite tracks fallbacks and keeps the project usable in Studio.</p>
+        <article class="m-card">
+            <p class="m-kicker">Safety</p>
+            <strong>Fallback-aware</strong>
+            <p>When AI output comes back incomplete, VeloSite tracks fallbacks and keeps the project usable.</p>
         </article>
     </div>
 </section>
 
-<section class="marketing-section">
-    <div class="section-header">
-        <p class="section-kicker">Why teams choose it</p>
-        <h2>VeloSite behaves more like a product workflow than a one-click page toy.</h2>
+<!-- ── How it works (merged) ── -->
+<section class="m-section">
+    <div class="m-section-header is-centered">
+        <p class="m-kicker">How it works</p>
+        <h2>From intent to a reviewable website.</h2>
+        <p>Reduce blank-page friction while keeping control for real product and brand decisions.</p>
     </div>
 
-    <div class="comparison-grid">
-        <article class="comparison-card">
-            <span class="card-kicker">Generic builder</span>
+    <div class="m-timeline">
+        <article class="m-card">
+            <p class="m-kicker">Step 1</p>
+            <strong>Capture the brief</strong>
+            <p>Goal, audience, tone, density, motion, project name, notes, and brand images.</p>
+        </article>
+        <article class="m-card">
+            <p class="m-kicker">Step 2</p>
+            <strong>Generate directions</strong>
+            <p>VeloSite chooses structure, art direction, and layout candidates, then builds variants.</p>
+        </article>
+        <article class="m-card">
+            <p class="m-kicker">Step 3</p>
+            <strong>Refine in Studio</strong>
+            <p>Update copy, switch variant, remix styles, apply branding, or continue the conversation.</p>
+        </article>
+        <article class="m-card">
+            <p class="m-kicker">Step 4</p>
+            <strong>Publish or export</strong>
+            <p>Share a link or download a ZIP bundle when the concept is ready.</p>
+        </article>
+    </div>
+
+    <div class="m-section" style="padding-bottom: 0;">
+        <div class="m-grid-2">
+            <article class="m-card">
+                <p class="m-kicker">What goes in</p>
+                <strong>Inputs with real leverage</strong>
+                <ul class="m-check-list">
+                    <li>Goal and audience</li>
+                    <li>Brand tone and content density</li>
+                    <li>Motion level and project naming</li>
+                    <li>Extra notes, constraints, and references</li>
+                    <li>Logos or brand imagery</li>
+                </ul>
+            </article>
+            <article class="m-card">
+                <p class="m-kicker">What comes out</p>
+                <strong>A project you can actually review</strong>
+                <ul class="m-check-list">
+                    <li>Multiple website directions</li>
+                    <li>Studio-ready preview with editable sections</li>
+                    <li>Conversation history and workspace state</li>
+                    <li>Publish link and exportable ZIP</li>
+                    <li>Structured variant metadata</li>
+                </ul>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- ── Who it's for (from solutions) ── -->
+<section class="m-section">
+    <div class="m-section-header">
+        <p class="m-kicker">Who it's for</p>
+        <h2>Different teams, different launches, same workflow.</h2>
+    </div>
+
+    <div class="m-grid-3">
+        <article class="m-card">
+            <p class="m-kicker">Founders</p>
+            <strong>Launch before the roadmap is stable.</strong>
+            <p>Move quickly with proof, pricing, and clear product framing.</p>
+        </article>
+        <article class="m-card">
+            <p class="m-kicker">Agencies</p>
+            <strong>Generate direction faster for reviews.</strong>
+            <p>Present multiple directions without rebuilding each one from scratch.</p>
+        </article>
+        <article class="m-card">
+            <p class="m-kicker">Creators</p>
+            <strong>Turn rough positioning into polish.</strong>
+            <p>Launch pages, portfolios, and editorial sites with much less friction.</p>
+        </article>
+    </div>
+</section>
+
+<!-- ── Comparison ── -->
+<section class="m-section">
+    <div class="m-section-header is-centered">
+        <p class="m-kicker">Why teams choose VeloSite</p>
+        <h2>More than a one-click page generator.</h2>
+    </div>
+
+    <div class="m-comparison-grid">
+        <article class="m-card">
+            <p class="m-kicker">Generic builder</p>
             <strong>One draft, one lane</strong>
-            <p>Most tools stop at a static page concept and make every major change feel like a restart.</p>
+            <p>Most tools stop at a static concept and make every change feel like a restart.</p>
         </article>
-        <article class="comparison-card">
-            <span class="card-kicker">VeloSite</span>
+        <article class="m-card">
+            <p class="m-kicker">VeloSite</p>
             <strong>Variants + controls + conversation</strong>
-            <p>Keep multiple directions alive, refine a selected one, and preserve context across the same project thread.</p>
+            <p>Keep multiple directions alive, refine a selected one, and preserve context.</p>
         </article>
-        <article class="comparison-card">
-            <span class="card-kicker">Practical outcome</span>
+        <article class="m-card">
+            <p class="m-kicker">Result</p>
             <strong>Faster review cycles</strong>
-            <p>Founders, agencies, and product teams can compare quality faster and get to a decision without rebuild fatigue.</p>
+            <p>Compare quality faster and get to a decision without rebuild fatigue.</p>
         </article>
     </div>
 </section>
 
-<section class="cta-banner">
-    <p class="section-kicker">See it in context</p>
-    <h2>Browse examples, then open the Studio with the right expectations.</h2>
-    <p>The public site explains the platform. The Showcase proves the quality. The Studio is where the work happens.</p>
-    <div class="hero-actions">
-        <a class="hero-primary" href="{{ url_for('main.showcase') }}">Browse showcase</a>
-        <a class="hero-secondary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+<!-- ── CTA ── -->
+<section class="m-cta-banner">
+    <p class="m-kicker">See it in action</p>
+    <h2>Open the Studio with the right expectations.</h2>
+    <p>Browse examples, then create one with your own brief.</p>
+    <div class="m-hero-actions">
+        <a class="m-hero-primary" href="{{ url_for('main.showcase') }}">Browse showcase</a>
+        <a class="m-hero-secondary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
     </div>
 </section>
 {% endblock %}

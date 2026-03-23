@@ -1,88 +1,85 @@
 {% extends "marketing/base.html" %}
 
 {% block content %}
-<section class="marketing-section">
-    <div class="page-header">
-        <p class="section-kicker">Proof-first gallery</p>
-        <h1>Show the kinds of websites VeloSite can produce.</h1>
-        <p>
-            These examples are curated to help visitors understand the range: SaaS launches, portfolios, agencies,
-            creator pages, and focused product microsites.
-        </p>
+<section class="m-page-hero">
+    <p class="m-kicker">Showcase</p>
+    <h1>See what VeloSite can produce.</h1>
+    <p>Curated examples across SaaS launches, portfolios, agencies, creator pages, and product microsites.</p>
+</section>
+
+<section class="m-section" style="padding-top: 0;">
+    <div class="m-filters">
+        <button class="m-filter is-active" type="button" data-showcase-filter="all">All</button>
+        <button class="m-filter" type="button" data-showcase-filter="saas">SaaS</button>
+        <button class="m-filter" type="button" data-showcase-filter="portfolio">Portfolio</button>
+        <button class="m-filter" type="button" data-showcase-filter="agency">Agency</button>
+        <button class="m-filter" type="button" data-showcase-filter="launch">Launch</button>
+        <button class="m-filter" type="button" data-showcase-filter="product">Product</button>
     </div>
 
-    <div class="showcase-filters">
-        <button class="showcase-filter is-active" type="button" data-showcase-filter="all">All</button>
-        <button class="showcase-filter" type="button" data-showcase-filter="saas">SaaS</button>
-        <button class="showcase-filter" type="button" data-showcase-filter="portfolio">Portfolio</button>
-        <button class="showcase-filter" type="button" data-showcase-filter="agency">Agency</button>
-        <button class="showcase-filter" type="button" data-showcase-filter="launch">Launch</button>
-        <button class="showcase-filter" type="button" data-showcase-filter="product">Product</button>
-    </div>
-
-    <div class="showcase-grid">
-        <article class="marketing-card showcase-card" data-showcase-card data-category="saas launch product">
-            <div class="card-art"></div>
-            <span class="card-kicker">SaaS launch</span>
+    <div class="m-grid-3">
+        <article class="m-card" data-showcase-card data-category="saas launch product">
+            <div class="m-showcase-art"></div>
+            <p class="m-kicker">SaaS launch</p>
             <strong>Northstar Copilot</strong>
             <p>Clear pricing story, proof modules, and high-intent CTA stack for a B2B AI product.</p>
-            <div class="showcase-meta">
+            <div class="m-showcase-meta">
                 <span>Founders</span>
                 <span>Pricing</span>
                 <span>Proof-first</span>
             </div>
         </article>
-        <article class="marketing-card showcase-card" data-showcase-card data-category="portfolio creative">
-            <div class="card-art art-paper"></div>
-            <span class="card-kicker">Portfolio</span>
+        <article class="m-card" data-showcase-card data-category="portfolio creative">
+            <div class="m-showcase-art art-paper"></div>
+            <p class="m-kicker">Portfolio</p>
             <strong>Studio Atlas</strong>
-            <p>Editorial rhythm for a creative portfolio with project-led storytelling and strong typography.</p>
-            <div class="showcase-meta">
+            <p>Editorial rhythm with project-led storytelling and strong typography.</p>
+            <div class="m-showcase-meta">
                 <span>Editorial</span>
                 <span>Creative</span>
                 <span>Case studies</span>
             </div>
         </article>
-        <article class="marketing-card showcase-card" data-showcase-card data-category="agency saas">
-            <div class="card-art art-teal"></div>
-            <span class="card-kicker">Agency</span>
+        <article class="m-card" data-showcase-card data-category="agency saas">
+            <div class="m-showcase-art art-teal"></div>
+            <p class="m-kicker">Agency</p>
             <strong>Launchline Studio</strong>
-            <p>Client-facing offer page with service framing, credibility blocks, and project outcome sections.</p>
-            <div class="showcase-meta">
+            <p>Client-facing offer page with service framing and project outcomes.</p>
+            <div class="m-showcase-meta">
                 <span>Agency</span>
                 <span>Proof</span>
                 <span>Conversion</span>
             </div>
         </article>
-        <article class="marketing-card showcase-card" data-showcase-card data-category="launch product">
-            <div class="card-art art-warm"></div>
-            <span class="card-kicker">Launch microsite</span>
+        <article class="m-card" data-showcase-card data-category="launch product">
+            <div class="m-showcase-art art-warm"></div>
+            <p class="m-kicker">Launch microsite</p>
             <strong>Signal Stack</strong>
-            <p>Fast-moving product launch site with layered hero, quick product framing, and focused CTA rails.</p>
-            <div class="showcase-meta">
+            <p>Fast-moving product launch with layered hero and focused CTA rails.</p>
+            <div class="m-showcase-meta">
                 <span>Launch</span>
                 <span>Microsite</span>
                 <span>Motion</span>
             </div>
         </article>
-        <article class="marketing-card showcase-card" data-showcase-card data-category="portfolio agency">
-            <div class="card-art"></div>
-            <span class="card-kicker">Consulting profile</span>
+        <article class="m-card" data-showcase-card data-category="portfolio agency">
+            <div class="m-showcase-art"></div>
+            <p class="m-kicker">Consulting</p>
             <strong>Merge Practice</strong>
-            <p>Lean expert site with positioning, selected work, and credibility copy for a solo operator.</p>
-            <div class="showcase-meta">
+            <p>Lean expert site with positioning and credibility copy for solo operators.</p>
+            <div class="m-showcase-meta">
                 <span>Expert</span>
                 <span>Portfolio</span>
                 <span>Services</span>
             </div>
         </article>
-        <article class="marketing-card showcase-card" data-showcase-card data-category="saas product">
-            <div class="card-art art-teal"></div>
-            <span class="card-kicker">Product deep-dive</span>
+        <article class="m-card" data-showcase-card data-category="saas product">
+            <div class="m-showcase-art art-teal"></div>
+            <p class="m-kicker">Product deep-dive</p>
             <strong>Relay OS</strong>
-            <p>Feature-first product page with operating model explanation, benchmarks, and proof narrative.</p>
-            <div class="showcase-meta">
-                <span>Feature pages</span>
+            <p>Feature-first product page with benchmarks and proof narrative.</p>
+            <div class="m-showcase-meta">
+                <span>Features</span>
                 <span>System UI</span>
                 <span>B2B</span>
             </div>
@@ -90,25 +87,12 @@
     </div>
 </section>
 
-<section class="marketing-section">
-    <div class="quote-grid">
-        <article class="quote-card">
-            <strong>What this page is doing</strong>
-            <p>
-                Instead of describing quality abstractly, the Showcase gives visitors concrete patterns they already
-                recognize from high-performing AI and SaaS product sites.
-            </p>
-        </article>
-    </div>
-</section>
-
-<section class="cta-banner">
-    <p class="section-kicker">From examples to action</p>
+<section class="m-cta-banner">
+    <p class="m-kicker">From examples to action</p>
     <h2>See the outputs, then create one with your own brief.</h2>
     <p>The Showcase builds trust. The Studio lets you make the next example.</p>
-    <div class="hero-actions">
-        <a class="hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
-        <a class="hero-secondary" href="{{ url_for('main.solutions') }}">See solutions</a>
+    <div class="m-hero-actions">
+        <a class="m-hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
     </div>
 </section>
 {% endblock %}

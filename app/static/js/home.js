@@ -17,6 +17,7 @@ if (form) {
     const generateBtn = document.getElementById("generate-btn");
     const statusText = document.getElementById("status-text");
     const demoBriefBtn = document.getElementById("demo-brief-btn");
+    const pipelineProgress = document.getElementById("pipeline-progress");
     const pipelineSteps = Array.from(document.querySelectorAll("[data-stage-key]"));
     const statusBlueprint = Array.isArray(config.statusBlueprint) ? config.statusBlueprint : [];
 
@@ -32,11 +33,22 @@ if (form) {
     const iconStyleInput = document.getElementById("icon-style-input");
     const demoBrief = config.demoBrief || {};
 
+    /* ── Details toggle (progressive disclosure) ── */
+    const detailsToggle = document.getElementById("details-toggle");
+    const detailsPanel = document.getElementById("details-panel");
+
+    if (detailsToggle && detailsPanel) {
+        detailsToggle.addEventListener("click", () => {
+            const isOpen = detailsPanel.classList.toggle("is-open");
+            detailsToggle.classList.toggle("is-open", isOpen);
+        });
+    }
+
     let pipelineTicker = null;
     let pipelineIndex = 0;
 
     function setStageState(stageEl, state) {
-        stageEl.classList.remove("pipeline-pending", "pipeline-active", "pipeline-complete", "pipeline-error");
+        stageEl.classList.remove("pipeline-pending", "pipeline-active", "pipeline-complete", "pipeline-done", "pipeline-error");
         stageEl.classList.add(`pipeline-${state}`);
     }
 
@@ -62,7 +74,7 @@ if (form) {
     function renderPipelineProgress(activeIndex) {
         pipelineSteps.forEach((stageEl, index) => {
             if (index < activeIndex) {
-                setStageState(stageEl, "complete");
+                setStageState(stageEl, "done");
                 return;
             }
             if (index === activeIndex) {
@@ -75,6 +87,9 @@ if (form) {
 
     function startPipelineTicker() {
         resetPipeline();
+        if (pipelineProgress) {
+            pipelineProgress.style.display = "";
+        }
         if (!pipelineSteps.length) {
             return;
         }
@@ -96,7 +111,7 @@ if (form) {
 
     function applyServerStatuses(statuses) {
         if (!Array.isArray(statuses) || !statuses.length) {
-            pipelineSteps.forEach((stageEl) => setStageState(stageEl, "complete"));
+            pipelineSteps.forEach((stageEl) => setStageState(stageEl, "done"));
             return;
         }
         const statesByKey = new Map();
@@ -108,8 +123,8 @@ if (form) {
         pipelineSteps.forEach((stageEl) => {
             const key = stageEl.getAttribute("data-stage-key");
             const stage = statesByKey.get(key);
-            const mappedState = stage?.state === "complete" || stage?.state === "active" || stage?.state === "error"
-                ? stage.state
+            const mappedState = stage?.state === "complete" || stage?.state === "done" || stage?.state === "active" || stage?.state === "error"
+                ? (stage.state === "complete" ? "done" : stage.state)
                 : "pending";
             setStageState(stageEl, mappedState);
             if (stage?.detail) {
@@ -122,10 +137,13 @@ if (form) {
     }
 
     function setBusy(isBusy, message) {
-        generateBtn.disabled = isBusy;
-        generateBtn.classList.toggle("btn-disabled", isBusy);
-        generateBtn.textContent = isBusy ? "Building Studio..." : "Generate Studio";
-        statusText.textContent = message || "";
+        if (generateBtn) {
+            generateBtn.disabled = isBusy;
+            generateBtn.style.opacity = isBusy ? "0.5" : "";
+        }
+        if (statusText) {
+            statusText.textContent = message || "";
+        }
     }
 
     function fileToDataUrl(file) {
@@ -167,7 +185,6 @@ if (form) {
         brandAssetsPreview.innerHTML = "";
         const items = Array.isArray(assets) ? assets : [];
         if (!items.length) {
-            brandAssetsPreview.innerHTML = '<p class="asset-preview-empty">No brand images selected yet.</p>';
             return;
         }
         items.forEach((asset, index) => {
@@ -211,33 +228,46 @@ if (form) {
         );
     }
 
+    /* ── Quick-start chips ── */
     document.querySelectorAll("[data-sample]").forEach((chip) => {
         chip.addEventListener("click", () => {
             goalInput.value = chip.getAttribute("data-sample");
-            if (!audienceInput.value) {
+            // Open details panel when using a quick-start
+            if (detailsPanel && !detailsPanel.classList.contains("is-open")) {
+                detailsPanel.classList.add("is-open");
+                if (detailsToggle) detailsToggle.classList.add("is-open");
+            }
+            if (audienceInput && !audienceInput.value) {
                 audienceInput.value = "People ready to buy quickly";
             }
-            if (!toneInput.value) {
+            if (toneInput && !toneInput.value) {
                 toneInput.value = "Bold, polished, intentional";
             }
-            notesInput.focus();
+            goalInput.focus();
         });
     });
 
+    /* ── Demo brief chip ── */
     if (demoBriefBtn) {
         demoBriefBtn.addEventListener("click", () => {
             goalInput.value = demoBrief.goal || goalInput.value;
-            audienceInput.value = demoBrief.audience || audienceInput.value;
-            toneInput.value = demoBrief.brand_tone || toneInput.value;
-            densityInput.value = demoBrief.content_density || densityInput.value;
-            motionInput.value = demoBrief.motion_level || motionInput.value;
-            nameInput.value = demoBrief.name || nameInput.value;
-            notesInput.value = demoBrief.notes || notesInput.value;
-            setBusy(false, "Demo prompt loaded. Click Generate Studio.");
-            notesInput.focus();
+            // Open details panel and fill all fields
+            if (detailsPanel && !detailsPanel.classList.contains("is-open")) {
+                detailsPanel.classList.add("is-open");
+                if (detailsToggle) detailsToggle.classList.add("is-open");
+            }
+            if (audienceInput) audienceInput.value = demoBrief.audience || audienceInput.value;
+            if (toneInput) toneInput.value = demoBrief.brand_tone || toneInput.value;
+            if (densityInput) densityInput.value = demoBrief.content_density || densityInput.value;
+            if (motionInput) motionInput.value = demoBrief.motion_level || motionInput.value;
+            if (nameInput) nameInput.value = demoBrief.name || nameInput.value;
+            if (notesInput) notesInput.value = demoBrief.notes || notesInput.value;
+            setBusy(false, "Demo prompt loaded. Hit → to generate.");
+            goalInput.focus();
         });
     }
 
+    /* ── Brand asset input ── */
     if (brandAssetsInput) {
         brandAssetsInput.addEventListener("change", async () => {
             try {
@@ -246,7 +276,7 @@ if (form) {
                 if (brandAssetsInput.files.length > MAX_BRAND_ASSETS) {
                     setBusy(false, `Using the first ${MAX_BRAND_ASSETS} brand images.`);
                 } else {
-                    setBusy(false, assets.length ? "Brand images ready for generation." : "");
+                    setBusy(false, assets.length ? "Brand images ready." : "");
                 }
             } catch (error) {
                 brandAssetsInput.value = "";
@@ -256,6 +286,7 @@ if (form) {
         });
     }
 
+    /* ── Form submit ── */
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
         let brandAssets = [];
@@ -267,21 +298,27 @@ if (form) {
         }
         const brief = {
             goal: goalInput.value.trim(),
-            audience: audienceInput.value.trim(),
-            brand_tone: toneInput.value.trim(),
-            content_density: densityInput.value,
-            motion_level: motionInput.value,
-            name: nameInput.value.trim(),
-            notes: notesInput.value.trim(),
+            audience: audienceInput ? audienceInput.value.trim() : "",
+            brand_tone: toneInput ? toneInput.value.trim() : "",
+            content_density: densityInput ? densityInput.value : "balanced",
+            motion_level: motionInput ? motionInput.value : "moderate",
+            name: nameInput ? nameInput.value.trim() : "",
+            notes: notesInput ? notesInput.value.trim() : "",
             brand_assets: brandAssets,
             icon_style: iconStyleInput ? iconStyleInput.value.trim() : "",
         };
-        if (!brief.goal || !brief.audience || !brief.brand_tone) {
-            setBusy(false, "Goal, audience, and brand tone are required.");
+
+        if (!brief.goal) {
+            setBusy(false, "Describe what you want to build.");
+            goalInput.focus();
             return;
         }
 
-        setBusy(true, "Starting generation pipeline...");
+        // Auto-fill audience and tone if empty
+        if (!brief.audience) brief.audience = "General audience";
+        if (!brief.brand_tone) brief.brand_tone = "Clear and modern";
+
+        setBusy(true, "Starting generation...");
         startPipelineTicker();
         try {
             const response = await fetch("/generate", {
@@ -295,7 +332,7 @@ if (form) {
             }
             stopPipelineTicker();
             applyServerStatuses(data.statuses);
-            setBusy(true, "Generation complete. Opening Studio...");
+            setBusy(true, "Opening Studio...");
             window.location.href = data.preview_url;
         } catch (error) {
             stopPipelineTicker();

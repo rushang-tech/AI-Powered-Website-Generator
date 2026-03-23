@@ -1,85 +1,55 @@
 {% extends "marketing/base.html" %}
 
 {% block content %}
-<section class="story-grid">
-    <div class="page-hero">
-        <p class="section-kicker">About VeloSite</p>
-        <h1>Built to make generated websites feel more like a product workflow.</h1>
-        <p>
-            VeloSite is designed around a simple belief: website generation becomes much more useful when teams can
-            compare directions, refine them inside a real workspace, and publish without collapsing everything into one
-            brittle page.
-        </p>
-    </div>
+<section class="m-page-hero">
+    <p class="m-kicker">About</p>
+    <h1>Built to make generated websites feel like a product workflow.</h1>
+    <p>VeloSite is designed around a simple belief: website generation becomes much more useful when teams can compare directions, refine them inside a workspace, and publish without collapsing everything into one brittle page.</p>
+</section>
 
-    <div class="contact-stack">
-        <article class="story-panel">
-            <span class="card-kicker">Product view</span>
+<section class="m-section" style="padding-top: 0;">
+    <div class="m-grid-2">
+        <article class="m-card">
+            <p class="m-kicker">Product view</p>
             <strong>Not just generation</strong>
             <p>The goal is to make the whole path clearer: brief, variants, Studio edits, publish, and export.</p>
         </article>
-        <article class="story-panel">
-            <span class="card-kicker">Website view</span>
+        <article class="m-card">
+            <p class="m-kicker">Website view</p>
             <strong>Public site as a trust layer</strong>
-            <p>The VeloSite product site now explains the platform separately from the sites produced by the engine.</p>
+            <p>The product site explains the platform separately from the sites produced by the engine.</p>
         </article>
     </div>
 </section>
 
-<section class="marketing-section">
-    <div class="section-header">
-        <p class="section-kicker">Principles</p>
+<section class="m-section">
+    <div class="m-section-header">
+        <p class="m-kicker">Principles</p>
         <h2>What shapes the product direction.</h2>
     </div>
 
-    <div class="proof-grid">
-        <article class="marketing-card">
+    <div class="m-grid-3">
+        <article class="m-card">
             <strong>Proof before hype</strong>
             <p>Show examples and workflows, not just abstract claims about AI-generated design.</p>
         </article>
-        <article class="marketing-card">
+        <article class="m-card">
             <strong>Separation of concerns</strong>
-            <p>The product website, internal Studio, and generated outputs should each have a distinct purpose.</p>
+            <p>The product website, Studio, and generated outputs each have a distinct purpose.</p>
         </article>
-        <article class="marketing-card">
+        <article class="m-card">
             <strong>Iteration over novelty</strong>
-            <p>Useful tools help people keep refining a project, not just admire a one-time generated result.</p>
+            <p>Useful tools help people keep refining, not just admire a one-time result.</p>
         </article>
     </div>
 </section>
 
-<section class="marketing-section">
-    <div class="section-header">
-        <p class="section-kicker">Roadmap direction</p>
-        <h2>What the site now makes room for.</h2>
-    </div>
-
-    <div class="roadmap-grid">
-        <article class="resource-card">
-            <span class="card-kicker">Near-term</span>
-            <strong>Better product storytelling</strong>
-            <p>Use the new pages to explain quality, workflows, and supported use cases with much more clarity.</p>
-        </article>
-        <article class="resource-card">
-            <span class="card-kicker">Next</span>
-            <strong>Richer proof and examples</strong>
-            <p>Expand the showcase, use-case examples, and resources around strong brief writing.</p>
-        </article>
-        <article class="resource-card">
-            <span class="card-kicker">Later</span>
-            <strong>More collaboration surfaces</strong>
-            <p>Build on the saved-conversation model for broader team workflows and review cycles.</p>
-        </article>
-    </div>
-</section>
-
-<section class="cta-banner">
-    <p class="section-kicker">Want to see the current product surface?</p>
-    <h2>The new public website tells the story. The app proves the workflow.</h2>
-    <p>Use both together: public pages for trust and conversion, Studio pages for creation and iteration.</p>
-    <div class="hero-actions">
-        <a class="hero-primary" href="{{ url_for('main.product') }}">Explore the product</a>
-        <a class="hero-secondary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+<section class="m-cta-banner">
+    <p class="m-kicker">Explore the product</p>
+    <h2>The public website tells the story. The app proves the workflow.</h2>
+    <div class="m-hero-actions">
+        <a class="m-hero-primary" href="{{ url_for('main.product') }}">View product</a>
+        <a class="m-hero-secondary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
     </div>
 </section>
 {% endblock %}

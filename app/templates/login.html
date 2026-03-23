@@ -1,27 +1,36 @@
 {% extends "base.html" %}
 
-{% block nav_actions %}
-<a class="btn" href="{{ url_for('main.signup') }}">Create Account</a>
-{% endblock %}
+{% block nav_actions %}{% endblock %}
+
+{% block body_class %}auth-page{% endblock %}
 
 {% block content %}
 <section class="auth-shell">
-    <article class="auth-card">
-        <p class="eyebrow">Local access</p>
-        <h1>Log in to continue your workspace.</h1>
-        <p class="auth-copy">Your conversations, Studio state, and saved defaults all stay on this local database.</p>
-        <form class="auth-form" method="post">
-            <label class="field">
-                <span>Email</span>
-                <input name="email" type="email" autocomplete="email" required>
-            </label>
-            <label class="field">
-                <span>Password</span>
-                <input name="password" type="password" autocomplete="current-password" required>
-            </label>
-            <button class="btn btn-primary" type="submit">Log In</button>
-        </form>
-        <p class="auth-meta">Need an account? <a href="{{ url_for('main.signup') }}">Sign up</a></p>
-    </article>
+    <div class="auth-brand-panel">
+        <div class="auth-brand-content">
+            <div class="auth-brand-logo">V</div>
+            <h2 class="auth-brand-tagline">Generate websites that feel designed.</h2>
+            <p class="auth-brand-sub">One brief, three design directions, full Studio control. Built for product teams who ship fast.</p>
+        </div>
+    </div>
+    <div class="auth-form-panel">
+        <article class="auth-card">
+            <p class="eyebrow">Welcome back</p>
+            <h1>Log in to your workspace.</h1>
+            <p class="auth-copy">Your conversations, Studio state, and saved defaults stay connected to your account.</p>
+            <form class="auth-form" method="post">
+                <label class="field">
+                    <span>Email</span>
+                    <input name="email" type="email" autocomplete="email" placeholder="you@company.com" required>
+                </label>
+                <label class="field">
+                    <span>Password</span>
+                    <input name="password" type="password" autocomplete="current-password" required>
+                </label>
+                <button class="btn btn-primary" type="submit">Log In</button>
+            </form>
+            <p class="auth-meta">New here? <a href="{{ url_for('main.signup') }}">Create an account</a></p>
+        </article>
+    </div>
 </section>
 {% endblock %}

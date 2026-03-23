@@ -70,6 +70,7 @@ python run.py
 ```
 
 The app starts on `http://localhost:5001` by default.
+If `5001` is already in use and `PORT` is unset, local startup now automatically picks the next available port and prints it.
 
 ## Local Accounts and Chat History
 

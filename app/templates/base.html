@@ -4,22 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page_title or "VeloSite AI" }}</title>
+    <meta name="description" content="AI-powered website generator. One brief, three design directions, full Studio control.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
     {% block head_extra %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
     <div class="app-shell">
         {% if not hide_site_nav %}
-        <nav class="site-nav">
+        <nav class="site-nav" id="site-nav">
             <a href="/" class="brand-lockup">
-                <span class="brand">VeloSite AI</span>
-                <span class="brand-note">Product site + Studio</span>
+                <span class="brand-mark">V</span>
+                <span class="brand">VeloSite</span>
             </a>
             <div class="site-nav-links" aria-label="Primary">
-                <a class="site-nav-link" href="{{ url_for('main.marketing_home') }}">Home</a>
                 <a class="site-nav-link" href="{{ url_for('main.product') }}">Product</a>
                 <a class="site-nav-link" href="{{ url_for('main.showcase') }}">Showcase</a>
                 <a class="site-nav-link" href="{{ url_for('main.pricing') }}">Pricing</a>
@@ -31,13 +31,13 @@
                 <div class="nav-actions">
                     {% block nav_actions %}
                     {% if current_user.is_authenticated %}
-                    <a class="btn" href="{{ url_for('main.settings') }}">Settings</a>
+                    <a class="btn btn-ghost" href="{{ url_for('main.settings') }}">Settings</a>
                     <form action="{{ url_for('main.logout') }}" method="post">
-                        <button class="btn" type="submit">Logout</button>
+                        <button class="btn btn-ghost" type="submit">Log out</button>
                     </form>
                     {% else %}
-                    <a class="btn" href="{{ url_for('main.login') }}">Login</a>
-                    <a class="btn btn-primary" href="{{ url_for('main.signup') }}">Sign Up</a>
+                    <a class="btn btn-ghost" href="{{ url_for('main.login') }}">Log in</a>
+                    <a class="btn btn-primary" href="{{ url_for('main.signup') }}">Start free</a>
                     {% endif %}
                     {% endblock %}
                 </div>
@@ -49,7 +49,15 @@
         {% if flashes %}
         <section class="flash-stack">
             {% for category, message in flashes %}
-            <article class="flash flash-{{ category }}">{{ message }}</article>
+            <article class="flash flash-{{ category }}">
+                <span class="flash-icon" aria-hidden="true">{% if category == "error" %}!{% elif category == "success" %}✓{% else %}•{% endif %}</span>
+                <div class="flash-copy">
+                    <span class="flash-label">
+                        {% if category == "error" %}Attention{% elif category == "success" %}Success{% else %}Notice{% endif %}
+                    </span>
+                    <p class="flash-message">{{ message }}</p>
+                </div>
+            </article>
             {% endfor %}
         </section>
         {% endif %}
@@ -58,7 +66,7 @@
         </main>
         {% if not hide_site_nav %}
         <footer class="site-footer">
-            Taste-driven routing, structured variants, and section-based rendering.
+            VeloSite AI — Structured generation, routed variants, and Studio editing.
         </footer>
         {% endif %}
     </div>

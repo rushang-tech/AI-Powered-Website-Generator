@@ -1,72 +1,45 @@
 {% extends "marketing/base.html" %}
 
 {% block content %}
-<section class="contact-grid">
-    <div class="page-hero">
-        <p class="section-kicker">Contact</p>
-        <h1>Give visitors a clear last step when they are ready to talk or start.</h1>
-        <p>
-            This page is intentionally simple in v1: direct routes for support, product questions, and self-serve
-            signup, without adding a backend-heavy contact system yet.
-        </p>
-
-        <div class="hero-actions">
-            <a class="hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
-            <a class="hero-secondary" href="{{ url_for('main.pricing') }}">Review pricing</a>
-        </div>
+<section class="m-page-hero">
+    <p class="m-kicker">Contact</p>
+    <h1>Ready to talk or start building?</h1>
+    <p>Choose the right path — self-serve signup, product questions, or team plans.</p>
+    <div class="m-hero-actions">
+        <a class="m-hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+        <a class="m-hero-secondary" href="{{ url_for('main.pricing') }}">Review pricing</a>
     </div>
+</section>
 
-    <div class="contact-stack">
-        <article class="contact-card">
-            <span class="card-kicker">Sales</span>
+<section class="m-section" style="padding-top: 0;">
+    <div class="m-grid-3">
+        <article class="m-card">
+            <p class="m-kicker">Sales</p>
             <strong>Talk about team usage</strong>
             <p>Best for agencies or product teams that want onboarding, workflow help, or a higher-volume plan.</p>
-            <a class="contact-link" href="mailto:hello@velosite.ai">hello@velosite.ai</a>
+            <a href="mailto:hello@velosite.ai" style="color: var(--accent); font-weight: 500; font-size: 0.88rem; margin-top: 12px; display: inline-block;">hello@velosite.ai</a>
         </article>
-        <article class="contact-card">
-            <span class="card-kicker">Support</span>
+        <article class="m-card">
+            <p class="m-kicker">Support</p>
             <strong>Need help with Studio or exports?</strong>
-            <p>Use the resources page first, then reach out if you are blocked on publishing, previews, or account flow.</p>
-            <a class="contact-link" href="{{ url_for('main.resources') }}">Open resources</a>
+            <p>Check resources first, then reach out if blocked on publishing, previews, or account flow.</p>
+            <a href="{{ url_for('main.resources') }}" style="color: var(--accent); font-weight: 500; font-size: 0.88rem; margin-top: 12px; display: inline-block;">Open resources</a>
         </article>
-        <article class="contact-card">
-            <span class="card-kicker">Self-serve</span>
+        <article class="m-card">
+            <p class="m-kicker">Self-serve</p>
             <strong>Ready to try it now?</strong>
-            <p>The fastest path is still to create an account and generate a project from a guided brief.</p>
-            <a class="contact-link" href="{{ url_for('main.signup') }}">Create account</a>
+            <p>The fastest path is to create an account and generate a project from a guided brief.</p>
+            <a href="{{ url_for('main.signup') }}" style="color: var(--accent); font-weight: 500; font-size: 0.88rem; margin-top: 12px; display: inline-block;">Create account</a>
         </article>
     </div>
 </section>
 
-<section class="marketing-section">
-    <div class="section-header">
-        <p class="section-kicker">Response expectations</p>
-        <h2>Set realistic expectations and keep the CTA path clean.</h2>
-    </div>
-
-    <div class="timeline-grid">
-        <article class="timeline-card">
-            <strong>Product questions</strong>
-            <p>Best for pricing fit, audience fit, and questions about how the Studio workflow compares to other tools.</p>
-        </article>
-        <article class="timeline-card">
-            <strong>Launch help</strong>
-            <p>Useful when you are preparing a new product site and want the best starting brief for the use case.</p>
-        </article>
-        <article class="timeline-card">
-            <strong>Account support</strong>
-            <p>Ideal for login, settings, saved conversations, publish links, or export-related questions.</p>
-        </article>
-    </div>
-</section>
-
-<section class="cta-banner">
-    <p class="section-kicker">One final CTA</p>
-    <h2>Keep the last step simple: start building or reach out.</h2>
-    <p>This page should remove hesitation, not add more friction.</p>
-    <div class="hero-actions">
-        <a class="hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
-        <a class="hero-secondary" href="mailto:hello@velosite.ai">Email VeloSite</a>
+<section class="m-cta-banner">
+    <p class="m-kicker">Keep it simple</p>
+    <h2>Start building or reach out.</h2>
+    <div class="m-hero-actions">
+        <a class="m-hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+        <a class="m-hero-secondary" href="mailto:hello@velosite.ai">Email VeloSite</a>
     </div>
 </section>
 {% endblock %}
