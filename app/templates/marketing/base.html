@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title or "VeloSite" }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/marketing.css') }}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="marketing-body {% block body_class %}{% endblock %}">
+    <div class="marketing-shell" data-marketing-shell>
+        <header class="marketing-header">
+            <nav class="marketing-nav" aria-label="Primary navigation">
+                <a class="marketing-brand" href="{{ url_for('main.marketing_home') }}">
+                    <span class="marketing-brand-mark">V</span>
+                    <span class="marketing-brand-copy">
+                        <strong>VeloSite</strong>
+                        <span>AI website generator for product teams</span>
+                    </span>
+                </a>
+
+                <button
+                    class="marketing-menu-toggle"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="marketing-nav-panel"
+                    data-marketing-menu-toggle
+                >
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+
+                <div class="marketing-nav-panel" id="marketing-nav-panel" data-marketing-menu>
+                    <div class="marketing-nav-links">
+                        {% for item in marketing_nav %}
+                        <a
+                            class="marketing-nav-link {% if item.is_active %}is-active{% endif %}"
+                            href="{{ url_for(item.endpoint) }}"
+                            {% if item.is_active %}aria-current="page"{% endif %}
+                        >
+                            {{ item.label }}
+                        </a>
+                        {% endfor %}
+                    </div>
+
+                    <div class="marketing-nav-actions">
+                        <a class="marketing-nav-ghost" href="{{ marketing_ctas.secondary.href }}">{{ marketing_ctas.secondary.label }}</a>
+                        <a class="marketing-nav-cta" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <main class="marketing-main">
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="marketing-footer">
+            <section class="marketing-footer-card">
+                <div class="marketing-footer-intro">
+                    <p class="section-kicker">Built for modern product launches</p>
+                    <h2>VeloSite separates the product website from the generator output.</h2>
+                    <p>
+                        Market the tool with a real SaaS web presence, then let teams generate, refine, publish,
+                        and export websites from the Studio without touching the public site shell.
+                    </p>
+                </div>
+
+                <div class="marketing-footer-grid">
+                    <div>
+                        <p class="footer-label">Explore</p>
+                        <div class="footer-link-list">
+                            {% for item in marketing_nav[1:5] %}
+                            <a href="{{ url_for(item.endpoint) }}">{{ item.label }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div>
+                        <p class="footer-label">Company</p>
+                        <div class="footer-link-list">
+                            {% for item in marketing_nav[5:] %}
+                            <a href="{{ url_for(item.endpoint) }}">{{ item.label }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div>
+                        <p class="footer-label">Workspace</p>
+                        <div class="footer-link-list">
+                            <a href="{{ url_for('main.index') }}">Open App</a>
+                            <a href="{{ url_for('main.login') }}">Log In</a>
+                            <a href="{{ url_for('main.signup') }}">Create Account</a>
+                            <a href="{{ url_for('main.settings') if current_user.is_authenticated else url_for('main.pricing') }}">
+                                {{ "Settings" if current_user.is_authenticated else "Pricing" }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="marketing-footer-meta">
+                <span>VeloSite AI</span>
+                <span>Proof-heavy product site, separate Studio workflow, exported-site engine untouched.</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/marketing.js') }}" defer></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

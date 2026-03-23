@@ -1,0 +1,159 @@
+{% extends "marketing/base.html" %}
+
+{% block content %}
+<section class="marketing-section">
+    <div class="page-header">
+        <p class="section-kicker">Pricing</p>
+        <h1>Simple plans for trying, shipping, and scaling VeloSite.</h1>
+        <p>
+            Pricing should feel easy to understand: clear self-serve entry, a stronger pro tier, and a team plan for
+            shared workflows and higher volume.
+        </p>
+    </div>
+
+    <div class="pricing-grid">
+        <article class="pricing-card">
+            <span class="plan-tag">Starter</span>
+            <div class="price-row">
+                <strong>$0</strong>
+                <span>/ month</span>
+            </div>
+            <p>For testing the brief flow, seeing routed directions, and learning how Studio works.</p>
+            <ul class="plan-points">
+                <li>Guided brief generation</li>
+                <li>Three routed design directions</li>
+                <li>Basic publish links</li>
+                <li>Single-user workspace</li>
+            </ul>
+            <a class="hero-secondary" href="{{ url_for('main.signup') }}">Start free</a>
+        </article>
+
+        <article class="pricing-card is-featured">
+            <span class="plan-tag">Pro</span>
+            <div class="price-row">
+                <strong>$29</strong>
+                <span>/ month</span>
+            </div>
+            <p>For founders, creators, and freelancers who need publishing, exports, and more iteration depth.</p>
+            <ul class="plan-points">
+                <li>Everything in Starter</li>
+                <li>Brand asset uploads and icon direction</li>
+                <li>Direct Studio edits and regenerations</li>
+                <li>ZIP export for handoff</li>
+                <li>Longer saved conversation history</li>
+            </ul>
+            <a class="hero-primary" href="{{ url_for('main.signup') }}">Choose Pro</a>
+        </article>
+
+        <article class="pricing-card">
+            <span class="plan-tag">Teams</span>
+            <div class="price-row">
+                <strong>$99</strong>
+                <span>/ month</span>
+            </div>
+            <p>For agencies and product teams running multiple launches and collaboration-heavy review loops.</p>
+            <ul class="plan-points">
+                <li>Everything in Pro</li>
+                <li>Team account coordination</li>
+                <li>Higher publish/export limits</li>
+                <li>Priority support and onboarding</li>
+            </ul>
+            <a class="hero-secondary" href="{{ url_for('main.contact') }}">Talk to us</a>
+        </article>
+    </div>
+</section>
+
+<section class="pricing-table-shell">
+    <div class="section-header">
+        <p class="section-kicker">Plan comparison</p>
+        <h2>Make the upgrade path obvious.</h2>
+    </div>
+
+    <table class="pricing-table">
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Starter</th>
+                <th>Pro</th>
+                <th>Teams</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Guided brief and routed variants</td>
+                <td>Included</td>
+                <td>Included</td>
+                <td>Included</td>
+            </tr>
+            <tr>
+                <td>Brand assets and icon direction</td>
+                <td>Basic</td>
+                <td>Full</td>
+                <td>Full</td>
+            </tr>
+            <tr>
+                <td>Publish links</td>
+                <td>Included</td>
+                <td>Included</td>
+                <td>Included</td>
+            </tr>
+            <tr>
+                <td>ZIP export</td>
+                <td>Limited</td>
+                <td>Included</td>
+                <td>Included</td>
+            </tr>
+            <tr>
+                <td>Shared team workflows</td>
+                <td>-</td>
+                <td>-</td>
+                <td>Included</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="faq-shell">
+    <div class="section-header">
+        <p class="section-kicker">FAQ</p>
+        <h2>Answer the friction questions right on pricing.</h2>
+    </div>
+
+    <div class="faq-grid">
+        <article class="faq-card">
+            <strong>Is this replacing the generated-site templates?</strong>
+            <p>No. The public pricing page markets VeloSite itself. The generator engine remains separate.</p>
+        </article>
+        <article class="faq-card">
+            <strong>Can I export a generated site?</strong>
+            <p>Yes. VeloSite supports ZIP export so a chosen direction can move into handoff or implementation.</p>
+        </article>
+        <article class="faq-card">
+            <strong>Can I keep refining the same project?</strong>
+            <p>Yes. Recent chats and workspace state are built around continuing the same direction over time.</p>
+        </article>
+        <article class="faq-card">
+            <strong>Who is Pro for?</strong>
+            <p>Pro is the best default for solo founders, creators, and operators who ship real pages regularly.</p>
+        </article>
+        <article class="faq-card">
+            <strong>Why a Showcase page too?</strong>
+            <p>Because examples reduce skepticism faster than any pricing copy or feature list alone.</p>
+        </article>
+        <article class="faq-card">
+            <strong>Can teams use it for launch campaigns?</strong>
+            <p>That is one of the best fits: fast product microsites with reviewable visual directions.</p>
+        </article>
+    </div>
+</section>
+
+<section class="cta-banner">
+    <p class="section-kicker">Pricing that supports self-serve conversion</p>
+    <h2>Keep the entry simple, then let the product quality do the convincing.</h2>
+    <p>A clean pricing page, embedded FAQ, and proof-rich showcase make the upgrade path feel natural.</p>
+    <div class="hero-actions">
+        <a class="hero-primary" href="{{ url_for('main.signup') }}">Start free</a>
+        <a class="hero-secondary" href="{{ url_for('main.contact') }}">Contact sales</a>
+    </div>
+</section>
+{% endblock %}

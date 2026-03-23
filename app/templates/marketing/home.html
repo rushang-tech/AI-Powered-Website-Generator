@@ -1,0 +1,210 @@
+{% extends "marketing/base.html" %}
+
+{% block content %}
+<section class="marketing-hero">
+    <div class="hero-grid">
+        <div class="page-hero">
+            <p class="section-kicker">Multi-page product website for VeloSite</p>
+            <h1>Market the tool like a serious SaaS product, not a single landing page.</h1>
+            <p class="marketing-lead">
+                VeloSite gives you a public-facing website for the product itself, while the generator engine stays
+                focused on making launch pages, portfolios, and branded websites inside the Studio.
+            </p>
+
+            <div class="hero-actions">
+                <a class="hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+                <a class="hero-secondary" href="{{ url_for('main.product') }}">Explore the product</a>
+            </div>
+
+            <div class="hero-proof-row">
+                <span class="hero-proof-badge">3 routed design directions per brief</span>
+                <span class="hero-proof-badge">Direct Studio edits inside the preview</span>
+                <span class="hero-proof-badge">Publish links and ZIP export built in</span>
+            </div>
+        </div>
+
+        <aside class="hero-preview">
+            <span class="preview-label">What the product feels like</span>
+            <div class="preview-frame">
+                <div class="preview-browser-bar">
+                    <span class="preview-dot"></span>
+                    <span class="preview-dot"></span>
+                    <span class="preview-dot"></span>
+                    <span class="preview-url">velosite.app/studio/preview</span>
+                </div>
+
+                <div class="preview-badge-row">
+                    <span class="preview-chip">Brief</span>
+                    <span class="preview-chip">Variants</span>
+                    <span class="preview-chip">Brand assets</span>
+                    <span class="preview-chip">Publish</span>
+                </div>
+
+                <div class="preview-lines">
+                    <div class="preview-line"></div>
+                    <div class="preview-line is-mid"></div>
+                    <div class="preview-line is-short"></div>
+                </div>
+
+                <div class="preview-tiles">
+                    <article class="preview-tile">
+                        <strong>Brief in</strong>
+                        <p>Goal, audience, tone, density, motion, and brand references.</p>
+                    </article>
+                    <article class="preview-tile">
+                        <strong>Three directions out</strong>
+                        <p>Compare proof-first, editorial, and conversion-focused layouts instantly.</p>
+                    </article>
+                    <article class="preview-tile">
+                        <strong>Canvas editing</strong>
+                        <p>Hover sections, update copy, change art direction, and regenerate safely.</p>
+                    </article>
+                    <article class="preview-tile">
+                        <strong>Publish fast</strong>
+                        <p>Share a link or export the current build without breaking the public product site.</p>
+                    </article>
+                </div>
+            </div>
+        </aside>
+    </div>
+</section>
+
+<section class="metric-strip">
+    <article class="metric-card">
+        <strong>3</strong>
+        <span>Structured variants generated for every new project.</span>
+    </article>
+    <article class="metric-card">
+        <strong>1</strong>
+        <span>Shared Studio where prompt, layout, brand, and export all stay connected.</span>
+    </article>
+    <article class="metric-card">
+        <strong>0</strong>
+        <span>Template-engine edits required to market VeloSite as a product website.</span>
+    </article>
+    <article class="metric-card">
+        <strong>Fast</strong>
+        <span>Proof-heavy flows designed for founders, creators, and product launches.</span>
+    </article>
+</section>
+
+<section class="marketing-section">
+    <div class="section-header">
+        <p class="section-kicker">Why this structure works</p>
+        <h2>Separate the product narrative from the generated-site engine.</h2>
+        <p>
+            The public website explains VeloSite, builds trust, and converts visitors. The authenticated app handles
+            briefs, variants, editing, publishing, and export. Each surface gets to do one job well.
+        </p>
+    </div>
+
+    <div class="proof-grid">
+        <article class="marketing-card">
+            <span class="card-kicker">Public site</span>
+            <strong>Sell the platform</strong>
+            <p>Use modern SaaS page patterns: product story, proof, pricing, examples, and solution pages.</p>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">App workspace</span>
+            <strong>Keep creation focused</strong>
+            <p>Signed-in users jump straight into the brief, recent conversations, and Studio controls.</p>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">Generated output</span>
+            <strong>Leave the engine untouched</strong>
+            <p>Templates under the generator remain dedicated to exported/published websites, not the product site.</p>
+        </article>
+    </div>
+</section>
+
+<section class="marketing-section">
+    <div class="section-header">
+        <p class="section-kicker">Workflow snapshot</p>
+        <h2>From one brief to a published site in four moves.</h2>
+    </div>
+
+    <div class="workflow-grid">
+        <article class="marketing-card">
+            <span class="card-kicker">01</span>
+            <strong>Write a tight brief</strong>
+            <p>Define goal, audience, brand tone, density, motion, and any extra brand constraints.</p>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">02</span>
+            <strong>Review routed concepts</strong>
+            <p>VeloSite returns multiple design directions instead of locking you into one generic template.</p>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">03</span>
+            <strong>Refine inside Studio</strong>
+            <p>Use the conversation thread, style overrides, branding uploads, and direct canvas editing.</p>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">04</span>
+            <strong>Ship or export</strong>
+            <p>Publish a live link, keep collaborating, or export a ZIP without losing the current direction.</p>
+        </article>
+    </div>
+</section>
+
+<section class="marketing-section">
+    <div class="section-header">
+        <p class="section-kicker">Featured showcase</p>
+        <h2>Proof-led examples beat feature lists.</h2>
+        <p>Visitors understand the value faster when they can see the types of sites VeloSite can produce.</p>
+    </div>
+
+    <div class="showcase-grid">
+        <article class="marketing-card showcase-card">
+            <div class="card-art"></div>
+            <span class="card-kicker">SaaS launch</span>
+            <strong>Northstar Copilot</strong>
+            <p>Proof-first landing page with pricing narrative, strong hero claim, and conversion-ready structure.</p>
+            <div class="showcase-meta">
+                <span>B2B</span>
+                <span>Pricing</span>
+                <span>Launch</span>
+            </div>
+        </article>
+        <article class="marketing-card showcase-card">
+            <div class="card-art art-warm"></div>
+            <span class="card-kicker">Creator portfolio</span>
+            <strong>Studio Atlas</strong>
+            <p>Editorial project presentation with case-study rhythm, work samples, and personal positioning.</p>
+            <div class="showcase-meta">
+                <span>Portfolio</span>
+                <span>Creative</span>
+                <span>Editorial</span>
+            </div>
+        </article>
+        <article class="marketing-card showcase-card">
+            <div class="card-art art-teal"></div>
+            <span class="card-kicker">Product microsite</span>
+            <strong>Signal Stack</strong>
+            <p>Fast launch page for a new product bet with layered proof, motion cues, and CTA clarity.</p>
+            <div class="showcase-meta">
+                <span>Product</span>
+                <span>Microsite</span>
+                <span>Conversion</span>
+            </div>
+        </article>
+    </div>
+
+    <div class="section-actions">
+        <a class="hero-secondary" href="{{ url_for('main.showcase') }}">View the full showcase</a>
+    </div>
+</section>
+
+<section class="cta-banner">
+    <p class="section-kicker">Start with the product site, then open the Studio</p>
+    <h2>Give VeloSite the kind of web presence people expect from modern AI products.</h2>
+    <p>
+        Home, Product, Pricing, Showcase, Resources, and Contact pages establish trust. The internal app keeps the
+        generation workflow clean, fast, and separate.
+    </p>
+    <div class="hero-actions">
+        <a class="hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+        <a class="hero-secondary" href="{{ url_for('main.pricing') }}">See pricing</a>
+    </div>
+</section>
+{% endblock %}

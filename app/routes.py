@@ -63,6 +63,17 @@ main = Blueprint("main", __name__)
 
 _ROUTE_METRICS: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "errors": 0})
 _ROUTE_METRICS_LOCK = Lock()
+_MARKETING_NAV_ITEMS: tuple[dict[str, str], ...] = (
+    {"slug": "home", "label": "Home", "endpoint": "main.marketing_home"},
+    {"slug": "product", "label": "Product", "endpoint": "main.product"},
+    {"slug": "showcase", "label": "Showcase", "endpoint": "main.showcase"},
+    {"slug": "solutions", "label": "Solutions", "endpoint": "main.solutions"},
+    {"slug": "how-it-works", "label": "How It Works", "endpoint": "main.how_it_works"},
+    {"slug": "pricing", "label": "Pricing", "endpoint": "main.pricing"},
+    {"slug": "resources", "label": "Resources", "endpoint": "main.resources"},
+    {"slug": "about", "label": "About", "endpoint": "main.about"},
+    {"slug": "contact", "label": "Contact", "endpoint": "main.contact"},
+)
 
 
 def _public_ai_error_message(exc: AIProviderUnavailableError) -> str:
@@ -146,6 +157,31 @@ def _demo_brief() -> dict[str, str]:
         "name": "Northstar Copilot",
         "notes": "Lead with proof and include a strong pricing narrative.",
     }
+
+
+def _marketing_nav(active_slug: str) -> list[dict[str, str | bool]]:
+    return [{**item, "is_active": item["slug"] == active_slug} for item in _MARKETING_NAV_ITEMS]
+
+
+def _marketing_ctas() -> dict[str, dict[str, str]]:
+    if getattr(current_user, "is_authenticated", False):
+        return {
+            "primary": {"label": "Open App", "href": url_for("main.index")},
+            "secondary": {"label": "Settings", "href": url_for("main.settings")},
+        }
+    return {
+        "primary": {"label": "Start Building", "href": url_for("main.signup")},
+        "secondary": {"label": "Log In", "href": url_for("main.login")},
+    }
+
+
+def _render_marketing_page(template_name: str, *, page_title: str, active_slug: str):
+    return render_template(
+        template_name,
+        page_title=page_title,
+        marketing_nav=_marketing_nav(active_slug),
+        marketing_ctas=_marketing_ctas(),
+    )
 
 
 def _collect_overrides(body: dict[str, object]) -> dict[str, object]:
@@ -344,10 +380,92 @@ def logout():
 
 
 @main.route("/", methods=["GET"])
+def marketing_home():
+    return _render_marketing_page(
+        "marketing/home.html",
+        page_title="VeloSite | AI Website Generator for Product Teams",
+        active_slug="home",
+    )
+
+
+@main.route("/product", methods=["GET"])
+def product():
+    return _render_marketing_page(
+        "marketing/product.html",
+        page_title="Product | VeloSite",
+        active_slug="product",
+    )
+
+
+@main.route("/showcase", methods=["GET"])
+def showcase():
+    return _render_marketing_page(
+        "marketing/showcase.html",
+        page_title="Showcase | VeloSite",
+        active_slug="showcase",
+    )
+
+
+@main.route("/solutions", methods=["GET"])
+def solutions():
+    return _render_marketing_page(
+        "marketing/solutions.html",
+        page_title="Solutions | VeloSite",
+        active_slug="solutions",
+    )
+
+
+@main.route("/how-it-works", methods=["GET"])
+def how_it_works():
+    return _render_marketing_page(
+        "marketing/how_it_works.html",
+        page_title="How It Works | VeloSite",
+        active_slug="how-it-works",
+    )
+
+
+@main.route("/pricing", methods=["GET"])
+def pricing():
+    return _render_marketing_page(
+        "marketing/pricing.html",
+        page_title="Pricing | VeloSite",
+        active_slug="pricing",
+    )
+
+
+@main.route("/resources", methods=["GET"])
+def resources():
+    return _render_marketing_page(
+        "marketing/resources.html",
+        page_title="Resources | VeloSite",
+        active_slug="resources",
+    )
+
+
+@main.route("/about", methods=["GET"])
+def about():
+    return _render_marketing_page(
+        "marketing/about.html",
+        page_title="About | VeloSite",
+        active_slug="about",
+    )
+
+
+@main.route("/contact", methods=["GET"])
+def contact():
+    return _render_marketing_page(
+        "marketing/contact.html",
+        page_title="Contact | VeloSite",
+        active_slug="contact",
+    )
+
+
+@main.route("/app", methods=["GET"])
 @login_required
 def index():
     return render_template(
         "home.html",
+        page_title="VeloSite Studio",
         hide_site_nav=True,
         examples=_example_prompts(),
         demo_brief=_demo_brief(),
@@ -357,6 +475,12 @@ def index():
         recent_conversations=_recent_conversation_payload(),
         user_defaults=_user_defaults(),
     )
+
+
+@main.route("/dashboard", methods=["GET"])
+@login_required
+def dashboard():
+    return redirect(url_for("main.index"))
 
 
 @main.route("/settings", methods=["GET", "POST"])

@@ -1,0 +1,79 @@
+{% extends "marketing/base.html" %}
+
+{% block content %}
+<section class="marketing-section">
+    <div class="page-header">
+        <p class="section-kicker">Audience positioning</p>
+        <h1>Different teams use VeloSite for different kinds of launches.</h1>
+        <p>
+            The product is flexible enough for founders, agencies, creators, and operators who need a fast but
+            credible website starting point.
+        </p>
+    </div>
+
+    <div class="solutions-grid">
+        <article class="marketing-card">
+            <span class="card-kicker">Founders</span>
+            <strong>Launch a product site before the roadmap is fully stable.</strong>
+            <p>Move quickly with proof, pricing, and clear product framing while the product itself keeps evolving.</p>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">Agencies</span>
+            <strong>Generate direction faster for client reviews.</strong>
+            <p>Use variants and the showcase-style workflow to present multiple directions without rebuilding each one.</p>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">Creators</span>
+            <strong>Turn rough positioning into a polished personal site.</strong>
+            <p>Build launch pages, expert offers, and editorial-style portfolio pages with much less friction.</p>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">Product teams</span>
+            <strong>Spin up campaign microsites around new features.</strong>
+            <p>Keep experiments moving while preserving visual direction and messaging consistency.</p>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">Operators</span>
+            <strong>Standardize repeatable site creation workflows.</strong>
+            <p>Brief, variant review, publishing, and export become a clearer process instead of a design scramble.</p>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">Portfolios</span>
+            <strong>Build pages that feel intentional, not generic.</strong>
+            <p>Good for case-study presentation, visual proof, and differentiated personal positioning.</p>
+        </article>
+    </div>
+</section>
+
+<section class="marketing-section">
+    <div class="section-header">
+        <p class="section-kicker">Common outcomes</p>
+        <h2>Use the same platform for different website jobs.</h2>
+    </div>
+
+    <div class="comparison-grid">
+        <article class="comparison-card">
+            <strong>Product launch site</strong>
+            <p>Hero, proof, capability explanation, pricing, FAQ, and CTA path tuned for conversion.</p>
+        </article>
+        <article class="comparison-card">
+            <strong>Portfolio or expert site</strong>
+            <p>Project modules, about narrative, editorial pacing, and service-focused CTA blocks.</p>
+        </article>
+        <article class="comparison-card">
+            <strong>Campaign microsite</strong>
+            <p>Fast, focused pages built around a single feature, event, or offer without full-site overhead.</p>
+        </article>
+    </div>
+</section>
+
+<section class="cta-banner">
+    <p class="section-kicker">Pick the use case, keep the workflow</p>
+    <h2>Same generation engine. Different audience stories.</h2>
+    <p>VeloSite adapts to the kind of site you need without forcing the public product site to look like the outputs.</p>
+    <div class="hero-actions">
+        <a class="hero-primary" href="{{ url_for('main.showcase') }}">See examples</a>
+        <a class="hero-secondary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+    </div>
+</section>
+{% endblock %}

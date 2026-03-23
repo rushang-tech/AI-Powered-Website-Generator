@@ -1,0 +1,96 @@
+{% extends "marketing/base.html" %}
+
+{% block content %}
+<section class="marketing-section">
+    <div class="page-header">
+        <p class="section-kicker">Brief to publish</p>
+        <h1>How VeloSite moves from intent to a reviewable website.</h1>
+        <p>
+            The workflow is designed to reduce blank-page friction while still keeping enough control for real product
+            and brand decisions.
+        </p>
+    </div>
+
+    <div class="timeline-grid">
+        <article class="timeline-card">
+            <span class="card-kicker">Step 1</span>
+            <strong>Capture the brief</strong>
+            <p>Goal, audience, tone, density, motion, project name, notes, and optional brand images establish direction.</p>
+        </article>
+        <article class="timeline-card">
+            <span class="card-kicker">Step 2</span>
+            <strong>Generate routed directions</strong>
+            <p>VeloSite chooses structure, art direction, and layout candidates, then builds multiple variants.</p>
+        </article>
+        <article class="timeline-card">
+            <span class="card-kicker">Step 3</span>
+            <strong>Refine inside Studio</strong>
+            <p>Update copy, switch variant, remix styles, apply branding, or continue the conversation with the current state.</p>
+        </article>
+        <article class="timeline-card">
+            <span class="card-kicker">Step 4</span>
+            <strong>Publish or export</strong>
+            <p>Share a link to the chosen direction or export a ZIP bundle when the concept is ready to hand off.</p>
+        </article>
+    </div>
+</section>
+
+<section class="marketing-section">
+    <div class="two-column-grid">
+        <article class="marketing-card">
+            <span class="card-kicker">What goes in</span>
+            <strong>Inputs with real leverage</strong>
+            <ul class="check-list">
+                <li>Goal and audience</li>
+                <li>Brand tone and content density</li>
+                <li>Motion level and project naming</li>
+                <li>Extra notes, constraints, and references</li>
+                <li>Logos or brand imagery for the generated direction</li>
+            </ul>
+        </article>
+        <article class="marketing-card">
+            <span class="card-kicker">What comes out</span>
+            <strong>A project you can actually review</strong>
+            <ul class="check-list">
+                <li>Multiple website directions instead of a single brittle draft</li>
+                <li>Studio-ready preview frame with editable sections</li>
+                <li>Conversation history and saved workspace state</li>
+                <li>Public publish link and exportable ZIP bundle</li>
+                <li>Structured metadata around variants and generation state</li>
+            </ul>
+        </article>
+    </div>
+</section>
+
+<section class="marketing-section">
+    <div class="section-header">
+        <p class="section-kicker">Why this is better</p>
+        <h2>Every step is about shortening the distance between idea and usable website direction.</h2>
+    </div>
+
+    <div class="proof-grid">
+        <article class="marketing-card">
+            <strong>Less blank-page anxiety</strong>
+            <p>A guided brief helps teams start with structure instead of endlessly rewriting the prompt.</p>
+        </article>
+        <article class="marketing-card">
+            <strong>More decision clarity</strong>
+            <p>Variant review makes tradeoffs visible early instead of hiding them behind one generated answer.</p>
+        </article>
+        <article class="marketing-card">
+            <strong>Faster polishing</strong>
+            <p>Studio controls keep brand edits, copy changes, and publishing close to the preview itself.</p>
+        </article>
+    </div>
+</section>
+
+<section class="cta-banner">
+    <p class="section-kicker">Ready to try the workflow?</p>
+    <h2>Open the app and turn a short brief into a real review surface.</h2>
+    <p>Then use the public site pages to explain the platform around that workflow.</p>
+    <div class="hero-actions">
+        <a class="hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+        <a class="hero-secondary" href="{{ url_for('main.product') }}">Back to product</a>
+    </div>
+</section>
+{% endblock %}

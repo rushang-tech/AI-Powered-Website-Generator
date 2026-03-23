@@ -179,8 +179,14 @@ class RouteTests(unittest.TestCase):
 
     def test_home_requires_login_and_generate_requires_auth_json(self):
         response = self.client.get("/")
-        self.assertEqual(response.status_code, 302)
-        self.assertIn("/login", response.headers["Location"])
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertIn("data-marketing-shell", body)
+        self.assertNotIn("data-workspace-nav", body)
+
+        app_response = self.client.get("/app")
+        self.assertEqual(app_response.status_code, 302)
+        self.assertIn("/login", app_response.headers["Location"])
 
         generate_response = self.client.post("/generate", json={"prompt": "A product launch page"})
         self.assertEqual(generate_response.status_code, 401)
@@ -248,6 +254,13 @@ class RouteTests(unittest.TestCase):
             self.assertEqual(Message.query.filter_by(conversation_id=conversation.id).count(), 2)
 
     def test_workspace_nav_only_renders_for_dashboard_and_studio(self):
+        for route in ("/", "/product", "/showcase", "/solutions", "/how-it-works", "/pricing", "/resources", "/about", "/contact"):
+            response = self.client.get(route)
+            self.assertEqual(response.status_code, 200)
+            body = response.get_data(as_text=True)
+            self.assertIn("data-marketing-shell", body)
+            self.assertNotIn("data-workspace-nav", body)
+
         login_response = self.client.get("/login")
         self.assertEqual(login_response.status_code, 200)
         self.assertNotIn("data-workspace-nav", login_response.get_data(as_text=True))
@@ -258,12 +271,16 @@ class RouteTests(unittest.TestCase):
 
         self._signup_and_login()
 
-        home_response = self.client.get("/")
+        home_response = self.client.get("/app")
         self.assertEqual(home_response.status_code, 200)
         home_body = home_response.get_data(as_text=True)
         self.assertIn("data-workspace-nav", home_body)
         self.assertIn("data-nav-toggle", home_body)
         self.assertNotIn("data-workspace-shell", home_body)
+
+        dashboard_response = self.client.get("/dashboard")
+        self.assertEqual(dashboard_response.status_code, 302)
+        self.assertIn("/app", dashboard_response.headers["Location"])
 
         settings_response = self.client.get("/settings")
         self.assertEqual(settings_response.status_code, 200)

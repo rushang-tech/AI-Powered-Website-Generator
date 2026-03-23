@@ -1,0 +1,82 @@
+{% extends "marketing/base.html" %}
+
+{% block content %}
+<section class="marketing-section">
+    <div class="page-header">
+        <p class="section-kicker">Resources</p>
+        <h1>Give visitors guides, updates, and help entry points without needing a CMS in v1.</h1>
+        <p>
+            This page acts as a clear resource hub: practical guides, changelog visibility, support entry points, and
+            product education that supports the rest of the site.
+        </p>
+    </div>
+
+    <div class="resource-grid">
+        <article class="resource-card">
+            <span class="card-kicker">Guide</span>
+            <strong>How to write a high-leverage brief</strong>
+            <p>Teach visitors which inputs create better website directions and faster review cycles.</p>
+        </article>
+        <article class="resource-card">
+            <span class="card-kicker">Guide</span>
+            <strong>Choosing the right variant direction</strong>
+            <p>Explain how founders and teams compare proof-first, editorial, and product-first directions.</p>
+        </article>
+        <article class="resource-card">
+            <span class="card-kicker">Support</span>
+            <strong>Workspace and export help</strong>
+            <p>Point users toward Studio controls, publish links, and export expectations in one place.</p>
+        </article>
+        <article class="resource-card">
+            <span class="card-kicker">Updates</span>
+            <strong>What changed recently</strong>
+            <p>Summarize product progress so visitors know the tool is active and improving.</p>
+        </article>
+        <article class="resource-card">
+            <span class="card-kicker">Examples</span>
+            <strong>Showcase curation notes</strong>
+            <p>Explain how examples are selected and which use cases VeloSite is currently strongest at.</p>
+        </article>
+        <article class="resource-card">
+            <span class="card-kicker">Trust</span>
+            <strong>Publish and preview expectations</strong>
+            <p>Clarify what public links do, what stays authenticated, and how export differs from publishing.</p>
+        </article>
+    </div>
+</section>
+
+<section class="marketing-section">
+    <div class="section-header">
+        <p class="section-kicker">Recent product rhythm</p>
+        <h2>Use the page as a lightweight changelog surface.</h2>
+    </div>
+
+    <div class="timeline-grid">
+        <article class="timeline-card">
+            <span class="card-kicker">Latest</span>
+            <strong>Public website expansion</strong>
+            <p>VeloSite now has a real product-site layer with Home, Product, Showcase, Pricing, and support pages.</p>
+        </article>
+        <article class="timeline-card">
+            <span class="card-kicker">Studio</span>
+            <strong>Variant switching and remix flow</strong>
+            <p>The app keeps routed directions visible so users can compare before committing to one.</p>
+        </article>
+        <article class="timeline-card">
+            <span class="card-kicker">Publishing</span>
+            <strong>Share links and ZIP export</strong>
+            <p>Generated pages can now be shared publicly or exported for handoff without changing the product site.</p>
+        </article>
+    </div>
+</section>
+
+<section class="cta-banner">
+    <p class="section-kicker">Need more than a feature list?</p>
+    <h2>Resources turn curiosity into confidence.</h2>
+    <p>Use this space to teach the product, communicate progress, and support adoption without building a full CMS yet.</p>
+    <div class="hero-actions">
+        <a class="hero-primary" href="{{ url_for('main.contact') }}">Ask a question</a>
+        <a class="hero-secondary" href="{{ url_for('main.how_it_works') }}">Read the workflow</a>
+    </div>
+</section>
+{% endblock %}
