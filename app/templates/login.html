@@ -1,36 +1,74 @@
 {% extends "base.html" %}
+{% set page_title = "Log In | VeloSite" %}
+{% set hide_site_nav = true %}
 
-{% block nav_actions %}{% endblock %}
-
-{% block body_class %}auth-page{% endblock %}
+{% block body_class %}auth-body auth-body-login auth-page-login{% endblock %}
 
 {% block content %}
-<section class="auth-shell">
-    <div class="auth-brand-panel">
-        <div class="auth-brand-content">
-            <div class="auth-brand-logo">V</div>
-            <h2 class="auth-brand-tagline">Generate websites that feel designed.</h2>
-            <p class="auth-brand-sub">One brief, three design directions, full Studio control. Built for product teams who ship fast.</p>
-        </div>
-    </div>
-    <div class="auth-form-panel">
-        <article class="auth-card">
-            <p class="eyebrow">Welcome back</p>
-            <h1>Log in to your workspace.</h1>
-            <p class="auth-copy">Your conversations, Studio state, and saved defaults stay connected to your account.</p>
-            <form class="auth-form" method="post">
-                <label class="field">
-                    <span>Email</span>
-                    <input name="email" type="email" autocomplete="email" placeholder="you@company.com" required>
-                </label>
-                <label class="field">
-                    <span>Password</span>
-                    <input name="password" type="password" autocomplete="current-password" required>
-                </label>
-                <button class="btn btn-primary" type="submit">Log In</button>
-            </form>
-            <p class="auth-meta">New here? <a href="{{ url_for('main.signup') }}">Create an account</a></p>
-        </article>
+<section class="auth-screen auth-screen-login">
+    <span class="auth-glow auth-glow-top" aria-hidden="true"></span>
+    <span class="auth-glow auth-glow-bottom" aria-hidden="true"></span>
+    <span class="auth-glow auth-glow-side" aria-hidden="true"></span>
+    <div class="login-shell">
+        <section class="login-story" aria-label="VeloSite overview">
+            <div class="login-story-copy">
+                <img class="login-story-lockup" src="{{ url_for('static', filename='logo/Long logo purple.png') }}" alt="VeloSite">
+                <h1>Welcome back to the Studio.</h1>
+                <p class="login-story-lead">
+                    Pick up exactly where you left off. Access your saved briefs, refine your generated variants, and export your next project.
+                </p>
+            </div>
+        </section>
+
+        <section class="login-panel" aria-label="Log in form">
+            <div class="login-panel-card">
+                <img class="login-panel-icon" src="{{ url_for('static', filename='logo/app logo purple.png') }}" alt="VeloSite">
+
+                <div class="login-panel-copy">
+                    <p class="login-panel-eyebrow">WELCOME BACK</p>
+                    <h2>Log in to your workspace</h2>
+                </div>
+
+                <form class="auth-form login-form" method="post" action="{{ url_for('main.login', next=request.args.get('next')) }}">
+                    <label class="field">
+                        <input
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                            placeholder="Email address"
+                            value="{{ request.form.get('email', '') }}"
+                            required
+                        >
+                    </label>
+                    <label class="field">
+                        <input
+                            name="password"
+                            type="password"
+                            autocomplete="current-password"
+                            minlength="8"
+                            placeholder="Password"
+                            required
+                        >
+                    </label>
+
+                    <button class="btn btn-primary login-submit" type="submit">Sign In</button>
+                </form>
+
+                <div class="login-divider" aria-hidden="true">
+                    <span>OR</span>
+                </div>
+
+                <button class="login-google-action" type="button" disabled aria-disabled="true">
+                    <span class="login-google-icon">G</span>
+                    <span>Continue with Google</span>
+                </button>
+
+                <div class="login-bottom-links">
+                    <a href="{{ url_for('main.contact') }}">Forgot Password?</a>
+                    <p>New to VeloSite? <a href="{{ url_for('main.signup') }}">Signup</a></p>
+                </div>
+            </div>
+        </section>
     </div>
 </section>
 {% endblock %}

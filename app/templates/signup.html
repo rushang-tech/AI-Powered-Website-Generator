@@ -1,40 +1,60 @@
 {% extends "base.html" %}
+{% set page_title = "Sign Up | VeloSite" %}
+{% set hide_site_nav = true %}
 
-{% block nav_actions %}{% endblock %}
-
-{% block body_class %}auth-page{% endblock %}
+{% block body_class %}auth-body auth-body-login auth-page-signup{% endblock %}
 
 {% block content %}
-<section class="auth-shell">
-    <div class="auth-brand-panel">
-        <div class="auth-brand-content">
-            <div class="auth-brand-logo">V</div>
-            <h2 class="auth-brand-tagline">From brief to published site in minutes.</h2>
-            <p class="auth-brand-sub">Write one brief, compare three design directions, refine in Studio, and publish — all in a single workflow.</p>
-        </div>
-    </div>
-    <div class="auth-form-panel">
-        <article class="auth-card">
-            <p class="eyebrow">Get started</p>
-            <h1>Create your account.</h1>
-            <p class="auth-copy">Your projects, conversations, and Studio state are stored securely and tied to your account.</p>
-            <form class="auth-form" method="post">
-                <label class="field">
-                    <span>Display name</span>
-                    <input name="display_name" type="text" autocomplete="name" placeholder="Your name">
-                </label>
-                <label class="field">
-                    <span>Email</span>
-                    <input name="email" type="email" autocomplete="email" placeholder="you@company.com" required>
-                </label>
-                <label class="field">
-                    <span>Password</span>
-                    <input name="password" type="password" autocomplete="new-password" minlength="8" placeholder="8+ characters" required>
-                </label>
-                <button class="btn btn-primary" type="submit">Create Account</button>
-            </form>
-            <p class="auth-meta">Already have an account? <a href="{{ url_for('main.login') }}">Log in</a></p>
-        </article>
+<section class="auth-screen auth-screen-login">
+    <span class="auth-glow auth-glow-top" aria-hidden="true"></span>
+    <span class="auth-glow auth-glow-bottom" aria-hidden="true"></span>
+    <span class="auth-glow auth-glow-side" aria-hidden="true"></span>
+    <div class="login-shell">
+        <section class="login-story" aria-label="VeloSite overview">
+            <div class="login-story-copy">
+                <img class="login-story-lockup" src="{{ url_for('static', filename='logo/Long logo purple.png') }}" alt="VeloSite">
+                <h1>One brief. Three directions. Zero broken code.</h1>
+                <p class="login-story-lead">
+                    Join VeloSite to generate structurally flawless websites in seconds. Iterate with AI, perfect the design, and download the raw source code.
+                </p>
+            </div>
+        </section>
+
+        <section class="login-panel" aria-label="Sign up form">
+            <div class="login-panel-card">
+                <img class="login-panel-icon" src="{{ url_for('static', filename='logo/app logo purple.png') }}" alt="VeloSite">
+
+                <div class="login-panel-copy">
+                    <p class="login-panel-eyebrow">LET'S GET STARTED</p>
+                    <h2>Create your account</h2>
+                </div>
+
+                <form class="auth-form login-form" method="post">
+                    <label class="field">
+                        <input name="display_name" type="text" autocomplete="name" placeholder="Display name" value="{{ request.form.get('display_name', '') }}" required>
+                    </label>
+                    <label class="field">
+                        <input name="email" type="email" autocomplete="email" placeholder="Email address" value="{{ request.form.get('email', '') }}" required>
+                    </label>
+                    <label class="field">
+                        <input name="password" type="password" autocomplete="new-password" minlength="8" placeholder="Password" required>
+                    </label>
+
+                    <button class="btn btn-primary login-submit" type="submit">Create Account</button>
+                </form>
+
+                <div class="login-divider" aria-hidden="true">
+                    <span>OR</span>
+                </div>
+
+                <button class="login-google-action" type="button" disabled aria-disabled="true">
+                    <span class="login-google-icon">G</span>
+                    <span>Continue with Google</span>
+                </button>
+
+                <p class="auth-switch login-switch">Already have an account? <a href="{{ url_for('main.login') }}">Log in</a></p>
+            </div>
+        </section>
     </div>
 </section>
 {% endblock %}
