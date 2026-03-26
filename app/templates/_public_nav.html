@@ -1,0 +1,61 @@
+<header class="m-header">
+    <nav class="m-nav" aria-label="Primary navigation">
+        <a class="m-brand" href="{{ url_for('main.marketing_home') }}">
+            <span class="m-brand-mark">V</span>
+            <span class="m-brand-name">VeloSite</span>
+        </a>
+
+        <div class="m-nav-center">
+            {% for item in marketing_nav %}
+            {% if item.slug in ['product', 'showcase', 'pricing'] %}
+            <a
+                class="m-nav-link {% if item.is_active %}is-active{% endif %}"
+                href="{{ url_for(item.endpoint) }}"
+                {% if item.is_active %}aria-current="page"{% endif %}
+            >{{ item.label }}</a>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <div class="m-nav-right">
+            <a class="m-nav-cta" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+            <button
+                class="m-menu-toggle"
+                type="button"
+                aria-expanded="false"
+                aria-controls="m-overlay"
+                data-menu-toggle
+            >
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+</header>
+
+<div class="m-overlay" id="m-overlay" data-overlay aria-hidden="true">
+    <div class="m-overlay-inner">
+        <div class="m-overlay-nav">
+            <a class="m-overlay-link" href="{{ url_for('main.product') }}">Product</a>
+            <a class="m-overlay-link" href="{{ url_for('main.showcase') }}">Showcase</a>
+            <a class="m-overlay-link" href="{{ url_for('main.pricing') }}">Pricing</a>
+            <a class="m-overlay-link" href="{{ url_for('main.how_it_works') }}">How It Works</a>
+            <a class="m-overlay-link" href="{{ url_for('main.solutions') }}">Solutions</a>
+            <a class="m-overlay-link" href="{{ url_for('main.about') }}">About</a>
+            <a class="m-overlay-link" href="{{ url_for('main.contact') }}">Contact</a>
+            <a class="m-overlay-link" href="{{ url_for('main.resources') }}">Resources</a>
+        </div>
+        <div class="m-overlay-actions">
+            <a class="m-overlay-cta" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
+            {% if current_user.is_authenticated %}
+            <a class="m-overlay-ghost" href="{{ url_for('main.settings') }}">Settings</a>
+            <form class="m-overlay-form" action="{{ url_for('main.logout') }}" method="post">
+                <button class="m-overlay-ghost m-overlay-ghost-btn" type="submit">Log Out</button>
+            </form>
+            {% else %}
+            <a class="m-overlay-ghost" href="{{ url_for('main.signup') }}">Sign Up</a>
+            <a class="m-overlay-ghost" href="{{ url_for('main.login') }}">Log In</a>
+            {% endif %}
+        </div>
+    </div>
+</div>

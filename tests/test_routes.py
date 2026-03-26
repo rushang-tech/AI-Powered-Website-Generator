@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from urllib.parse import quote
 from unittest.mock import patch
 
 from app import create_app
@@ -9,6 +10,7 @@ from app.models import Conversation, Message, User
 from app.services.contracts import ProjectManifest
 from app.services.conversation_service import create_conversation, manifest_from_conversation
 from app.services.published_site_service import PUBLISHED_SITE_SERVICE
+from werkzeug.security import generate_password_hash
 
 
 def _brand_asset(name: str = "logo.svg", data_url: str | None = None):
@@ -146,9 +148,20 @@ class RouteTests(unittest.TestCase):
             db.session.remove()
         self.temp_dir.cleanup()
 
-    def _signup_and_login(self, *, email: str = "rush@example.com", password: str = "password123", display_name: str = "Rush"):
+    def _signup_and_login(
+        self,
+        *,
+        email: str = "rush@example.com",
+        password: str = "password123",
+        display_name: str = "Rush",
+        complete_onboarding: bool = True,
+        next_path: str | None = None,
+    ):
+        signup_url = "/signup"
+        if next_path:
+            signup_url = f"/signup?next={quote(next_path, safe='/')}"
         response = self.client.post(
-            "/signup",
+            signup_url,
             data={
                 "email": email,
                 "password": password,
@@ -156,6 +169,34 @@ class RouteTests(unittest.TestCase):
             },
         )
         self.assertEqual(response.status_code, 302)
+        if complete_onboarding:
+            self.assertIn("/onboarding", response.headers["Location"])
+            step_one_response = self.client.post(
+                response.headers["Location"],
+                data={
+                    "step": "1",
+                    "user_type": "founder",
+                },
+            )
+            self.assertEqual(step_one_response.status_code, 302)
+
+            step_two_response = self.client.post(
+                step_one_response.headers["Location"],
+                data={
+                    "step": "2",
+                    "discovery_source": "search",
+                },
+            )
+            self.assertEqual(step_two_response.status_code, 302)
+
+            step_three_response = self.client.post(
+                step_two_response.headers["Location"],
+                data={
+                    "step": "3",
+                    "discovery_note": "Testing onboarding flow.",
+                },
+            )
+            self.assertEqual(step_three_response.status_code, 302)
         return email, password
 
     def _logout(self):
@@ -211,6 +252,114 @@ class RouteTests(unittest.TestCase):
         )
         self.assertEqual(duplicate.status_code, 200)
         self.assertIn("already registered", duplicate.get_data(as_text=True))
+
+    def test_signup_redirects_to_onboarding_and_blocks_workspace_until_completion(self):
+        email = "new-user@example.com"
+        password = "password123"
+        response = self.client.post(
+            "/signup",
+            data={"email": email, "password": password, "display_name": "New User"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/onboarding", response.headers["Location"])
+
+        app_response = self.client.get("/app")
+        self.assertEqual(app_response.status_code, 302)
+        self.assertIn("/onboarding", app_response.headers["Location"])
+
+        generate_response = self.client.post("/generate", json={"prompt": "A launch page"})
+        self.assertEqual(generate_response.status_code, 403)
+        payload = generate_response.get_json()
+        self.assertEqual(payload["error"], "Onboarding required.")
+        self.assertIn("/onboarding", payload["onboarding_url"])
+
+    def test_login_and_onboarding_completion_honors_next_path(self):
+        email, password = self._signup_and_login(email="next-user@example.com", complete_onboarding=False)
+        self._logout()
+
+        login_response = self.client.post(
+            "/login?next=/app",
+            data={"email": email, "password": password},
+        )
+        self.assertEqual(login_response.status_code, 302)
+        self.assertIn("/onboarding", login_response.headers["Location"])
+        self.assertIn("next=/app", login_response.headers["Location"])
+
+        onboarding_step_one = self.client.post(
+            login_response.headers["Location"],
+            data={
+                "step": "1",
+                "user_type": "student",
+            },
+        )
+        self.assertEqual(onboarding_step_one.status_code, 302)
+
+        onboarding_step_two = self.client.post(
+            onboarding_step_one.headers["Location"],
+            data={
+                "step": "2",
+                "discovery_source": "friend",
+            },
+        )
+        self.assertEqual(onboarding_step_two.status_code, 302)
+
+        onboarding_step_three = self.client.post(
+            onboarding_step_two.headers["Location"],
+            data={
+                "step": "3",
+                "discovery_note": "Need quick setup",
+            },
+        )
+        self.assertEqual(onboarding_step_three.status_code, 302)
+        self.assertIn("/app", onboarding_step_three.headers["Location"])
+
+        app_response = self.client.get("/app")
+        self.assertEqual(app_response.status_code, 200)
+
+    def test_onboarding_steps_cannot_be_skipped(self):
+        self._signup_and_login(email="noskip@example.com", complete_onboarding=False)
+
+        skip_to_three = self.client.get("/onboarding?step=3")
+        self.assertEqual(skip_to_three.status_code, 302)
+        self.assertIn("step=1", skip_to_three.headers["Location"])
+
+        step_one = self.client.post(
+            "/onboarding?step=1",
+            data={"step": "1", "user_type": "office"},
+        )
+        self.assertEqual(step_one.status_code, 302)
+        self.assertIn("step=2", step_one.headers["Location"])
+
+        skip_after_one = self.client.get("/onboarding?step=3")
+        self.assertEqual(skip_after_one.status_code, 302)
+        self.assertIn("step=2", skip_after_one.headers["Location"])
+
+    def test_legacy_user_without_onboarding_row_logs_in_directly(self):
+        email = "legacy@example.com"
+        password = "password123"
+        with self.app.app_context():
+            user = User(
+                email=email,
+                password_hash=generate_password_hash(password),
+                display_name="Legacy User",
+            )
+            db.session.add(user)
+            db.session.commit()
+
+        login_response = self.client.post("/login?next=/app", data={"email": email, "password": password})
+        self.assertEqual(login_response.status_code, 302)
+        self.assertIn("/app", login_response.headers["Location"])
+
+    def test_auth_pages_hide_public_navbar(self):
+        for route in ("/login", "/signup"):
+            response = self.client.get(route)
+            self.assertEqual(response.status_code, 200)
+            body = response.get_data(as_text=True)
+            self.assertNotIn("Product", body)
+            self.assertNotIn("Showcase", body)
+            self.assertNotIn("Pricing", body)
+            self.assertNotIn("Open App", body)
+            self.assertNotIn("m-menu-toggle", body)
 
     @patch("app.routes.generate_project_manifest")
     def test_generate_returns_variant_metadata_and_creates_conversation(self, mocked_generate):
@@ -381,6 +530,11 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(profile_response.status_code, 200)
         self.assertIn("Settings updated.", profile_response.get_data(as_text=True))
 
+        with self.app.app_context():
+            user = User.query.filter_by(email=email).first()
+            self.assertEqual(user.default_content_density, "dense")
+            self.assertEqual(user.default_motion_level, "energetic")
+
         password_response = self.client.post(
             "/settings",
             data={
@@ -410,6 +564,17 @@ class RouteTests(unittest.TestCase):
             self.assertEqual(User.query.count(), 0)
             self.assertEqual(Conversation.query.count(), 0)
             self.assertEqual(Message.query.count(), 0)
+
+    def test_settings_renders_density_and_motion_option_cards(self):
+        self._signup_and_login()
+        response = self.client.get("/settings")
+        self.assertEqual(response.status_code, 200)
+        body = response.get_data(as_text=True)
+        self.assertIn('name="default_content_density"', body)
+        self.assertIn('name="default_motion_level"', body)
+        self.assertIn("More whitespace with room to breathe.", body)
+        self.assertIn("Subtle transitions with minimal movement.", body)
+        self.assertNotIn('<select name="default_content_density">', body)
 
     def test_other_users_cannot_access_owned_preview_or_conversation(self):
         owner_email, _ = self._signup_and_login(email="owner@example.com")

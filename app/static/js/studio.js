@@ -77,13 +77,13 @@ if (shell) {
             conversationInput.disabled = isBusy;
         }
         if (applyStyleBtn) {
-            applyStyleBtn.textContent = isBusy && label ? label : "Apply Studio Changes";
+            applyStyleBtn.textContent = isBusy && label ? label : "Apply Changes";
         }
         if (applyBrandingBtn) {
             applyBrandingBtn.textContent = isBusy && label ? label : "Apply Branding";
         }
         if (sendMessageBtn) {
-            sendMessageBtn.textContent = isBusy && label ? label : "Send Prompt";
+            sendMessageBtn.textContent = isBusy && label ? label : "Send";
         }
     }
 
@@ -403,7 +403,7 @@ if (shell) {
                 <span class="layer-order">${String(index + 1).padStart(2, "0")}</span>
                 <span class="layer-name">${formatLabel(sectionName)}</span>
                 <span class="layer-actions">
-                    <button class="layer-regen" type="button" data-regenerate-section="${sectionName}">Regenerate</button>
+                    <button class="layer-regen" type="button" data-regenerate-section="${sectionName}">Regen</button>
                     <input type="checkbox" data-layer-section="${sectionName}" ${visibility[sectionName] ? "checked" : ""}>
                 </span>
             `;
@@ -799,8 +799,40 @@ if (shell) {
         });
     }
 
+    /* ── Overflow menu toggle ── */
+    const overflowToggle = document.getElementById("overflow-toggle");
+    const overflowMenu = document.getElementById("overflow-menu");
+
+    if (overflowToggle && overflowMenu) {
+        overflowToggle.addEventListener("click", (e) => {
+            e.stopPropagation();
+            overflowMenu.classList.toggle("is-open");
+        });
+
+        // Close on any click outside
+        document.addEventListener("click", (e) => {
+            if (!overflowMenu.contains(e.target) && e.target !== overflowToggle) {
+                overflowMenu.classList.remove("is-open");
+            }
+        });
+
+        // Close on Escape
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                overflowMenu.classList.remove("is-open");
+            }
+        });
+
+        // Close after clicking any menu button
+        overflowMenu.querySelectorAll("button").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                overflowMenu.classList.remove("is-open");
+            });
+        });
+    }
+
     previewFrame.addEventListener("load", () => {
-        setStatus(statusEl.textContent || "Hover the canvas to reveal direct edit actions.");
+        setStatus(statusEl.textContent || "Hover the canvas to edit in place.");
     });
 
     refreshLayoutOptions();

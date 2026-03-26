@@ -1,4 +1,4 @@
-/* ─── VeloSite Studio — Bright Minimal ─── */
+/* ─── VeloSite Studio — Light-First Dual Theme ─── */
 
 .studio-page {
     padding-top: 0;
@@ -32,7 +32,6 @@
     background: var(--workspace-panel);
     backdrop-filter: blur(16px);
     padding: 16px;
-    box-shadow: var(--shadow-sm);
 }
 
 .panel-compact {
@@ -66,7 +65,7 @@
 }
 
 
-/* ── Brief facts (compact inline) ── */
+/* ── Brief facts ── */
 
 .brief-facts {
     display: flex;
@@ -93,10 +92,10 @@
     gap: 8px;
     margin-top: 8px;
     padding: 12px;
-    border: 1px solid hsla(30, 56%, 42%, 0.24);
+    border: 1px solid hsla(30, 60%, 40%, 0.25);
     border-radius: var(--radius-sm);
-    background: hsla(34, 86%, 93%, 0.92);
-    color: hsl(28, 52%, 34%);
+    background: hsla(30, 50%, 18%, 0.2);
+    color: hsl(30, 60%, 75%);
     font-size: 0.85rem;
 }
 
@@ -268,7 +267,7 @@
     aspect-ratio: 1 / 1;
     object-fit: cover;
     border-radius: calc(var(--radius-sm) - 3px);
-    background: rgba(96, 77, 57, 0.05);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .asset-preview-card figcaption,
@@ -288,7 +287,7 @@
     margin-top: 10px;
 }
 
-/* Overflow menu for regen/remix actions */
+/* Overflow menu */
 .overflow-menu-wrap {
     position: relative;
 }
@@ -308,6 +307,7 @@
     gap: 6px;
     width: 100%;
     justify-content: center;
+    font-family: var(--font-body);
     transition: all var(--duration-fast) ease;
 }
 
@@ -324,7 +324,7 @@
     right: 0;
     z-index: 20;
     display: none;
-    background: rgba(255,255,255,0.96);
+    background: var(--bg-secondary);
     border: 1px solid var(--line-medium);
     border-radius: var(--radius-sm);
     padding: 4px;
@@ -342,6 +342,7 @@
     color: var(--ink);
     padding: 10px 14px;
     font-size: 0.85rem;
+    font-family: var(--font-body);
     width: 100%;
     text-align: left;
     cursor: pointer;
@@ -390,7 +391,7 @@
 
 .status-complete {
     border-color: hsla(152, 50%, 40%, 0.25);
-    background: hsla(152, 45%, 94%, 0.92);
+    background: hsla(152, 50%, 20%, 0.12);
 }
 
 .status-active {
@@ -404,7 +405,7 @@
 
 .status-error {
     border-color: hsla(0, 60%, 45%, 0.25);
-    background: hsla(10, 85%, 95%, 0.94);
+    background: hsla(0, 50%, 20%, 0.12);
 }
 
 
@@ -420,7 +421,6 @@
     background: var(--workspace-panel);
     backdrop-filter: blur(16px);
     padding: 12px 16px;
-    box-shadow: var(--shadow-sm);
 }
 
 .canvas-actions {
@@ -435,7 +435,7 @@
     align-items: center;
 }
 
-/* Icon buttons in canvas topbar */
+/* Icon buttons */
 .canvas-icon-btn {
     appearance: none;
     border: 1px solid var(--line);
@@ -450,7 +450,6 @@
     cursor: pointer;
     font-size: 0.9rem;
     transition: all var(--duration-fast) ease;
-    position: relative;
 }
 
 .canvas-icon-btn:hover {
@@ -458,31 +457,6 @@
     color: var(--ink);
     background: var(--surface);
 }
-
-.canvas-icon-btn[title]::after {
-    content: attr(title);
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 4px 10px;
-    border-radius: var(--radius-xs);
-    background: var(--bg-secondary);
-    border: 1px solid var(--line);
-    color: var(--ink);
-    font-size: 0.72rem;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--duration-fast) ease;
-}
-
-.canvas-icon-btn:hover[title]::after {
-    opacity: 1;
-}
-
-
-/* ── Section heading ── */
 
 .section-heading-row {
     display: flex;
@@ -540,7 +514,6 @@
     background: var(--bg-secondary);
     overflow: hidden;
     padding: 8px;
-    box-shadow: var(--shadow);
     transition: max-width var(--duration-normal) var(--ease-out);
 }
 
@@ -567,7 +540,7 @@
 }
 
 
-/* ── Variant tabs (horizontal) ── */
+/* ── Variant tabs ── */
 
 .variant-list {
     display: flex;
@@ -676,6 +649,7 @@
     padding: 4px 10px;
     cursor: pointer;
     font-size: 0.76rem;
+    font-family: var(--font-body);
     transition: all var(--duration-fast) ease;
 }
 

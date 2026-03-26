@@ -14,62 +14,7 @@
 </head>
 <body class="marketing-body {% block body_class %}{% endblock %}">
     <div class="marketing-shell" data-marketing-shell>
-
-        <!-- ── Header ── -->
-        <header class="m-header">
-            <nav class="m-nav" aria-label="Primary navigation">
-                <a class="m-brand" href="{{ url_for('main.marketing_home') }}">
-                    <span class="m-brand-mark">V</span>
-                    <span class="m-brand-name">VeloSite</span>
-                </a>
-
-                <div class="m-nav-center">
-                    {% for item in marketing_nav %}
-                    {% if item.slug in ['product', 'showcase', 'pricing'] %}
-                    <a
-                        class="m-nav-link {% if item.is_active %}is-active{% endif %}"
-                        href="{{ url_for(item.endpoint) }}"
-                        {% if item.is_active %}aria-current="page"{% endif %}
-                    >{{ item.label }}</a>
-                    {% endif %}
-                    {% endfor %}
-                </div>
-
-                <div class="m-nav-right">
-                    <a class="m-nav-cta" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
-                    <button
-                        class="m-menu-toggle"
-                        type="button"
-                        aria-expanded="false"
-                        aria-controls="m-overlay"
-                        data-menu-toggle
-                    >
-                        <span></span>
-                        <span></span>
-                    </button>
-                </div>
-            </nav>
-        </header>
-
-        <!-- ── Full-screen overlay menu ── -->
-        <div class="m-overlay" id="m-overlay" data-overlay aria-hidden="true">
-            <div class="m-overlay-inner">
-                <div class="m-overlay-nav">
-                    {% for item in marketing_nav %}
-                    <a
-                        class="m-overlay-link {% if item.is_active %}is-active{% endif %}"
-                        href="{{ url_for(item.endpoint) }}"
-                    >{{ item.label }}</a>
-                    {% endfor %}
-                </div>
-                <div class="m-overlay-actions">
-                    <a class="m-overlay-cta" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
-                    {% if marketing_ctas.secondary %}
-                    <a class="m-overlay-ghost" href="{{ marketing_ctas.secondary.href }}">{{ marketing_ctas.secondary.label }}</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+        {% include "_public_nav.html" %}
 
         <!-- ── Main ── -->
         <main class="m-main">
@@ -78,42 +23,40 @@
 
         <!-- ── Footer ── -->
         <footer class="m-footer">
-            <div class="m-footer-inner">
+            <div class="m-footer-grid">
                 <div class="m-footer-brand">
-                    <div class="m-footer-brand-row">
-                        <span class="m-brand-mark">V</span>
-                        <span class="m-brand-name">VeloSite</span>
-                    </div>
-                    <p class="m-footer-tagline">AI website generator for product teams.</p>
+                    <p class="m-footer-brand-name">VeloSite</p>
+                    <p>AI website generator for product teams.</p>
                 </div>
 
-                <div class="m-footer-links">
-                    <div class="m-footer-col">
-                        <p class="m-footer-label">Product</p>
+                <div>
+                    <p class="m-footer-heading">Product</p>
+                    <div class="m-footer-links">
                         <a href="{{ url_for('main.product') }}">Overview</a>
                         <a href="{{ url_for('main.how_it_works') }}">How It Works</a>
                         <a href="{{ url_for('main.showcase') }}">Showcase</a>
                         <a href="{{ url_for('main.pricing') }}">Pricing</a>
                     </div>
-                    <div class="m-footer-col">
-                        <p class="m-footer-label">Company</p>
+                </div>
+                <div>
+                    <p class="m-footer-heading">Company</p>
+                    <div class="m-footer-links">
                         <a href="{{ url_for('main.about') }}">About</a>
                         <a href="{{ url_for('main.resources') }}">Resources</a>
                         <a href="{{ url_for('main.contact') }}">Contact</a>
                     </div>
-                    <div class="m-footer-col">
-                        <p class="m-footer-label">Account</p>
+                </div>
+                <div>
+                    <p class="m-footer-heading">Account</p>
+                    <div class="m-footer-links">
                         <a href="{{ url_for('main.index') }}">Open App</a>
                         <a href="{{ url_for('main.login') }}">Log In</a>
                         <a href="{{ url_for('main.signup') }}">Sign Up</a>
-                        <a href="{{ url_for('main.settings') if current_user.is_authenticated else url_for('main.pricing') }}">
-                            {{ "Settings" if current_user.is_authenticated else "Pricing" }}
-                        </a>
                     </div>
                 </div>
             </div>
 
-            <div class="m-footer-bottom">
+            <div class="m-footer-bar">
                 <span>&copy; VeloSite AI</span>
                 <span>Structured generation · Routed variants · Studio editing</span>
             </div>

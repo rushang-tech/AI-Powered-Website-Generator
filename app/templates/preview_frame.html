@@ -26,6 +26,7 @@
     "
 >
     <main class="frame-shell">
+        {% if not studio_mode %}
         <div class="frame-meta">
             <div class="frame-brand">
                 {% if primary_brand_asset %}
@@ -36,6 +37,7 @@
             </div>
             <div class="frame-status">{{ selected_variant.summary }}</div>
         </div>
+        {% endif %}
         <div class="frame-canvas">
             {% include selected_variant.render_plan.template_file %}
         </div>

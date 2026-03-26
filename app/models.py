@@ -31,6 +31,26 @@ class User(UserMixin, db.Model):
         cascade="all, delete-orphan",
         order_by="desc(Conversation.updated_at)",
     )
+    onboarding = db.relationship(
+        "UserOnboarding",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+
+
+class UserOnboarding(db.Model):
+    __tablename__ = "user_onboardings"
+
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)
+    user_type = db.Column(db.String(40), nullable=True)
+    discovery_source = db.Column(db.String(40), nullable=True)
+    discovery_note = db.Column(db.String(220), nullable=False, default="")
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
+
+    user = db.relationship("User", back_populates="onboarding")
 
 
 class Conversation(db.Model):

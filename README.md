@@ -76,6 +76,7 @@ If `5001` is already in use and `PORT` is unset, local startup now automatically
 
 - Accounts use local `email + password` authentication via Flask sessions.
 - User data, settings, conversations, and resumable Studio/chat history are stored in `SQLite` by default at `instance/velosite.db`.
+- Brand-new signups complete a short first-time onboarding step before entering `/app`; existing users continue to log in directly.
 - The main dashboard and all `/preview/*` authoring routes require login.
 - Published share links under `/published/<publish_id>` stay public.
 

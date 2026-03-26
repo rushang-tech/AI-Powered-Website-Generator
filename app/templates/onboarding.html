@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% set page_title = "Welcome | VeloSite" %}
+{% set hide_site_nav = true %}
+
+{% block body_class %}onboarding-body{% endblock %}
+{% block main_class %}onboarding-page{% endblock %}
+
+{% block content %}
+<section class="onboarding-shell" data-onboarding-step="{{ step }}">
+    <article class="onboarding-card onboarding-step onboarding-step-{{ transition_dir }}">
+        <header class="onboarding-heading">
+            <div class="onboarding-lockup">
+                <p class="onboarding-welcome">WELCOME TO</p>
+                <span class="onboarding-logo-frame">
+                    <img
+                        class="onboarding-logo"
+                        src="{{ url_for('static', filename='logo/Long logo white.png') }}"
+                        alt="VeloSite"
+                    >
+                </span>
+            </div>
+            <h1>Let’s set up your workspace</h1>
+            <p class="onboarding-question-title">{{ step_title }}</p>
+        </header>
+
+        <form
+            class="onboarding-form"
+            method="post"
+            action="{{ url_for('main.onboarding', step=step, next=next_url, dir='forward') }}"
+            data-onboarding-form
+            data-step="{{ step }}"
+        >
+            <input type="hidden" name="step" value="{{ step }}">
+            {% if next_url %}
+            <input type="hidden" name="next_url" value="{{ next_url }}">
+            {% endif %}
+
+            {% if step == 1 %}
+            <div class="onboarding-choice-stage onboarding-choice-stage-step-1">
+                <span class="onboarding-nav-spacer" aria-hidden="true"></span>
+                <div class="onboarding-choice-grid" role="radiogroup" aria-label="{{ step_title }}">
+                    {% for option in step_options %}
+                    <label class="onboarding-choice-card">
+                        <input
+                            class="onboarding-choice-input"
+                            type="radio"
+                            name="{{ step_field_name }}"
+                            value="{{ option.value }}"
+                            {% if option.value == step_selected %}checked{% endif %}
+                            {% if loop.first %}required{% endif %}
+                        >
+                        <span class="onboarding-choice-surface icon-{{ option.icon }}">
+                            <span class="onboarding-choice-icon" aria-hidden="true"></span>
+                            <span class="onboarding-choice-copy">
+                                <strong>{{ option.label }}</strong>
+                                <small>{{ option.description }}</small>
+                            </span>
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <button
+                    class="onboarding-nav-arrow is-right"
+                    type="submit"
+                    aria-label="Go next"
+                    data-next-arrow
+                    {% if not step_selected %}disabled{% endif %}
+                ><span class="onboarding-nav-glyph" aria-hidden="true"></span></button>
+            </div>
+            {% elif step == 2 %}
+            <div class="onboarding-choice-stage onboarding-choice-stage-step-2">
+                {% if back_step %}
+                <a
+                    class="onboarding-nav-arrow is-left"
+                    href="{{ url_for('main.onboarding', step=back_step, next=next_url, dir='back') }}"
+                    aria-label="Go back"
+                ><span class="onboarding-nav-glyph" aria-hidden="true"></span></a>
+                {% endif %}
+                <div class="onboarding-choice-grid" role="radiogroup" aria-label="{{ step_title }}">
+                    {% for option in step_options %}
+                    <label class="onboarding-choice-card">
+                        <input
+                            class="onboarding-choice-input"
+                            type="radio"
+                            name="{{ step_field_name }}"
+                            value="{{ option.value }}"
+                            {% if option.value == step_selected %}checked{% endif %}
+                            {% if loop.first %}required{% endif %}
+                        >
+                        <span class="onboarding-choice-surface icon-{{ option.icon }}">
+                            <span class="onboarding-choice-icon" aria-hidden="true"></span>
+                            <span class="onboarding-choice-copy">
+                                <strong>{{ option.label }}</strong>
+                                <small>{{ option.description }}</small>
+                            </span>
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+                <button
+                    class="onboarding-nav-arrow is-right"
+                    type="submit"
+                    aria-label="Go next"
+                    data-next-arrow
+                    {% if not step_selected %}disabled{% endif %}
+                ><span class="onboarding-nav-glyph" aria-hidden="true"></span></button>
+            </div>
+            {% else %}
+            <div class="onboarding-final-stage">
+                {% if back_step %}
+                <a
+                    class="onboarding-nav-arrow is-left"
+                    href="{{ url_for('main.onboarding', step=back_step, next=next_url, dir='back') }}"
+                    aria-label="Go back"
+                ><span class="onboarding-nav-glyph" aria-hidden="true"></span></a>
+                {% endif %}
+                <div class="onboarding-final-content">
+                    <textarea
+                        class="onboarding-textarea"
+                        name="discovery_note"
+                        maxlength="220"
+                        placeholder="Start Writing..."
+                    >{{ step_selected }}</textarea>
+                    <button class="btn onboarding-finish-btn" type="submit">Continue to dashboard</button>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="onboarding-progress" role="img" aria-label="Onboarding progress">
+                {% for index in range(1, total_steps + 1) %}
+                <span class="onboarding-progress-dot {% if index == step %}is-active{% endif %}"></span>
+                {% endfor %}
+            </div>
+        </form>
+    </article>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/onboarding.js') }}" defer></script>
+{% endblock %}

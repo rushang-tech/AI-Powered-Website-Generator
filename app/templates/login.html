@@ -65,7 +65,7 @@
 
                 <div class="login-bottom-links">
                     <a href="{{ url_for('main.contact') }}">Forgot Password?</a>
-                    <p>New to VeloSite? <a href="{{ url_for('main.signup') }}">Signup</a></p>
+                    <p>New to VeloSite? <a href="{{ url_for('main.signup', next=request.args.get('next')) }}">Signup</a></p>
                 </div>
             </div>
         </section>

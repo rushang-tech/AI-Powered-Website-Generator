@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict
+from datetime import UTC, datetime
 from functools import wraps
 from threading import Lock
 from typing import Any, Callable
@@ -18,6 +19,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    session,
     send_file,
     url_for,
 )
@@ -25,7 +27,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
-from app.models import User
+from app.models import User, UserOnboarding
 from app.services.ai_provider import AIProviderUnavailableError, configured_api_key_count
 from app.services.ai_engine import (
     TEMPLATE_CATALOG,
@@ -64,16 +66,94 @@ main = Blueprint("main", __name__)
 _ROUTE_METRICS: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "errors": 0})
 _ROUTE_METRICS_LOCK = Lock()
 _MARKETING_NAV_ITEMS: tuple[dict[str, str], ...] = (
-    {"slug": "home", "label": "Home", "endpoint": "main.marketing_home"},
     {"slug": "product", "label": "Product", "endpoint": "main.product"},
     {"slug": "showcase", "label": "Showcase", "endpoint": "main.showcase"},
-    {"slug": "solutions", "label": "Solutions", "endpoint": "main.solutions"},
-    {"slug": "how-it-works", "label": "How It Works", "endpoint": "main.how_it_works"},
     {"slug": "pricing", "label": "Pricing", "endpoint": "main.pricing"},
-    {"slug": "resources", "label": "Resources", "endpoint": "main.resources"},
-    {"slug": "about", "label": "About", "endpoint": "main.about"},
-    {"slug": "contact", "label": "Contact", "endpoint": "main.contact"},
 )
+_DENSITY_CHOICES: tuple[str, ...] = ("airy", "balanced", "dense")
+_MOTION_CHOICES: tuple[str, ...] = ("calm", "moderate", "energetic")
+_DENSITY_OPTION_CARDS: tuple[dict[str, str], ...] = (
+    {
+        "value": "airy",
+        "label": "Airy",
+        "icon": "○",
+        "description": "More whitespace with room to breathe.",
+    },
+    {
+        "value": "balanced",
+        "label": "Balanced",
+        "icon": "◎",
+        "description": "A middle ground for most pages.",
+    },
+    {
+        "value": "dense",
+        "label": "Dense",
+        "icon": "●",
+        "description": "Fits more information above the fold.",
+    },
+)
+_MOTION_OPTION_CARDS: tuple[dict[str, str], ...] = (
+    {
+        "value": "calm",
+        "label": "Calm",
+        "icon": "☾",
+        "description": "Subtle transitions with minimal movement.",
+    },
+    {
+        "value": "moderate",
+        "label": "Moderate",
+        "icon": "◒",
+        "description": "Light motion to guide attention.",
+    },
+    {
+        "value": "energetic",
+        "label": "Energetic",
+        "icon": "⚡",
+        "description": "Bolder motion for high visual impact.",
+    },
+)
+_USER_TYPE_OPTION_CARDS: tuple[dict[str, str], ...] = (
+    {"value": "student", "label": "Student", "icon": "student", "description": "Learning and building projects."},
+    {"value": "office", "label": "Office", "icon": "office", "description": "Working inside an organization."},
+    {"value": "founder", "label": "Founder", "icon": "founder", "description": "Launching or growing a business."},
+    {"value": "freelancer", "label": "Freelancer", "icon": "freelancer", "description": "Shipping work for multiple clients."},
+    {"value": "agency", "label": "Agency", "icon": "agency", "description": "Building sites as a team service."},
+    {"value": "other", "label": "Other", "icon": "other", "description": "Something else that fits you best."},
+)
+_DISCOVERY_SOURCE_OPTION_CARDS: tuple[dict[str, str], ...] = (
+    {"value": "search", "label": "Search", "icon": "search", "description": "Found us from web search."},
+    {"value": "social", "label": "Social", "icon": "social", "description": "Saw us on social media."},
+    {"value": "youtube", "label": "YouTube", "icon": "youtube", "description": "Discovered us from a video."},
+    {"value": "friend", "label": "Friend", "icon": "friend", "description": "Referred by someone you know."},
+    {"value": "community", "label": "Community", "icon": "community", "description": "Found us in a group or forum."},
+    {"value": "other", "label": "Other", "icon": "other", "description": "Another source not listed here."},
+)
+_USER_TYPE_VALUES = {item["value"] for item in _USER_TYPE_OPTION_CARDS}
+_DISCOVERY_SOURCE_VALUES = {item["value"] for item in _DISCOVERY_SOURCE_OPTION_CARDS}
+_ONBOARDING_HTML_ENDPOINTS = {
+    "main.index",
+    "main.dashboard",
+    "main.settings",
+    "main.preview",
+    "main.preview_frame",
+}
+_ONBOARDING_API_ENDPOINTS = {
+    "main.conversations",
+    "main.rename_user_conversation",
+    "main.delete_user_conversation",
+    "main.continue_conversation",
+    "main.generate",
+    "main.update_branding",
+    "main.override_preview",
+    "main.canvas_command",
+    "main.regenerate_preview",
+    "main.publish_preview",
+    "main.export_preview",
+}
+_ONBOARDING_PROTECTED_ENDPOINTS = _ONBOARDING_HTML_ENDPOINTS | _ONBOARDING_API_ENDPOINTS
+_ONBOARDING_TOTAL_STEPS = 3
+_ONBOARDING_DRAFT_SESSION_KEY = "onboarding_draft"
+_ONBOARDING_NEXT_SESSION_KEY = "onboarding_next"
 
 
 def _public_ai_error_message(exc: AIProviderUnavailableError) -> str:
@@ -170,8 +250,8 @@ def _marketing_ctas() -> dict[str, dict[str, str]]:
             "secondary": {"label": "Settings", "href": url_for("main.settings")},
         }
     return {
-        "primary": {"label": "Start Building", "href": url_for("main.signup")},
-        "secondary": {"label": "Log In", "href": url_for("main.login")},
+        "primary": {"label": "Open App", "href": url_for("main.login")},
+        "secondary": {"label": "Sign Up", "href": url_for("main.signup")},
     }
 
 
@@ -182,6 +262,14 @@ def _render_marketing_page(template_name: str, *, page_title: str, active_slug: 
         marketing_nav=_marketing_nav(active_slug),
         marketing_ctas=_marketing_ctas(),
     )
+
+
+@main.app_context_processor
+def inject_public_nav_defaults() -> dict[str, object]:
+    return {
+        "marketing_nav": _marketing_nav(""),
+        "marketing_ctas": _marketing_ctas(),
+    }
 
 
 def _collect_overrides(body: dict[str, object]) -> dict[str, object]:
@@ -229,13 +317,94 @@ def _safe_next_url(raw_value: object, *, fallback_endpoint: str = "main.index") 
     return url_for(fallback_endpoint)
 
 
+def _safe_next_or_none(raw_value: object) -> str | None:
+    value = str(raw_value or "").strip()
+    if value.startswith("/") and not value.startswith("//"):
+        return value
+    return None
+
+
+def _normalize_density_choice(value: object, *, default: str = "balanced") -> str:
+    candidate = _clean_text(value, max_length=24).lower()
+    if candidate in _DENSITY_CHOICES:
+        return candidate
+    return default
+
+
+def _normalize_motion_choice(value: object, *, default: str = "moderate") -> str:
+    candidate = _clean_text(value, max_length=24).lower()
+    if candidate in _MOTION_CHOICES:
+        return candidate
+    return default
+
+
+def _requires_onboarding(user: User) -> bool:
+    onboarding = getattr(user, "onboarding", None)
+    if onboarding is None:
+        return False
+    return onboarding.completed_at is None
+
+
+def _onboarding_redirect_url(raw_next: object) -> str:
+    safe_next = _safe_next_or_none(raw_next)
+    if safe_next:
+        return url_for("main.onboarding", next=safe_next)
+    return url_for("main.onboarding")
+
+
+def _post_auth_destination(user: User, raw_next: object) -> str:
+    safe_next = _safe_next_or_none(raw_next)
+    if _requires_onboarding(user):
+        return _onboarding_redirect_url(safe_next)
+    return safe_next or url_for("main.index")
+
+
+def _onboarding_draft() -> dict[str, str]:
+    payload = session.get(_ONBOARDING_DRAFT_SESSION_KEY)
+    if not isinstance(payload, dict):
+        return {}
+    return {str(key): str(value) for key, value in payload.items()}
+
+
+def _save_onboarding_draft(draft: dict[str, str]) -> None:
+    session[_ONBOARDING_DRAFT_SESSION_KEY] = dict(draft)
+    session.modified = True
+
+
+def _clear_onboarding_draft() -> None:
+    session.pop(_ONBOARDING_DRAFT_SESSION_KEY, None)
+    session.pop(_ONBOARDING_NEXT_SESSION_KEY, None)
+
+
+def _coerce_onboarding_step(raw_value: object, *, default: int = 1) -> int:
+    try:
+        return int(str(raw_value).strip())
+    except (TypeError, ValueError):
+        return default
+
+
+def _next_required_onboarding_step(draft: dict[str, str]) -> int:
+    if not _clean_text(draft.get("user_type"), max_length=40):
+        return 1
+    if not _clean_text(draft.get("discovery_source"), max_length=40):
+        return 2
+    return 3
+
+
+def _onboarding_step_url(step: int, *, next_url: str | None, direction: str | None = None) -> str:
+    args: dict[str, object] = {"step": step}
+    if next_url:
+        args["next"] = next_url
+    if direction:
+        args["dir"] = direction
+    return url_for("main.onboarding", **args)
+
+
 def _user_defaults() -> dict[str, str]:
     return {
         "brand_tone": _clean_text(getattr(current_user, "default_brand_tone", ""), max_length=160),
-        "content_density": _clean_text(getattr(current_user, "default_content_density", "balanced"), max_length=24)
-        or "balanced",
-        "motion_level": _clean_text(getattr(current_user, "default_motion_level", "moderate"), max_length=24)
-        or "moderate",
+        "content_density": _normalize_density_choice(getattr(current_user, "default_content_density", "balanced")),
+        "motion_level": _normalize_motion_choice(getattr(current_user, "default_motion_level", "moderate")),
         "icon_style": _clean_text(getattr(current_user, "default_icon_style", ""), max_length=220),
     }
 
@@ -261,14 +430,31 @@ def _normalized_brief(body: dict[str, object]) -> tuple[str, dict[str, object]]:
         "goal": _clean_text(raw_brief.get("goal"), max_length=300),
         "audience": _clean_text(raw_brief.get("audience"), max_length=160),
         "brand_tone": _clean_text(raw_brief.get("brand_tone"), max_length=160),
-        "content_density": _clean_text(raw_brief.get("content_density"), max_length=24).lower(),
-        "motion_level": _clean_text(raw_brief.get("motion_level"), max_length=24).lower(),
+        "content_density": _normalize_density_choice(raw_brief.get("content_density")),
+        "motion_level": _normalize_motion_choice(raw_brief.get("motion_level")),
         "name": _clean_text(raw_brief.get("name"), max_length=120),
         "notes": _clean_text(raw_brief.get("notes"), max_length=600),
         "brand_assets": raw_brief.get("brand_assets") if isinstance(raw_brief.get("brand_assets"), list) else [],
         "icon_style": _clean_text(raw_brief.get("icon_style"), max_length=220),
     }
     return prompt, brief
+
+
+@main.before_app_request
+def enforce_onboarding_gate():
+    if not getattr(current_user, "is_authenticated", False):
+        return None
+
+    endpoint = request.endpoint or ""
+    if endpoint not in _ONBOARDING_PROTECTED_ENDPOINTS:
+        return None
+    if not _requires_onboarding(current_user):
+        return None
+
+    onboarding_url = _onboarding_redirect_url(request.path)
+    if endpoint in _ONBOARDING_HTML_ENDPOINTS:
+        return redirect(onboarding_url)
+    return jsonify({"error": "Onboarding required.", "onboarding_url": onboarding_url}), 403
 
 
 def _recent_conversation_payload(*, active_conversation_id: int | None = None, limit: int = 12) -> list[dict[str, Any]]:
@@ -323,7 +509,7 @@ def _initial_generation_message(prompt: str, brief: dict[str, object]) -> str:
 @main.route("/signup", methods=["GET", "POST"])
 def signup():
     if current_user.is_authenticated:
-        return redirect(url_for("main.index"))
+        return redirect(_post_auth_destination(current_user, request.args.get("next")))
 
     if request.method == "POST":
         email = _clean_text(request.form.get("email"), max_length=255).lower()
@@ -343,10 +529,11 @@ def signup():
                 display_name=display_name,
             )
             db.session.add(user)
+            db.session.flush()
+            db.session.add(UserOnboarding(user_id=user.id))
             db.session.commit()
             login_user(user)
-            flash("Your account is ready.", "success")
-            return redirect(_safe_next_url(request.args.get("next")))
+            return redirect(_onboarding_redirect_url(request.args.get("next")))
 
     return render_template("signup.html")
 
@@ -354,7 +541,7 @@ def signup():
 @main.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("main.index"))
+        return redirect(_post_auth_destination(current_user, request.args.get("next")))
 
     if request.method == "POST":
         email = _clean_text(request.form.get("email"), max_length=255).lower()
@@ -366,9 +553,113 @@ def login():
         else:
             login_user(user)
             flash("Welcome back.", "success")
-            return redirect(_safe_next_url(request.args.get("next")))
+            return redirect(_post_auth_destination(user, request.args.get("next")))
 
     return render_template("login.html")
+
+
+@main.route("/onboarding", methods=["GET", "POST"])
+@login_required
+def onboarding():
+    onboarding_record = current_user.onboarding
+    if onboarding_record is None or onboarding_record.completed_at is not None:
+        _clear_onboarding_draft()
+        return redirect(_safe_next_url(request.args.get("next")))
+
+    draft = _onboarding_draft()
+    safe_next = _safe_next_or_none(
+        request.args.get("next") or request.form.get("next_url") or session.get(_ONBOARDING_NEXT_SESSION_KEY)
+    )
+    if safe_next:
+        session[_ONBOARDING_NEXT_SESSION_KEY] = safe_next
+
+    if request.method == "POST":
+        step = _coerce_onboarding_step(request.form.get("step"), default=1)
+        step = max(1, min(_ONBOARDING_TOTAL_STEPS, step))
+        next_required = _next_required_onboarding_step(draft)
+        if step > next_required:
+            direction = "back"
+            return redirect(_onboarding_step_url(next_required, next_url=safe_next, direction=direction))
+
+        if step == 1:
+            user_type = _clean_text(request.form.get("user_type"), max_length=40).lower()
+            if user_type not in _USER_TYPE_VALUES:
+                flash("Choose the option that best describes you.", "error")
+                return redirect(_onboarding_step_url(1, next_url=safe_next, direction="back"))
+            draft["user_type"] = user_type
+        elif step == 2:
+            discovery_source = _clean_text(request.form.get("discovery_source"), max_length=40).lower()
+            if discovery_source not in _DISCOVERY_SOURCE_VALUES:
+                flash("Choose how you heard about VeloSite.", "error")
+                return redirect(_onboarding_step_url(2, next_url=safe_next, direction="back"))
+            draft["discovery_source"] = discovery_source
+        else:
+            draft["discovery_note"] = _clean_text(request.form.get("discovery_note"), max_length=220)
+
+        _save_onboarding_draft(draft)
+        if step < _ONBOARDING_TOTAL_STEPS:
+            return redirect(_onboarding_step_url(step + 1, next_url=safe_next, direction="forward"))
+
+        onboarding_record.user_type = _clean_text(draft.get("user_type"), max_length=40).lower()
+        onboarding_record.discovery_source = _clean_text(draft.get("discovery_source"), max_length=40).lower()
+        onboarding_record.discovery_note = _clean_text(draft.get("discovery_note"), max_length=220)
+        onboarding_record.completed_at = datetime.now(UTC)
+        db.session.add(onboarding_record)
+        db.session.commit()
+        _clear_onboarding_draft()
+        flash("Great — onboarding complete.", "success")
+        return redirect(_safe_next_url(safe_next))
+
+    requested_step = _coerce_onboarding_step(request.args.get("step"), default=1)
+    requested_step = max(1, min(_ONBOARDING_TOTAL_STEPS, requested_step))
+    next_required = _next_required_onboarding_step(draft)
+    if requested_step > next_required:
+        return redirect(_onboarding_step_url(next_required, next_url=safe_next, direction="forward"))
+
+    transition_dir = _clean_text(request.args.get("dir"), max_length=12).lower()
+    if transition_dir not in {"forward", "back"}:
+        transition_dir = "forward"
+
+    step_configs = {
+        1: {
+            "title": "Which best describes you?",
+            "description": "Choose one so we can tailor your starting flow.",
+            "field_name": "user_type",
+            "selected_value": _clean_text(draft.get("user_type"), max_length=40).lower(),
+            "options": _USER_TYPE_OPTION_CARDS,
+        },
+        2: {
+            "title": "How did you hear about us?",
+            "description": "This helps us prioritize the channels that work.",
+            "field_name": "discovery_source",
+            "selected_value": _clean_text(draft.get("discovery_source"), max_length=40).lower(),
+            "options": _DISCOVERY_SOURCE_OPTION_CARDS,
+        },
+        3: {
+            "title": "Anything else to share? (optional)",
+            "description": "Add details if you want a more personalized start.",
+            "field_name": "discovery_note",
+            "selected_value": _clean_text(draft.get("discovery_note"), max_length=220),
+            "options": (),
+        },
+    }
+    current_step = step_configs.get(requested_step, step_configs[1])
+    back_step = requested_step - 1 if requested_step > 1 else None
+
+    return render_template(
+        "onboarding.html",
+        hide_site_nav=True,
+        step=requested_step,
+        total_steps=_ONBOARDING_TOTAL_STEPS,
+        step_title=current_step["title"],
+        step_description=current_step["description"],
+        step_field_name=current_step["field_name"],
+        step_selected=current_step["selected_value"],
+        step_options=current_step["options"],
+        back_step=back_step,
+        transition_dir=transition_dir,
+        next_url=safe_next,
+    )
 
 
 @main.route("/logout", methods=["POST"])
@@ -470,8 +761,8 @@ def index():
         examples=_example_prompts(),
         demo_brief=_demo_brief(),
         status_blueprint=status_blueprint(),
-        density_options=["airy", "balanced", "dense"],
-        motion_options=["calm", "moderate", "energetic"],
+        density_options=list(_DENSITY_CHOICES),
+        motion_options=list(_MOTION_CHOICES),
         recent_conversations=_recent_conversation_payload(),
         user_defaults=_user_defaults(),
     )
@@ -493,8 +784,8 @@ def settings():
             email = _clean_text(request.form.get("email"), max_length=255).lower()
             display_name = _clean_text(request.form.get("display_name"), max_length=120)
             brand_tone = _clean_text(request.form.get("default_brand_tone"), max_length=160)
-            density = _clean_text(request.form.get("default_content_density"), max_length=24).lower() or "balanced"
-            motion = _clean_text(request.form.get("default_motion_level"), max_length=24).lower() or "moderate"
+            density = _normalize_density_choice(request.form.get("default_content_density"))
+            motion = _normalize_motion_choice(request.form.get("default_motion_level"))
             icon_style = _clean_text(request.form.get("default_icon_style"), max_length=220)
 
             existing = User.query.filter_by(email=email).first() if email else None
@@ -549,9 +840,10 @@ def settings():
     conversation_count = len(list_recent_conversations(current_user, limit=500))
     return render_template(
         "settings.html",
-        density_options=["airy", "balanced", "dense"],
-        motion_options=["calm", "moderate", "energetic"],
+        density_option_cards=_DENSITY_OPTION_CARDS,
+        motion_option_cards=_MOTION_OPTION_CARDS,
         conversation_count=conversation_count,
+        user_defaults=_user_defaults(),
     )
 
 
@@ -765,8 +1057,8 @@ def preview(preview_id: str):
         art_direction_keys=list(THEME_MAP.keys()),
         layout_modes=list(LAYOUT_LIBRARY.get(current_template, {}).keys()),
         layout_library={key: list(value.keys()) for key, value in LAYOUT_LIBRARY.items()},
-        density_options=["airy", "balanced", "dense"],
-        motion_options=["calm", "moderate", "energetic"],
+        density_options=list(_DENSITY_CHOICES),
+        motion_options=list(_MOTION_CHOICES),
     )
 
 

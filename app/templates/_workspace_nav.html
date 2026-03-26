@@ -3,13 +3,17 @@
 <aside class="workspace-nav" data-workspace-nav aria-label="Workspace navigation">
     <div class="workspace-nav-section">
         <div class="workspace-nav-brand-row">
-            <button class="workspace-nav-brand" type="button" data-nav-toggle aria-label="Toggle navigation">
+            <button class="workspace-nav-toggle-btn" type="button" data-nav-toggle aria-label="Toggle navigation">
+                <span></span>
+                <span></span>
+            </button>
+            <a class="workspace-nav-brand" href="{{ url_for('main.index') }}" data-nav-close-on-select>
                 <span class="workspace-nav-mark">V</span>
                 <span class="workspace-nav-brand-copy">
                     <strong>VeloSite AI</strong>
                     <span>Generator + Studio</span>
                 </span>
-            </button>
+            </a>
             <button class="workspace-nav-close" type="button" data-nav-close aria-label="Close navigation">
                 <span aria-hidden="true">&times;</span>
             </button>

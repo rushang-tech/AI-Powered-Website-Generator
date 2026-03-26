@@ -7,7 +7,9 @@ body.frame-editor-ready.is-focus-mode .preview-section.is-dimmed {
 }
 
 body.frame-editor-ready .preview-section.is-hovered {
-    box-shadow: 0 0 0 2px rgba(31, 111, 235, 0.28), var(--theme-shadow);
+    box-shadow:
+        inset 0 0 0 1px rgba(31, 111, 235, 0.18),
+        0 22px 42px rgba(31, 111, 235, 0.08);
 }
 
 body.frame-editor-ready [data-node-id].is-node-selected {

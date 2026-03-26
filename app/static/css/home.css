@@ -1,4 +1,4 @@
-/* ─── VeloSite Home / Dashboard — Chat-first ─── */
+/* ─── VeloSite Home — Light-First, Chat-first ─── */
 
 .home-layout {
     display: flex;
@@ -30,7 +30,7 @@
 }
 
 
-/* ── Brief shell (main input area) ── */
+/* ── Brief shell ── */
 
 .brief-shell {
     width: min(640px, 100%);
@@ -65,7 +65,7 @@
 
 .brief-input-wrap textarea:focus {
     border-color: var(--accent-muted);
-    box-shadow: 0 0 0 3px var(--accent-soft), 0 18px 42px rgba(96, 77, 57, 0.12);
+    box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow);
 }
 
 .brief-input-actions {
@@ -191,6 +191,24 @@
     background: var(--accent-soft);
 }
 
+.demo-chip {
+    appearance: none;
+    border: 1px solid var(--accent-muted);
+    border-radius: var(--radius-full);
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--duration-fast) ease;
+}
+
+.demo-chip:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
 
 /* ── Pipeline progress ── */
 
@@ -246,7 +264,6 @@
 
 .pipeline-step.pipeline-done {
     border-color: hsla(152, 50%, 40%, 0.25);
-    background: hsla(152, 38%, 94%, 0.9);
     opacity: 1;
 }
 
@@ -265,42 +282,6 @@
     min-height: 1.4em;
     text-align: center;
     margin-top: var(--space-sm);
-}
-
-
-/* ── Demo block ── */
-
-.demo-chip {
-    appearance: none;
-    border: 1px solid var(--accent-muted);
-    border-radius: var(--radius-full);
-    background: var(--accent-soft);
-    color: var(--accent);
-    padding: 6px 14px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--duration-fast) ease;
-}
-
-.demo-chip:hover {
-    background: var(--accent);
-    color: #fff;
-}
-
-
-/* ── Intro panel (removed, kept for backward compat) ── */
-
-.intro-panel {
-    display: none;
-}
-
-.intro-points {
-    display: none;
-}
-
-.demo-block {
-    display: none;
 }
 
 

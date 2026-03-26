@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
 {% block nav_actions %}
-<a class="btn" href="{{ url_for('main.index') }}">Dashboard</a>
+<a class="btn btn-ghost" href="{{ url_for('main.index') }}">Dashboard</a>
 <form action="{{ url_for('main.logout') }}" method="post">
-    <button class="btn" type="submit">Logout</button>
+    <button class="btn btn-ghost" type="submit">Log out</button>
 </form>
 {% endblock %}
 
@@ -15,7 +15,7 @@
                 <p class="eyebrow">Account</p>
                 <h1>Profile and defaults</h1>
             </div>
-            <p class="settings-copy">You currently have {{ conversation_count }} conversation{% if conversation_count != 1 %}s{% endif %} saved.</p>
+            <p class="settings-copy">{{ conversation_count }} conversation{% if conversation_count != 1 %}s{% endif %} saved.</p>
         </div>
         <form class="settings-form" method="post">
             <input type="hidden" name="action" value="profile">
@@ -32,22 +32,54 @@
                     <span>Default brand tone</span>
                     <input name="default_brand_tone" type="text" value="{{ current_user.default_brand_tone }}">
                 </label>
-                <label class="field">
+                <div class="field field-large">
                     <span>Default content density</span>
-                    <select name="default_content_density">
-                        {% for option in density_options %}
-                        <option value="{{ option }}" {% if option == current_user.default_content_density %}selected{% endif %}>{{ option|capitalize }}</option>
+                    <div class="choice-grid" role="radiogroup" aria-label="Default content density">
+                        {% for option in density_option_cards %}
+                        <label class="choice-card">
+                            <input
+                                class="choice-input"
+                                type="radio"
+                                name="default_content_density"
+                                value="{{ option.value }}"
+                                {% if option.value == user_defaults.content_density %}checked{% endif %}
+                                {% if loop.first %}required{% endif %}
+                            >
+                            <span class="choice-card-surface">
+                                <span class="choice-card-icon" aria-hidden="true">{{ option.icon }}</span>
+                                <span class="choice-card-copy">
+                                    <strong>{{ option.label }}</strong>
+                                    <small>{{ option.description }}</small>
+                                </span>
+                            </span>
+                        </label>
                         {% endfor %}
-                    </select>
-                </label>
-                <label class="field">
+                    </div>
+                </div>
+                <div class="field field-large">
                     <span>Default motion level</span>
-                    <select name="default_motion_level">
-                        {% for option in motion_options %}
-                        <option value="{{ option }}" {% if option == current_user.default_motion_level %}selected{% endif %}>{{ option|capitalize }}</option>
+                    <div class="choice-grid" role="radiogroup" aria-label="Default motion level">
+                        {% for option in motion_option_cards %}
+                        <label class="choice-card">
+                            <input
+                                class="choice-input"
+                                type="radio"
+                                name="default_motion_level"
+                                value="{{ option.value }}"
+                                {% if option.value == user_defaults.motion_level %}checked{% endif %}
+                                {% if loop.first %}required{% endif %}
+                            >
+                            <span class="choice-card-surface">
+                                <span class="choice-card-icon" aria-hidden="true">{{ option.icon }}</span>
+                                <span class="choice-card-copy">
+                                    <strong>{{ option.label }}</strong>
+                                    <small>{{ option.description }}</small>
+                                </span>
+                            </span>
+                        </label>
                         {% endfor %}
-                    </select>
-                </label>
+                    </div>
+                </div>
                 <label class="field field-large">
                     <span>Default icon style notes</span>
                     <textarea name="default_icon_style">{{ current_user.default_icon_style }}</textarea>
