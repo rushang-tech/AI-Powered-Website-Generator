@@ -2217,18 +2217,9 @@ ul, ol {
     color: #ffffff;
 }
 
-.onboarding-logo-frame {
-    display: block;
-    width: clamp(220px, 17vw, 300px);
-    height: clamp(62px, 4.2vw, 82px);
-    overflow: hidden;
-}
-
 .onboarding-logo {
-    width: 100%;
+    width: clamp(220px, 17vw, 300px);
     height: auto;
-    max-width: none;
-    transform: translateY(-34%);
 }
 
 .onboarding-heading h1 {
@@ -2617,9 +2608,8 @@ ul, ol {
         gap: 10px;
     }
 
-    .onboarding-logo-frame {
+    .onboarding-logo {
         width: min(100%, 280px);
-        height: 78px;
     }
 
     .onboarding-choice-grid,

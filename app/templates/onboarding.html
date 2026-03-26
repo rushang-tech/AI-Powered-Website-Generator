@@ -11,13 +11,11 @@
         <header class="onboarding-heading">
             <div class="onboarding-lockup">
                 <p class="onboarding-welcome">WELCOME TO</p>
-                <span class="onboarding-logo-frame">
-                    <img
-                        class="onboarding-logo"
-                        src="{{ url_for('static', filename='logo/Long logo white.png') }}"
-                        alt="VeloSite"
-                    >
-                </span>
+                <img
+                    class="onboarding-logo"
+                    src="{{ url_for('static', filename='logo/Long logo white.png') }}"
+                    alt="VeloSite"
+                >
             </div>
             <h1>Let’s set up your workspace</h1>
             <p class="onboarding-question-title">{{ step_title }}</p>
