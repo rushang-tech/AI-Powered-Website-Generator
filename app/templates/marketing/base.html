@@ -23,42 +23,45 @@
 
         <!-- ── Footer ── -->
         <footer class="m-footer">
-            <div class="m-footer-grid">
-                <div class="m-footer-brand">
-                    <p class="m-footer-brand-name">VeloSite</p>
-                    <p>AI website generator for product teams.</p>
+            <div class="m-footer-inner">
+                <div class="m-footer-grid">
+                    <div class="m-footer-brand">
+                        <p class="m-footer-brand-name">VeloSite</p>
+                        <p>AI website generator for product teams.</p>
+                    </div>
+
+                    <div>
+                        <p class="m-footer-heading">Product</p>
+                        <div class="m-footer-links">
+                            <a href="{{ url_for('main.product') }}">Overview</a>
+                            <a href="{{ url_for('main.how_it_works') }}">How It Works</a>
+                            <a href="{{ url_for('main.showcase') }}">Showcase</a>
+                            <a href="{{ url_for('main.pricing') }}">Pricing</a>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="m-footer-heading">Company</p>
+                        <div class="m-footer-links">
+                            <a href="{{ url_for('main.about') }}">About</a>
+                            <a href="{{ url_for('main.resources') }}">Resources</a>
+                            <a href="{{ url_for('main.contact') }}">Contact</a>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="m-footer-heading">Account</p>
+                        <div class="m-footer-links">
+                            <a href="{{ url_for('main.index') }}">Open App</a>
+                            <a href="{{ url_for('main.login') }}">Log In</a>
+                            <a href="{{ url_for('main.signup') }}">Sign Up</a>
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <p class="m-footer-heading">Product</p>
-                    <div class="m-footer-links">
-                        <a href="{{ url_for('main.product') }}">Overview</a>
-                        <a href="{{ url_for('main.how_it_works') }}">How It Works</a>
-                        <a href="{{ url_for('main.showcase') }}">Showcase</a>
-                        <a href="{{ url_for('main.pricing') }}">Pricing</a>
-                    </div>
+                <div class="m-footer-bar">
+                    <span>&copy; VeloSite AI</span>
+                    <span>Structured generation · Routed variants · Studio editing</span>
                 </div>
-                <div>
-                    <p class="m-footer-heading">Company</p>
-                    <div class="m-footer-links">
-                        <a href="{{ url_for('main.about') }}">About</a>
-                        <a href="{{ url_for('main.resources') }}">Resources</a>
-                        <a href="{{ url_for('main.contact') }}">Contact</a>
-                    </div>
-                </div>
-                <div>
-                    <p class="m-footer-heading">Account</p>
-                    <div class="m-footer-links">
-                        <a href="{{ url_for('main.index') }}">Open App</a>
-                        <a href="{{ url_for('main.login') }}">Log In</a>
-                        <a href="{{ url_for('main.signup') }}">Sign Up</a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="m-footer-bar">
-                <span>&copy; VeloSite AI</span>
-                <span>Structured generation · Routed variants · Studio editing</span>
             </div>
         </footer>
     </div>

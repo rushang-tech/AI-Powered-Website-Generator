@@ -1,13 +1,17 @@
-<header class="m-header">
+<header class="m-header" data-m-header>
     <nav class="m-nav" aria-label="Primary navigation">
         <a class="m-brand" href="{{ url_for('main.marketing_home') }}">
-            <span class="m-brand-mark">V</span>
-            <span class="m-brand-name">VeloSite</span>
+            <img
+                class="m-brand-logo"
+                src="{{ url_for('static', filename='logo/Long logo purple.png') }}"
+                alt="VeloSite"
+                height="30"
+            >
         </a>
 
         <div class="m-nav-center">
             {% for item in marketing_nav %}
-            {% if item.slug in ['product', 'showcase', 'pricing'] %}
+            {% if item.slug in ['home', 'product', 'showcase', 'pricing'] %}
             <a
                 class="m-nav-link {% if item.is_active %}is-active{% endif %}"
                 href="{{ url_for(item.endpoint) }}"
@@ -24,6 +28,7 @@
                 type="button"
                 aria-expanded="false"
                 aria-controls="m-overlay"
+                aria-label="Open menu"
                 data-menu-toggle
             >
                 <span></span>
@@ -33,28 +38,46 @@
     </nav>
 </header>
 
-<div class="m-overlay" id="m-overlay" data-overlay aria-hidden="true">
-    <div class="m-overlay-inner">
-        <div class="m-overlay-nav">
+<div class="m-overlay" id="m-overlay" data-overlay aria-hidden="true" role="dialog" aria-label="Navigation menu">
+    <div class="m-overlay-chrome">
+        <div class="m-overlay-topbar">
+            <a class="m-overlay-brand" href="{{ url_for('main.marketing_home') }}">
+                <img
+                    class="m-brand-logo"
+                    src="{{ url_for('static', filename='logo/Long logo purple.png') }}"
+                    alt="VeloSite"
+                    height="28"
+                >
+            </a>
+            <button class="m-overlay-close" type="button" data-menu-toggle aria-label="Close menu">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+            </button>
+        </div>
+
+        <nav class="m-overlay-nav" aria-label="Mobile navigation">
+            <a class="m-overlay-link" href="{{ url_for('main.marketing_home') }}">Home</a>
             <a class="m-overlay-link" href="{{ url_for('main.product') }}">Product</a>
             <a class="m-overlay-link" href="{{ url_for('main.showcase') }}">Showcase</a>
             <a class="m-overlay-link" href="{{ url_for('main.pricing') }}">Pricing</a>
             <a class="m-overlay-link" href="{{ url_for('main.how_it_works') }}">How It Works</a>
-            <a class="m-overlay-link" href="{{ url_for('main.solutions') }}">Solutions</a>
             <a class="m-overlay-link" href="{{ url_for('main.about') }}">About</a>
             <a class="m-overlay-link" href="{{ url_for('main.contact') }}">Contact</a>
-            <a class="m-overlay-link" href="{{ url_for('main.resources') }}">Resources</a>
-        </div>
-        <div class="m-overlay-actions">
+        </nav>
+
+        <div class="m-overlay-footer">
             <a class="m-overlay-cta" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
             {% if current_user.is_authenticated %}
-            <a class="m-overlay-ghost" href="{{ url_for('main.settings') }}">Settings</a>
-            <form class="m-overlay-form" action="{{ url_for('main.logout') }}" method="post">
-                <button class="m-overlay-ghost m-overlay-ghost-btn" type="submit">Log Out</button>
-            </form>
+            <div class="m-overlay-secondary">
+                <a class="m-overlay-ghost" href="{{ url_for('main.settings') }}">Settings</a>
+                <form class="m-overlay-form" action="{{ url_for('main.logout') }}" method="post">
+                    <button class="m-overlay-ghost m-overlay-ghost-btn" type="submit">Log Out</button>
+                </form>
+            </div>
             {% else %}
-            <a class="m-overlay-ghost" href="{{ url_for('main.signup') }}">Sign Up</a>
-            <a class="m-overlay-ghost" href="{{ url_for('main.login') }}">Log In</a>
+            <div class="m-overlay-secondary">
+                <a class="m-overlay-ghost" href="{{ url_for('main.signup') }}">Sign Up</a>
+                <a class="m-overlay-ghost" href="{{ url_for('main.login') }}">Log In</a>
+            </div>
             {% endif %}
         </div>
     </div>

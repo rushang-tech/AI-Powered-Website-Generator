@@ -66,6 +66,7 @@ main = Blueprint("main", __name__)
 _ROUTE_METRICS: dict[str, dict[str, int]] = defaultdict(lambda: {"total": 0, "errors": 0})
 _ROUTE_METRICS_LOCK = Lock()
 _MARKETING_NAV_ITEMS: tuple[dict[str, str], ...] = (
+    {"slug": "home", "label": "Home", "endpoint": "main.marketing_home"},
     {"slug": "product", "label": "Product", "endpoint": "main.product"},
     {"slug": "showcase", "label": "Showcase", "endpoint": "main.showcase"},
     {"slug": "pricing", "label": "Pricing", "endpoint": "main.pricing"},
