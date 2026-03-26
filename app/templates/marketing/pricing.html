@@ -1,89 +1,283 @@
 {% extends "marketing/base.html" %}
 
 {% block content %}
-<section class="m-page-hero" style="text-align: center; max-width: 720px; margin: 0 auto;">
-    <p class="m-kicker">Pricing</p>
-    <h1>Simple plans for building and shipping.</h1>
-    <p>Start free. Upgrade when you need brand assets, exports, and deeper iteration.</p>
+<!-- ── Pricing Hero ── -->
+<section class="m-hero m-pricing-hero">
+    <div class="m-hero-content">
+        <span class="m-hero-kicker">
+            <span class="m-kicker-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+            Pricing
+        </span>
+        <h1>Simple plans for building and shipping.</h1>
+        <p class="m-hero-sub">
+            Start free. Upgrade when you need brand assets, exports, and deeper iteration. No surprises.
+        </p>
+
+        <!-- Toggle (visual only — no JS needed for 2 plans) -->
+        <div class="m-pricing-trust">
+            <span class="m-pricing-trust-item">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+                No credit card required
+            </span>
+            <span class="m-pricing-trust-item">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Cancel anytime
+            </span>
+            <span class="m-pricing-trust-item">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Instant setup
+            </span>
+        </div>
+    </div>
 </section>
 
-<section class="m-section" style="padding-top: var(--space-xl);">
-    <div class="m-pricing-grid">
-        <article class="m-pricing-card">
-            <span class="m-plan-tag">Starter</span>
+<!-- ── Plans ── -->
+<section class="m-section m-pricing-section">
+    <div class="m-pricing-grid m-pricing-grid-v2">
+        <!-- Starter -->
+        <article class="m-pricing-card m-pricing-card-v2">
+            <div class="m-pricing-card-header">
+                <span class="m-pricing-plan-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                </span>
+                <span class="m-plan-tag">Starter</span>
+            </div>
             <div class="m-price-row">
                 <strong>$0</strong>
                 <span>/ month</span>
             </div>
             <p>For testing the brief flow, seeing routed directions, and learning Studio.</p>
-            <ul class="m-plan-points">
-                <li>Guided brief generation</li>
-                <li>Three routed design directions</li>
-                <li>Basic publish links</li>
-                <li>Single-user workspace</li>
+
+            <ul class="m-plan-points m-plan-points-v2">
+                <li>
+                    <span class="m-plan-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 3h6"/><path d="M9 21h6"/><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 12h8"/></svg></span>
+                    Guided brief generation
+                </li>
+                <li>
+                    <span class="m-plan-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="7" height="14" rx="1.6"/><rect x="13.5" y="5" width="7" height="14" rx="1.6"/></svg></span>
+                    Three routed design directions
+                </li>
+                <li>
+                    <span class="m-plan-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7.1-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7.1 7l1.7-1.7"/></svg></span>
+                    Basic publish links
+                </li>
+                <li>
+                    <span class="m-plan-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                    Single-user workspace
+                </li>
             </ul>
-            <a class="m-hero-secondary" href="{{ url_for('main.signup') }}" style="text-align:center;">Start free</a>
+            <a class="m-hero-secondary m-pricing-cta" href="{{ url_for('main.signup') }}">Start free</a>
         </article>
 
-        <article class="m-pricing-card is-featured">
-            <span class="m-plan-tag">Pro</span>
+        <!-- Pro -->
+        <article class="m-pricing-card m-pricing-card-v2 is-featured">
+            <div class="m-pricing-badge">Most popular</div>
+            <div class="m-pricing-card-header">
+                <span class="m-pricing-plan-icon is-pro" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+                </span>
+                <span class="m-plan-tag">Pro</span>
+            </div>
             <div class="m-price-row">
                 <strong>$29</strong>
                 <span>/ month</span>
             </div>
             <p>For founders, creators, and freelancers who ship real pages regularly.</p>
-            <ul class="m-plan-points">
-                <li>Everything in Starter</li>
-                <li>Brand asset uploads and icon direction</li>
-                <li>Direct Studio edits and regenerations</li>
-                <li>ZIP export for handoff</li>
-                <li>Longer conversation history</li>
+
+            <ul class="m-plan-points m-plan-points-v2">
+                <li>
+                    <span class="m-plan-check is-accent" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg></span>
+                    Everything in Starter
+                </li>
+                <li>
+                    <span class="m-plan-check is-accent" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                    Brand asset uploads and icon direction
+                </li>
+                <li>
+                    <span class="m-plan-check is-accent" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m5 19 3.6-.9 9.1-9.1-2.7-2.7-9.1 9.1L5 19Z"/><path d="m13.8 7.4 2.8 2.8"/></svg></span>
+                    Direct Studio edits and regenerations
+                </li>
+                <li>
+                    <span class="m-plan-check is-accent" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg></span>
+                    ZIP export for handoff
+                </li>
+                <li>
+                    <span class="m-plan-check is-accent" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg></span>
+                    Longer conversation history
+                </li>
             </ul>
-            <a class="m-hero-primary" href="{{ url_for('main.signup') }}" style="text-align:center;">Choose Pro</a>
+            <a class="m-hero-primary m-pricing-cta" href="{{ url_for('main.signup') }}">Choose Pro</a>
         </article>
     </div>
 
-    <p style="text-align: center; margin-top: var(--space-lg); color: var(--muted); font-size: 0.88rem;">
-        Need team accounts or higher volume? <a href="{{ url_for('main.contact') }}" style="color: var(--accent);">Talk to us</a>
+    <p class="m-pricing-footer-note">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Need team accounts or higher volume? <a href="{{ url_for('main.contact') }}">Talk to us</a>
     </p>
 </section>
 
-<section class="m-section">
+<!-- ── Plan Comparison ── -->
+<section class="m-section m-plan-compare-section">
     <div class="m-section-header is-centered">
-        <p class="m-kicker">FAQ</p>
-        <h2>Common questions.</h2>
+        <p class="m-kicker">Compare plans</p>
+        <h2>Everything you get, side by side.</h2>
     </div>
 
-    <div class="m-faq-grid">
-        <details class="m-faq-item">
-            <summary>Can I export a generated site?</summary>
+    <div class="m-compare-table m-plan-compare-table">
+        <div class="m-compare-row m-compare-header">
+            <div class="m-compare-cell m-compare-label">Feature</div>
+            <div class="m-compare-cell m-compare-them">Starter</div>
+            <div class="m-compare-cell m-compare-us">Pro</div>
+        </div>
+        <div class="m-compare-row">
+            <div class="m-compare-cell m-compare-label">
+                <span class="m-compare-row-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M9 3h6"/><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 12h8"/></svg></span>
+                Guided brief
+            </div>
+            <div class="m-compare-cell m-compare-them">
+                <span class="m-plan-yes" aria-hidden="true">✓</span>
+            </div>
+            <div class="m-compare-cell m-compare-us">
+                <span class="m-plan-yes is-accent" aria-hidden="true">✓</span>
+            </div>
+        </div>
+        <div class="m-compare-row">
+            <div class="m-compare-cell m-compare-label">
+                <span class="m-compare-row-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="7" height="14" rx="1.6"/><rect x="13.5" y="5" width="7" height="14" rx="1.6"/></svg></span>
+                Routed directions
+            </div>
+            <div class="m-compare-cell m-compare-them">3</div>
+            <div class="m-compare-cell m-compare-us">
+                <span class="m-plan-yes is-accent" aria-hidden="true">Unlimited</span>
+            </div>
+        </div>
+        <div class="m-compare-row">
+            <div class="m-compare-cell m-compare-label">
+                <span class="m-compare-row-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                Brand assets
+            </div>
+            <div class="m-compare-cell m-compare-them">—</div>
+            <div class="m-compare-cell m-compare-us">
+                <span class="m-plan-yes is-accent" aria-hidden="true">✓</span>
+            </div>
+        </div>
+        <div class="m-compare-row">
+            <div class="m-compare-cell m-compare-label">
+                <span class="m-compare-row-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m5 19 3.6-.9 9.1-9.1-2.7-2.7-9.1 9.1L5 19Z"/><path d="m13.8 7.4 2.8 2.8"/></svg></span>
+                Studio editing
+            </div>
+            <div class="m-compare-cell m-compare-them">View only</div>
+            <div class="m-compare-cell m-compare-us">
+                <span class="m-plan-yes is-accent" aria-hidden="true">Full access</span>
+            </div>
+        </div>
+        <div class="m-compare-row">
+            <div class="m-compare-cell m-compare-label">
+                <span class="m-compare-row-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg></span>
+                ZIP export
+            </div>
+            <div class="m-compare-cell m-compare-them">—</div>
+            <div class="m-compare-cell m-compare-us">
+                <span class="m-plan-yes is-accent" aria-hidden="true">✓</span>
+            </div>
+        </div>
+        <div class="m-compare-row">
+            <div class="m-compare-cell m-compare-label">
+                <span class="m-compare-row-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg></span>
+                Conversation history
+            </div>
+            <div class="m-compare-cell m-compare-them">Last 3</div>
+            <div class="m-compare-cell m-compare-us">
+                <span class="m-plan-yes is-accent" aria-hidden="true">Unlimited</span>
+            </div>
+        </div>
+        <div class="m-compare-row">
+            <div class="m-compare-cell m-compare-label">
+                <span class="m-compare-row-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+                Priority generation
+            </div>
+            <div class="m-compare-cell m-compare-them">—</div>
+            <div class="m-compare-cell m-compare-us">
+                <span class="m-plan-yes is-accent" aria-hidden="true">✓</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── FAQ ── -->
+<section class="m-section m-faq-section">
+    <div class="m-section-header is-centered">
+        <p class="m-kicker">
+            <span class="m-kicker-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            </span>
+            FAQ
+        </p>
+        <h2>Common questions.</h2>
+        <p>Everything you need to know about VeloSite pricing and plans.</p>
+    </div>
+
+    <div class="m-faq-grid m-faq-grid-v2">
+        <details class="m-faq-item m-faq-item-v2">
+            <summary>
+                <span class="m-faq-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg></span>
+                Can I export a generated site?
+            </summary>
             <div class="m-faq-answer">Yes. VeloSite supports ZIP export so a chosen direction can move into handoff or implementation.</div>
         </details>
-        <details class="m-faq-item">
-            <summary>Can I keep refining the same project?</summary>
+        <details class="m-faq-item m-faq-item-v2">
+            <summary>
+                <span class="m-faq-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg></span>
+                Can I keep refining the same project?
+            </summary>
             <div class="m-faq-answer">Yes. Recent chats and workspace state are built around continuing the same direction over time.</div>
         </details>
-        <details class="m-faq-item">
-            <summary>Who is Pro for?</summary>
+        <details class="m-faq-item m-faq-item-v2">
+            <summary>
+                <span class="m-faq-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></span>
+                Who is Pro for?
+            </summary>
             <div class="m-faq-answer">Pro is the best default for solo founders, creators, and operators who ship real pages regularly.</div>
         </details>
-        <details class="m-faq-item">
-            <summary>Is this replacing the generated-site templates?</summary>
+        <details class="m-faq-item m-faq-item-v2">
+            <summary>
+                <span class="m-faq-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/><path d="M9 9h12"/></svg></span>
+                Is this replacing the generated-site templates?
+            </summary>
             <div class="m-faq-answer">No. The product website markets VeloSite itself. The generator engine and its templates remain separate.</div>
         </details>
-        <details class="m-faq-item">
-            <summary>Can teams use it for launch campaigns?</summary>
+        <details class="m-faq-item m-faq-item-v2">
+            <summary>
+                <span class="m-faq-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+                Can teams use it for launch campaigns?
+            </summary>
             <div class="m-faq-answer">That's one of the best fits: fast product microsites with reviewable visual directions.</div>
         </details>
-        <details class="m-faq-item">
-            <summary>Why a Showcase page?</summary>
+        <details class="m-faq-item m-faq-item-v2">
+            <summary>
+                <span class="m-faq-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></span>
+                Why a Showcase page?
+            </summary>
             <div class="m-faq-answer">Because examples reduce skepticism faster than any pricing copy or feature list alone.</div>
         </details>
     </div>
 </section>
 
-<section class="m-cta-banner">
-    <p class="m-kicker">Ready?</p>
+<!-- ── CTA ── -->
+<section class="m-cta-banner m-cta-banner-home">
+    <p class="m-kicker">
+        <span class="m-cta-kicker-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 3v4"/><path d="M12 17v4"/>
+                <path d="M3 12h4"/><path d="M17 12h4"/>
+                <path d="m6.4 6.4 2.8 2.8"/><path d="m14.8 14.8 2.8 2.8"/>
+                <path d="m17.6 6.4-2.8 2.8"/><path d="m9.2 14.8-2.8 2.8"/>
+            </svg>
+        </span>
+        Ready?
+    </p>
     <h2>Start building for free.</h2>
     <p>No credit card required. Upgrade anytime.</p>
     <div class="m-hero-actions">

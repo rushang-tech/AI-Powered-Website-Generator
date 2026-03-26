@@ -11,32 +11,97 @@
     </div>
 </section>
 
-<section class="m-section" style="padding-top: 0;">
-    <div class="m-grid-3">
-        <article class="m-card">
+<section class="m-section m-contact-section" style="padding-top: 0;">
+    <div class="m-grid-3 m-contact-grid">
+        <article class="m-card m-contact-card">
+            <span class="m-contact-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>
+            </span>
             <p class="m-kicker">Sales</p>
             <strong>Talk about team usage</strong>
             <p>Best for agencies or product teams that want onboarding, workflow help, or a higher-volume plan.</p>
-            <a href="mailto:hello@velosite.ai" style="color: var(--accent); font-weight: 500; font-size: 0.88rem; margin-top: 12px; display: inline-block;">hello@velosite.ai</a>
+            <a class="m-contact-link" href="mailto:hello@velosite.ai">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2Z"/><path d="m22 6-10 7L2 6"/></svg>
+                hello@velosite.ai
+            </a>
         </article>
-        <article class="m-card">
+
+        <article class="m-card m-contact-card">
+            <span class="m-contact-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            </span>
             <p class="m-kicker">Support</p>
             <strong>Need help with Studio or exports?</strong>
             <p>Check resources first, then reach out if blocked on publishing, previews, or account flow.</p>
-            <a href="{{ url_for('main.resources') }}" style="color: var(--accent); font-weight: 500; font-size: 0.88rem; margin-top: 12px; display: inline-block;">Open resources</a>
+            <a class="m-contact-link" href="{{ url_for('main.resources') }}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                Open resources
+            </a>
         </article>
-        <article class="m-card">
+
+        <article class="m-card m-contact-card">
+            <span class="m-contact-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </span>
             <p class="m-kicker">Self-serve</p>
             <strong>Ready to try it now?</strong>
             <p>The fastest path is to create an account and generate a project from a guided brief.</p>
-            <a href="{{ url_for('main.signup') }}" style="color: var(--accent); font-weight: 500; font-size: 0.88rem; margin-top: 12px; display: inline-block;">Create account</a>
+            <a class="m-contact-link" href="{{ url_for('main.signup') }}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+                Create account
+            </a>
         </article>
     </div>
 </section>
 
-<section class="m-cta-banner">
-    <p class="m-kicker">Keep it simple</p>
+<!-- ── Connect strip ── -->
+<section class="m-section m-connect-section">
+    <div class="m-section-header is-centered">
+        <p class="m-kicker">Other ways to connect</p>
+        <h2>We're here to help you ship faster.</h2>
+    </div>
+
+    <div class="m-grid-2 m-connect-grid">
+        <article class="m-card m-connect-card">
+            <div class="m-connect-header">
+                <span class="m-connect-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+                </span>
+                <div>
+                    <strong>Product questions</strong>
+                    <p>Wondering if VeloSite fits your workflow? We'll walk you through it.</p>
+                </div>
+            </div>
+        </article>
+        <article class="m-card m-connect-card">
+            <div class="m-connect-header">
+                <span class="m-connect-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </span>
+                <div>
+                    <strong>Team onboarding</strong>
+                    <p>Need to roll out VeloSite across an agency or product team? Let's plan it together.</p>
+                </div>
+            </div>
+        </article>
+    </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="m-cta-banner m-cta-banner-home">
+    <p class="m-kicker">
+        <span class="m-cta-kicker-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 3v4"/><path d="M12 17v4"/>
+                <path d="M3 12h4"/><path d="M17 12h4"/>
+                <path d="m6.4 6.4 2.8 2.8"/><path d="m14.8 14.8 2.8 2.8"/>
+                <path d="m17.6 6.4-2.8 2.8"/><path d="m9.2 14.8-2.8 2.8"/>
+            </svg>
+        </span>
+        Keep it simple
+    </p>
     <h2>Start building or reach out.</h2>
+    <p>Free to start. No credit card required.</p>
     <div class="m-hero-actions">
         <a class="m-hero-primary" href="{{ marketing_ctas.primary.href }}">{{ marketing_ctas.primary.label }}</a>
         <a class="m-hero-secondary" href="mailto:hello@velosite.ai">Email VeloSite</a>

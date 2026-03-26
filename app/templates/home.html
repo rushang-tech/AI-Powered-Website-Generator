@@ -30,7 +30,7 @@
                 <p>Describe your project and get three design directions instantly.</p>
             </div>
 
-            <form id="generate-form" class="brief-shell">
+            <form id="generate-form" class="brief-shell" aria-label="Generate website brief">
                 <div class="brief-input-wrap">
                     <textarea
                         id="goal-input"
@@ -40,7 +40,9 @@
                         required
                     ></textarea>
                     <div class="brief-input-actions">
-                        <button id="generate-btn" class="brief-submit-btn" type="submit" aria-label="Generate">→</button>
+                        <button id="generate-btn" class="brief-submit-btn" type="submit" aria-label="Generate">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        </button>
                     </div>
                 </div>
 
@@ -53,77 +55,166 @@
 
                 <div style="display: flex; justify-content: center; margin-bottom: var(--space-md);">
                     <button class="brief-details-toggle" type="button" id="details-toggle">
-                        <span class="toggle-icon">+</span>
+                        <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
                         <span>Details</span>
                     </button>
                 </div>
 
                 <div class="brief-details-panel" id="details-panel">
                     <div class="brief-details-inner">
-                        <div class="brief-details-grid">
-                            <label class="field">
-                                <span>Audience</span>
-                                <input id="audience-input" name="audience" type="text" placeholder="Seed-stage founders">
-                            </label>
-                            <label class="field">
-                                <span>Brand tone</span>
-                                <input id="tone-input" name="brand_tone" type="text" placeholder="Confident, warm, premium" value="{{ user_defaults.brand_tone }}">
-                            </label>
-                            <label class="field">
-                                <span>Content density</span>
-                                <select id="density-input" name="content_density">
-                                    {% for option in density_options %}
-                                    <option value="{{ option }}" {% if option == user_defaults.content_density %}selected{% endif %}>{{ option|capitalize }}</option>
-                                    {% endfor %}
-                                </select>
-                            </label>
-                            <label class="field">
-                                <span>Motion level</span>
-                                <select id="motion-input" name="motion_level">
-                                    {% for option in motion_options %}
-                                    <option value="{{ option }}" {% if option == user_defaults.motion_level %}selected{% endif %}>{{ option|capitalize }}</option>
-                                    {% endfor %}
-                                </select>
-                            </label>
-                            <label class="field">
-                                <span>Project name</span>
-                                <input id="name-input" name="name" type="text" placeholder="Northstar AI">
-                            </label>
-                            <label class="field">
-                                <span>Icon style</span>
-                                <input id="icon-style-input" name="icon_style" type="text" placeholder="Rounded line icons..." value="{{ user_defaults.icon_style }}">
-                            </label>
-                            <label class="field field-large">
-                                <span>Extra notes</span>
-                                <textarea id="notes-input" name="notes" placeholder="Pricing context, proof angle, visual references, constraints..." style="min-height: 80px;"></textarea>
-                            </label>
-                            <label class="field field-large">
-                                <span>Brand images</span>
-                                <input id="brand-assets-input" name="brand_assets" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" multiple>
-                                <small class="field-hint">Upload logos, icons, or references. The first image becomes the primary brand mark.</small>
-                            </label>
-                            <div id="brand-assets-preview" class="asset-preview-grid field-large"></div>
+                        <div class="brief-details-card">
+                            <div class="brief-details-grid">
+                                <label class="field brief-field">
+                                    <span class="brief-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                        Audience
+                                    </span>
+                                    <input id="audience-input" name="audience" type="text" placeholder="Seed-stage founders">
+                                </label>
+                                <label class="field brief-field">
+                                    <span class="brief-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.59 7.59"/><circle cx="11" cy="11" r="2"/></svg>
+                                        Brand tone
+                                    </span>
+                                    <input id="tone-input" name="brand_tone" type="text" placeholder="Confident, warm, premium" value="{{ user_defaults.brand_tone }}">
+                                </label>
+
+                                <div class="field brief-field">
+                                    <span class="brief-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                                        Content density
+                                    </span>
+                                    <div class="brief-select" data-brief-select>
+                                        <button class="brief-select-trigger" type="button" data-select-trigger>
+                                            <span data-select-label>{{ user_defaults.content_density|capitalize }}</span>
+                                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                                        </button>
+                                        <div class="brief-select-dropdown" data-select-dropdown>
+                                            {% for option in density_options %}
+                                            <button class="brief-select-option{% if option == user_defaults.content_density %} is-selected{% endif %}" type="button" data-select-value="{{ option }}">
+                                                <svg viewBox="0 0 24 24" fill="none" class="brief-select-check" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                                                {{ option|capitalize }}
+                                            </button>
+                                            {% endfor %}
+                                        </div>
+                                        <input type="hidden" name="content_density" id="density-input" value="{{ user_defaults.content_density }}">
+                                    </div>
+                                </div>
+
+                                <div class="field brief-field">
+                                    <span class="brief-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                        Motion level
+                                    </span>
+                                    <div class="brief-select" data-brief-select>
+                                        <button class="brief-select-trigger" type="button" data-select-trigger>
+                                            <span data-select-label>{{ user_defaults.motion_level|capitalize }}</span>
+                                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                                        </button>
+                                        <div class="brief-select-dropdown" data-select-dropdown>
+                                            {% for option in motion_options %}
+                                            <button class="brief-select-option{% if option == user_defaults.motion_level %} is-selected{% endif %}" type="button" data-select-value="{{ option }}">
+                                                <svg viewBox="0 0 24 24" fill="none" class="brief-select-check" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                                                {{ option|capitalize }}
+                                            </button>
+                                            {% endfor %}
+                                        </div>
+                                        <input type="hidden" name="motion_level" id="motion-input" value="{{ user_defaults.motion_level }}">
+                                    </div>
+                                </div>
+
+                                <label class="field brief-field">
+                                    <span class="brief-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+                                        Project name
+                                    </span>
+                                    <input id="name-input" name="name" type="text" placeholder="Northstar AI">
+                                </label>
+                                <label class="field brief-field">
+                                    <span class="brief-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                                        Icon style
+                                    </span>
+                                    <input id="icon-style-input" name="icon_style" type="text" placeholder="Rounded line icons..." value="{{ user_defaults.icon_style }}">
+                                </label>
+
+                                <label class="field field-large brief-field">
+                                    <span class="brief-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                                        Extra notes
+                                    </span>
+                                    <textarea id="notes-input" name="notes" placeholder="Pricing context, proof angle, visual references, constraints..."></textarea>
+                                </label>
+
+                                <div class="field field-large brief-field">
+                                    <span class="brief-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+                                        Brand images
+                                    </span>
+                                    <label class="brief-upload-zone" id="upload-zone">
+                                        <input id="brand-assets-input" name="brand_assets" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" multiple>
+                                        <svg viewBox="0 0 24 24" fill="none" class="brief-upload-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+                                        <span class="brief-upload-text">
+                                            <strong>Click to upload</strong> or drag files here
+                                        </span>
+                                        <span class="brief-upload-hint">PNG, JPG, WebP, SVG — first image becomes primary brand mark</span>
+                                    </label>
+                                    <div id="brand-assets-preview" class="asset-preview-grid"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <p id="status-text" class="status-text"></p>
-
-                <div class="pipeline-progress" id="pipeline-progress" style="display: none;">
-                    <p class="pipeline-label">Pipeline progress</p>
-                    <div id="pipeline-steps" class="pipeline-steps">
-                        {% for stage in status_blueprint %}
-                        <article class="pipeline-step pipeline-pending" data-stage-key="{{ stage.key }}">
-                            <strong>{{ stage.label }}</strong>
-                            <span>{{ stage.detail }}</span>
-                        </article>
-                        {% endfor %}
-                    </div>
-                </div>
             </form>
         </section>
     </div>
 </section>
+
+<!-- ── Full-screen generation overlay ── -->
+<div class="gen-overlay" id="gen-overlay" aria-hidden="true">
+    <div class="gen-overlay-bg">
+        <div class="gen-wave gen-wave-1"></div>
+        <div class="gen-wave gen-wave-2"></div>
+        <div class="gen-wave gen-wave-3"></div>
+    </div>
+
+    <div class="gen-particles" aria-hidden="true">
+        <span class="gen-dot" style="--dx:-120px;--dy:-80px;--delay:0s;--dur:6s"></span>
+        <span class="gen-dot" style="--dx:90px;--dy:-130px;--delay:0.8s;--dur:7s"></span>
+        <span class="gen-dot" style="--dx:150px;--dy:60px;--delay:1.4s;--dur:5s"></span>
+        <span class="gen-dot" style="--dx:-80px;--dy:110px;--delay:0.4s;--dur:8s"></span>
+        <span class="gen-dot" style="--dx:-180px;--dy:30px;--delay:2.2s;--dur:6.5s"></span>
+        <span class="gen-dot" style="--dx:60px;--dy:140px;--delay:1.8s;--dur:5.5s"></span>
+        <span class="gen-dot" style="--dx:200px;--dy:-40px;--delay:0.6s;--dur:7.5s"></span>
+        <span class="gen-dot" style="--dx:-40px;--dy:-160px;--delay:3s;--dur:6s"></span>
+    </div>
+
+    <div class="gen-center">
+        <div class="gen-icon-ring">
+            <svg class="gen-progress-ring" viewBox="0 0 100 100">
+                <circle class="gen-ring-track" cx="50" cy="50" r="44"/>
+                <circle class="gen-ring-fill" id="gen-ring-fill" cx="50" cy="50" r="44"/>
+            </svg>
+            <div class="gen-icon">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+            </div>
+        </div>
+        <h2 class="gen-title" id="gen-title">Building your site…</h2>
+        <p class="gen-step-text" id="gen-step-text">Preparing your brief</p>
+
+        <div class="gen-steps-row" id="gen-steps-row">
+            {% for stage in status_blueprint %}
+            <div class="gen-step-dot {% if loop.first %}is-active{% else %}is-pending{% endif %}" data-gen-step="{{ stage.key }}">
+                <span class="gen-step-indicator"></span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
 
 <script id="home-config" type="application/json">
 {{ {

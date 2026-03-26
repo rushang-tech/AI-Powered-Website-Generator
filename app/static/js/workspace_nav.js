@@ -1,47 +1,27 @@
 const workspaceLayouts = Array.from(document.querySelectorAll("[data-workspace-nav-shell]"));
 
 workspaceLayouts.forEach((layout) => {
-    const NAV_COLLAPSE_KEY = "velosite:workspace-nav-collapsed";
-    const mobileBreakpoint = window.matchMedia("(max-width: 1100px)");
     const conversationList = layout.querySelector("#workspace-conversation-list");
     const toggles = Array.from(layout.querySelectorAll("[data-nav-toggle]"));
     const closeButtons = Array.from(layout.querySelectorAll("[data-nav-close]"));
     const overlay = layout.querySelector("[data-nav-overlay]");
+    const nav = layout.querySelector("[data-workspace-nav]");
 
-    function isMobileViewport() {
-        return mobileBreakpoint.matches;
+    function isOpen() {
+        return nav && nav.classList.contains("is-open");
     }
 
-    function isCollapsed() {
-        return layout.classList.contains("is-nav-collapsed");
-    }
-
-    function setCollapsed(collapsed, persist = true) {
-        layout.classList.toggle("is-nav-collapsed", Boolean(collapsed) && !isMobileViewport());
-        toggles.forEach((button) => {
-            button.setAttribute("aria-expanded", String(!layout.classList.contains("is-nav-collapsed")));
-        });
-        if (persist) {
-            window.localStorage.setItem(NAV_COLLAPSE_KEY, collapsed ? "1" : "0");
+    function setOpen(open) {
+        if (!nav) return;
+        const shouldOpen = Boolean(open);
+        nav.classList.toggle("is-open", shouldOpen);
+        if (overlay) overlay.classList.toggle("is-open", shouldOpen);
+        toggles.forEach((btn) => btn.setAttribute("aria-expanded", String(shouldOpen)));
+        if (shouldOpen) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
         }
-    }
-
-    function setDrawerOpen(open) {
-        layout.classList.toggle("is-nav-open", Boolean(open) && isMobileViewport());
-        toggles.forEach((button) => {
-            button.setAttribute("aria-expanded", String(layout.classList.contains("is-nav-open")));
-        });
-    }
-
-    function applyResponsiveState() {
-        if (isMobileViewport()) {
-            layout.classList.remove("is-nav-collapsed");
-            setDrawerOpen(false);
-            return;
-        }
-        const collapsed = window.localStorage.getItem(NAV_COLLAPSE_KEY) === "1";
-        setDrawerOpen(false);
-        setCollapsed(collapsed, false);
     }
 
     function conversationMarkup(item) {
@@ -83,14 +63,16 @@ workspaceLayouts.forEach((layout) => {
         renameButton.className = "workspace-nav-action";
         renameButton.type = "button";
         renameButton.setAttribute("data-rename-conversation", item.id);
-        renameButton.textContent = "Rename";
+        renameButton.setAttribute("aria-label", "Rename");
+        renameButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="m5 19 3.6-.9 9.1-9.1-2.7-2.7-9.1 9.1L5 19Z"/><path d="m13.8 7.4 2.8 2.8"/></svg>';
         actions.appendChild(renameButton);
 
         const deleteButton = document.createElement("button");
         deleteButton.className = "workspace-nav-action";
         deleteButton.type = "button";
         deleteButton.setAttribute("data-delete-conversation", item.id);
-        deleteButton.textContent = "Delete";
+        deleteButton.setAttribute("aria-label", "Delete");
+        deleteButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
         actions.appendChild(deleteButton);
 
         card.appendChild(actions);
@@ -176,32 +158,25 @@ workspaceLayouts.forEach((layout) => {
         }
     }
 
+    /* ── Toggle open/close ── */
     toggles.forEach((button) => {
-        button.addEventListener("click", () => {
-            if (isMobileViewport()) {
-                setDrawerOpen(!layout.classList.contains("is-nav-open"));
-                return;
-            }
-            setCollapsed(!isCollapsed());
-        });
+        button.addEventListener("click", () => setOpen(!isOpen()));
     });
 
     closeButtons.forEach((button) => {
-        button.addEventListener("click", () => setDrawerOpen(false));
+        button.addEventListener("click", () => setOpen(false));
     });
 
     if (overlay) {
-        overlay.addEventListener("click", () => setDrawerOpen(false));
+        overlay.addEventListener("click", () => setOpen(false));
     }
 
+    /* ── Close on nav item select ── */
     layout.querySelectorAll("[data-nav-close-on-select]").forEach((item) => {
-        item.addEventListener("click", () => {
-            if (isMobileViewport()) {
-                setDrawerOpen(false);
-            }
-        });
+        item.addEventListener("click", () => setOpen(false));
     });
 
+    /* ── Conversation actions ── */
     if (conversationList) {
         conversationList.addEventListener("click", async (event) => {
             const renameButton = event.target.closest("[data-rename-conversation]");
@@ -218,25 +193,18 @@ workspaceLayouts.forEach((layout) => {
                 return;
             }
 
-            if (event.target.closest("[data-nav-close-on-select]") && isMobileViewport()) {
-                setDrawerOpen(false);
+            if (event.target.closest("[data-nav-close-on-select]")) {
+                setOpen(false);
             }
         });
     }
 
+    /* ── Escape key ── */
     window.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
-            setDrawerOpen(false);
+            setOpen(false);
         }
     });
 
-    const handleBreakpointChange = () => applyResponsiveState();
-    if (typeof mobileBreakpoint.addEventListener === "function") {
-        mobileBreakpoint.addEventListener("change", handleBreakpointChange);
-    } else if (typeof mobileBreakpoint.addListener === "function") {
-        mobileBreakpoint.addListener(handleBreakpointChange);
-    }
-
     window.renderWorkspaceConversationList = renderConversationList;
-    applyResponsiveState();
 });

@@ -17,8 +17,6 @@ if (form) {
     const generateBtn = document.getElementById("generate-btn");
     const statusText = document.getElementById("status-text");
     const demoBriefBtn = document.getElementById("demo-brief-btn");
-    const pipelineProgress = document.getElementById("pipeline-progress");
-    const pipelineSteps = Array.from(document.querySelectorAll("[data-stage-key]"));
     const statusBlueprint = Array.isArray(config.statusBlueprint) ? config.statusBlueprint : [];
 
     const goalInput = document.getElementById("goal-input");
@@ -44,96 +42,107 @@ if (form) {
         });
     }
 
-    let pipelineTicker = null;
-    let pipelineIndex = 0;
+    /* ── Generation overlay ── */
+    const genOverlay = document.getElementById("gen-overlay");
+    const genTitle = document.getElementById("gen-title");
+    const genStepText = document.getElementById("gen-step-text");
+    const genRingFill = document.getElementById("gen-ring-fill");
+    const genStepDots = Array.from(document.querySelectorAll("[data-gen-step]"));
+    const RING_CIRCUMFERENCE = 276.46;
 
-    function setStageState(stageEl, state) {
-        stageEl.classList.remove("pipeline-pending", "pipeline-active", "pipeline-complete", "pipeline-done", "pipeline-error");
-        stageEl.classList.add(`pipeline-${state}`);
-    }
+    let genTicker = null;
+    let genIndex = 0;
 
-    function resetPipeline() {
-        pipelineSteps.forEach((stageEl, index) => {
-            setStageState(stageEl, "pending");
-            const detail = statusBlueprint[index]?.detail;
-            const detailEl = stageEl.querySelector("span");
-            if (detail && detailEl) {
-                detailEl.textContent = detail;
-            }
-        });
-    }
-
-    function stopPipelineTicker() {
-        if (!pipelineTicker) {
-            return;
+    function showOverlay() {
+        if (genOverlay) {
+            genOverlay.classList.add("is-active");
+            genOverlay.setAttribute("aria-hidden", "false");
         }
-        window.clearInterval(pipelineTicker);
-        pipelineTicker = null;
     }
 
-    function renderPipelineProgress(activeIndex) {
-        pipelineSteps.forEach((stageEl, index) => {
+    function hideOverlay() {
+        if (genOverlay) {
+            genOverlay.classList.remove("is-active");
+            genOverlay.setAttribute("aria-hidden", "true");
+        }
+    }
+
+    function setRingProgress(fraction) {
+        if (!genRingFill) return;
+        const offset = RING_CIRCUMFERENCE * (1 - Math.min(1, Math.max(0, fraction)));
+        genRingFill.style.strokeDashoffset = offset;
+    }
+
+    function setStepText(text) {
+        if (!genStepText) return;
+        genStepText.classList.add("is-fading");
+        setTimeout(() => {
+            genStepText.textContent = text;
+            genStepText.classList.remove("is-fading");
+        }, 300);
+    }
+
+    function updateStepDots(activeIndex) {
+        genStepDots.forEach((dot, index) => {
+            dot.classList.remove("is-active", "is-done", "is-pending");
             if (index < activeIndex) {
-                setStageState(stageEl, "done");
-                return;
+                dot.classList.add("is-done");
+            } else if (index === activeIndex) {
+                dot.classList.add("is-active");
+            } else {
+                dot.classList.add("is-pending");
             }
-            if (index === activeIndex) {
-                setStageState(stageEl, "active");
-                return;
-            }
-            setStageState(stageEl, "pending");
         });
     }
 
-    function startPipelineTicker() {
-        resetPipeline();
-        if (pipelineProgress) {
-            pipelineProgress.style.display = "";
-        }
-        if (!pipelineSteps.length) {
-            return;
-        }
-        pipelineIndex = 0;
-        renderPipelineProgress(pipelineIndex);
-        pipelineTicker = window.setInterval(() => {
-            pipelineIndex = Math.min(pipelineIndex + 1, pipelineSteps.length - 1);
-            renderPipelineProgress(pipelineIndex);
+    function resetOverlay() {
+        genIndex = 0;
+        setRingProgress(0);
+        updateStepDots(0);
+        if (genTitle) genTitle.textContent = "Building your site…";
+        if (genStepText) genStepText.textContent = "Preparing your brief";
+    }
+
+    function startGenTicker() {
+        resetOverlay();
+        showOverlay();
+        if (!statusBlueprint.length) return;
+
+        genIndex = 0;
+        updateStepDots(0);
+        setStepText(statusBlueprint[0]?.label || "Processing…");
+        setRingProgress(0);
+
+        genTicker = window.setInterval(() => {
+            genIndex = Math.min(genIndex + 1, statusBlueprint.length - 1);
+            updateStepDots(genIndex);
+            setStepText(statusBlueprint[genIndex]?.label || "Processing…");
+            setRingProgress((genIndex + 1) / statusBlueprint.length);
         }, 950);
     }
 
-    function markPipelineError() {
-        if (!pipelineSteps.length) {
-            return;
+    function stopGenTicker() {
+        if (genTicker) {
+            window.clearInterval(genTicker);
+            genTicker = null;
         }
-        const index = Math.max(0, Math.min(pipelineIndex, pipelineSteps.length - 1));
-        setStageState(pipelineSteps[index], "error");
     }
 
-    function applyServerStatuses(statuses) {
-        if (!Array.isArray(statuses) || !statuses.length) {
-            pipelineSteps.forEach((stageEl) => setStageState(stageEl, "done"));
-            return;
-        }
-        const statesByKey = new Map();
-        statuses.forEach((item) => {
-            if (item && item.key) {
-                statesByKey.set(item.key, item);
-            }
+    function markGenComplete() {
+        stopGenTicker();
+        setRingProgress(1);
+        genStepDots.forEach((dot) => {
+            dot.classList.remove("is-active", "is-pending");
+            dot.classList.add("is-done");
         });
-        pipelineSteps.forEach((stageEl) => {
-            const key = stageEl.getAttribute("data-stage-key");
-            const stage = statesByKey.get(key);
-            const mappedState = stage?.state === "complete" || stage?.state === "done" || stage?.state === "active" || stage?.state === "error"
-                ? (stage.state === "complete" ? "done" : stage.state)
-                : "pending";
-            setStageState(stageEl, mappedState);
-            if (stage?.detail) {
-                const detailEl = stageEl.querySelector("span");
-                if (detailEl) {
-                    detailEl.textContent = stage.detail;
-                }
-            }
-        });
+        if (genTitle) genTitle.textContent = "Almost there…";
+        setStepText("Opening Studio");
+    }
+
+    function markGenError(message) {
+        stopGenTicker();
+        hideOverlay();
+        setBusy(false, message || "Something went wrong.");
     }
 
     function setBusy(isBusy, message) {
@@ -228,11 +237,59 @@ if (form) {
         );
     }
 
+    /* ── Custom select dropdowns ── */
+    document.querySelectorAll("[data-brief-select]").forEach((select) => {
+        const trigger = select.querySelector("[data-select-trigger]");
+        const dropdown = select.querySelector("[data-select-dropdown]");
+        const hiddenInput = select.querySelector("input[type=hidden]");
+        const labelEl = select.querySelector("[data-select-label]");
+        const options = Array.from(select.querySelectorAll("[data-select-value]"));
+
+        if (!trigger || !dropdown) return;
+
+        trigger.addEventListener("click", (e) => {
+            e.stopPropagation();
+            document.querySelectorAll("[data-brief-select].is-open").forEach((other) => {
+                if (other !== select) other.classList.remove("is-open");
+            });
+            select.classList.toggle("is-open");
+        });
+
+        options.forEach((option) => {
+            option.addEventListener("click", () => {
+                const value = option.getAttribute("data-select-value");
+                if (hiddenInput) hiddenInput.value = value;
+                if (labelEl) labelEl.textContent = option.textContent.trim();
+                options.forEach((o) => o.classList.remove("is-selected"));
+                option.classList.add("is-selected");
+                select.classList.remove("is-open");
+            });
+        });
+    });
+
+    document.addEventListener("click", () => {
+        document.querySelectorAll("[data-brief-select].is-open").forEach((s) => {
+            s.classList.remove("is-open");
+        });
+    });
+
+    function setSelectValue(selectContainer, value) {
+        if (!selectContainer) return;
+        const hiddenInput = selectContainer.querySelector("input[type=hidden]");
+        const labelEl = selectContainer.querySelector("[data-select-label]");
+        const options = selectContainer.querySelectorAll("[data-select-value]");
+        if (hiddenInput) hiddenInput.value = value;
+        options.forEach((opt) => {
+            const isMatch = opt.getAttribute("data-select-value") === value;
+            opt.classList.toggle("is-selected", isMatch);
+            if (isMatch && labelEl) labelEl.textContent = opt.textContent.trim();
+        });
+    }
+
     /* ── Quick-start chips ── */
     document.querySelectorAll("[data-sample]").forEach((chip) => {
         chip.addEventListener("click", () => {
             goalInput.value = chip.getAttribute("data-sample");
-            // Open details panel when using a quick-start
             if (detailsPanel && !detailsPanel.classList.contains("is-open")) {
                 detailsPanel.classList.add("is-open");
                 if (detailsToggle) detailsToggle.classList.add("is-open");
@@ -251,15 +308,16 @@ if (form) {
     if (demoBriefBtn) {
         demoBriefBtn.addEventListener("click", () => {
             goalInput.value = demoBrief.goal || goalInput.value;
-            // Open details panel and fill all fields
             if (detailsPanel && !detailsPanel.classList.contains("is-open")) {
                 detailsPanel.classList.add("is-open");
                 if (detailsToggle) detailsToggle.classList.add("is-open");
             }
             if (audienceInput) audienceInput.value = demoBrief.audience || audienceInput.value;
             if (toneInput) toneInput.value = demoBrief.brand_tone || toneInput.value;
-            if (densityInput) densityInput.value = demoBrief.content_density || densityInput.value;
-            if (motionInput) motionInput.value = demoBrief.motion_level || motionInput.value;
+            const densitySelect = densityInput ? densityInput.closest("[data-brief-select]") : null;
+            const motionSelect = motionInput ? motionInput.closest("[data-brief-select]") : null;
+            if (densitySelect) setSelectValue(densitySelect, demoBrief.content_density || "balanced");
+            if (motionSelect) setSelectValue(motionSelect, demoBrief.motion_level || "moderate");
             if (nameInput) nameInput.value = demoBrief.name || nameInput.value;
             if (notesInput) notesInput.value = demoBrief.notes || notesInput.value;
             setBusy(false, "Demo prompt loaded. Hit → to generate.");
@@ -314,12 +372,11 @@ if (form) {
             return;
         }
 
-        // Auto-fill audience and tone if empty
         if (!brief.audience) brief.audience = "General audience";
         if (!brief.brand_tone) brief.brand_tone = "Clear and modern";
 
-        setBusy(true, "Starting generation...");
-        startPipelineTicker();
+        setBusy(true, "");
+        startGenTicker();
         try {
             const response = await fetch("/generate", {
                 method: "POST",
@@ -330,17 +387,14 @@ if (form) {
             if (!response.ok || !data.preview_url) {
                 throw new Error(data.error || "Generation failed.");
             }
-            stopPipelineTicker();
-            applyServerStatuses(data.statuses);
-            setBusy(true, "Opening Studio...");
-            window.location.href = data.preview_url;
+            markGenComplete();
+            setTimeout(() => {
+                window.location.href = data.preview_url;
+            }, 600);
         } catch (error) {
-            stopPipelineTicker();
-            markPipelineError();
-            setBusy(false, error.message || "Something went wrong.");
+            markGenError(error.message || "Something went wrong.");
         }
     });
 
-    resetPipeline();
     renderAssetPreview([]);
 }

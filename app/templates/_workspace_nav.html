@@ -3,30 +3,36 @@
 <aside class="workspace-nav" data-workspace-nav aria-label="Workspace navigation">
     <div class="workspace-nav-section">
         <div class="workspace-nav-brand-row">
-            <button class="workspace-nav-toggle-btn" type="button" data-nav-toggle aria-label="Toggle navigation">
-                <span></span>
-                <span></span>
-            </button>
             <a class="workspace-nav-brand" href="{{ url_for('main.index') }}" data-nav-close-on-select>
-                <span class="workspace-nav-mark">V</span>
+                <img
+                    class="workspace-nav-logo"
+                    src="{{ url_for('static', filename='logo/app logo purple.png') }}"
+                    alt="VeloSite"
+                    height="22"
+                >
                 <span class="workspace-nav-brand-copy">
-                    <strong>VeloSite AI</strong>
-                    <span>Generator + Studio</span>
+                    <strong>VeloSite</strong>
+                    <span>AI Studio</span>
                 </span>
             </a>
             <button class="workspace-nav-close" type="button" data-nav-close aria-label="Close navigation">
-                <span aria-hidden="true">&times;</span>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
         </div>
 
         <a class="workspace-nav-new" href="{{ url_for('main.index') }}" data-nav-close-on-select>
-            <span class="workspace-nav-new-icon">+</span>
+            <span class="workspace-nav-new-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            </span>
             <span class="workspace-nav-text">New Chat</span>
         </a>
     </div>
 
     <div class="workspace-nav-section workspace-nav-scroll">
-        <p class="workspace-nav-label">Recent chats</p>
+        <p class="workspace-nav-label">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+            Recent chats
+        </p>
         <div class="workspace-nav-list" id="workspace-conversation-list">
             {% if recent_conversations %}
             {% for conversation in recent_conversations %}
@@ -48,8 +54,12 @@
                     </span>
                 </a>
                 <div class="workspace-nav-actions">
-                    <button class="workspace-nav-action" type="button" data-rename-conversation="{{ conversation.id }}">Rename</button>
-                    <button class="workspace-nav-action" type="button" data-delete-conversation="{{ conversation.id }}">Delete</button>
+                    <button class="workspace-nav-action" type="button" data-rename-conversation="{{ conversation.id }}" aria-label="Rename">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 19 3.6-.9 9.1-9.1-2.7-2.7-9.1 9.1L5 19Z"/><path d="m13.8 7.4 2.8 2.8"/></svg>
+                    </button>
+                    <button class="workspace-nav-action" type="button" data-delete-conversation="{{ conversation.id }}" aria-label="Delete">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
                 </div>
             </article>
             {% endfor %}
@@ -60,7 +70,10 @@
     </div>
 
     <div class="workspace-nav-section">
-        <p class="workspace-nav-label">Account</p>
+        <p class="workspace-nav-label">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Account
+        </p>
         <div class="workspace-nav-account">
             <span class="workspace-nav-avatar workspace-nav-avatar-user">{{ (current_user.display_name or current_user.email or "V")[0]|upper }}</span>
             <span class="workspace-nav-account-copy">
@@ -69,9 +82,15 @@
             </span>
         </div>
         <div class="workspace-nav-links">
-            <a class="workspace-nav-link" href="{{ url_for('main.settings') }}" data-nav-close-on-select>Settings</a>
+            <a class="workspace-nav-link" href="{{ url_for('main.settings') }}" data-nav-close-on-select>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+                Settings
+            </a>
             <form action="{{ url_for('main.logout') }}" method="post">
-                <button class="workspace-nav-link" type="submit">Logout</button>
+                <button class="workspace-nav-link" type="submit">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+                    Logout
+                </button>
             </form>
         </div>
     </div>
