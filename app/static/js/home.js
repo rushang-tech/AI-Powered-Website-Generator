@@ -136,7 +136,7 @@ if (form) {
             dot.classList.add("is-done");
         });
         if (genTitle) genTitle.textContent = "Almost there…";
-        setStepText("Opening Studio");
+        setStepText("Opening Preview");
     }
 
     function markGenError(message) {

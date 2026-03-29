@@ -136,6 +136,7 @@ _ONBOARDING_HTML_ENDPOINTS = {
     "main.dashboard",
     "main.settings",
     "main.preview",
+    "main.preview_studio",
     "main.preview_frame",
 }
 _ONBOARDING_API_ENDPOINTS = {
@@ -493,6 +494,42 @@ def _conversation_by_id_or_json(conversation_id: int):
     if not conversation:
         return None, (jsonify({"error": "Conversation not found."}), 404)
     return conversation, None
+
+
+def _preview_urls(preview_id: str) -> dict[str, str]:
+    return {
+        "preview_url": url_for("main.preview", preview_id=preview_id),
+        "studio_url": url_for("main.preview_studio", preview_id=preview_id),
+        "frame_url": url_for("main.preview_frame", preview_id=preview_id),
+    }
+
+
+def _preview_page_context(conversation, manifest):
+    studio = selected_preview_data(manifest)
+    selected_variant = studio.get("selected_variant") or {}
+    render_plan = selected_variant.get("render_plan", {})
+    current_template = str(render_plan.get("template_key", "landing"))
+
+    return {
+        "preview_id": manifest.preview_id,
+        "conversation_id": conversation.id,
+        "conversation": serialize_conversation_summary(conversation),
+        "conversation_messages": visible_messages(conversation),
+        "recent_conversations": _recent_conversation_payload(active_conversation_id=conversation.id),
+        "prompt": manifest.prompt,
+        "brief": studio.get("brief", {}),
+        "selected_variant": selected_variant,
+        "selected_variant_id": studio.get("selected_variant_id", ""),
+        "variants": studio.get("variants", []),
+        "statuses": studio.get("statuses", []),
+        "template_keys": list(TEMPLATE_CATALOG.keys()),
+        "art_direction_keys": list(THEME_MAP.keys()),
+        "layout_modes": list(LAYOUT_LIBRARY.get(current_template, {}).keys()),
+        "layout_library": {key: list(value.keys()) for key, value in LAYOUT_LIBRARY.items()},
+        "density_options": list(_DENSITY_CHOICES),
+        "motion_options": list(_MOTION_CHOICES),
+        **_preview_urls(manifest.preview_id),
+    }
 
 
 def _initial_generation_message(prompt: str, brief: dict[str, object]) -> str:
@@ -931,13 +968,12 @@ def continue_conversation(conversation_id: int):
             "ok": True,
             "conversation_id": conversation.id,
             "preview_id": updated_manifest.preview_id,
-            "preview_url": url_for("main.preview", preview_id=updated_manifest.preview_id),
-            "frame_url": url_for("main.preview_frame", preview_id=updated_manifest.preview_id),
             "selected_variant_id": updated_manifest.selected_variant_id,
             "selected_variant": studio.get("selected_variant", {}),
             "messages": visible_messages(conversation),
             "conversation": serialize_conversation_summary(conversation),
             "recent_conversations": _recent_conversation_payload(active_conversation_id=conversation.id),
+            **_preview_urls(updated_manifest.preview_id),
         }
     )
 
@@ -965,13 +1001,12 @@ def generate():
         user_message=_initial_generation_message(user_prompt, brief),
     )
 
-    preview_url = url_for("main.preview", preview_id=manifest.preview_id)
+    urls = _preview_urls(manifest.preview_id)
     return jsonify(
         {
             "conversation_id": conversation.id,
             "preview_id": manifest.preview_id,
-            "preview_url": preview_url,
-            "frame_url": url_for("main.preview_frame", preview_id=manifest.preview_id),
+            **urls,
             "selected_variant_id": manifest.selected_variant_id,
             "variants": [
                 {
@@ -1024,7 +1059,7 @@ def update_branding(preview_id: str):
             "selected_variant_id": updated.selected_variant_id,
             "selected_variant": selected,
             "brief": updated.brief.to_dict(),
-            "frame_url": url_for("main.preview_frame", preview_id=preview_id),
+            **_preview_urls(preview_id),
         }
     )
 
@@ -1034,32 +1069,24 @@ def update_branding(preview_id: str):
 def preview(preview_id: str):
     conversation = _conversation_for_preview_or_404(preview_id)
     manifest = manifest_from_conversation(conversation)
-    studio = selected_preview_data(manifest)
-    selected_variant = studio.get("selected_variant") or {}
-    render_plan = selected_variant.get("render_plan", {})
-    current_template = str(render_plan.get("template_key", "landing"))
 
     return render_template(
         "preview_shell.html",
         hide_site_nav=True,
-        preview_id=preview_id,
-        conversation_id=conversation.id,
-        conversation=serialize_conversation_summary(conversation),
-        conversation_messages=visible_messages(conversation),
-        recent_conversations=_recent_conversation_payload(active_conversation_id=conversation.id),
-        prompt=manifest.prompt,
-        brief=studio.get("brief", {}),
-        selected_variant=selected_variant,
-        selected_variant_id=studio.get("selected_variant_id", ""),
-        variants=studio.get("variants", []),
-        statuses=studio.get("statuses", []),
-        frame_url=url_for("main.preview_frame", preview_id=preview_id),
-        template_keys=list(TEMPLATE_CATALOG.keys()),
-        art_direction_keys=list(THEME_MAP.keys()),
-        layout_modes=list(LAYOUT_LIBRARY.get(current_template, {}).keys()),
-        layout_library={key: list(value.keys()) for key, value in LAYOUT_LIBRARY.items()},
-        density_options=list(_DENSITY_CHOICES),
-        motion_options=list(_MOTION_CHOICES),
+        **_preview_page_context(conversation, manifest),
+    )
+
+
+@main.route("/preview/<preview_id>/studio", methods=["GET"])
+@login_required
+def preview_studio(preview_id: str):
+    conversation = _conversation_for_preview_or_404(preview_id)
+    manifest = manifest_from_conversation(conversation)
+
+    return render_template(
+        "studio_shell.html",
+        hide_site_nav=True,
+        **_preview_page_context(conversation, manifest),
     )
 
 
@@ -1090,6 +1117,7 @@ def preview_frame(preview_id: str):
         brief=manifest.brief.to_dict(),
         selected_variant=selected_variant,
         studio_mode=request.args.get("studio", "").strip() == "1",
+        embedded_mode=request.args.get("embed", "").strip() == "1",
         consumer_mode=True,
     )
 
@@ -1124,10 +1152,10 @@ def override_preview(preview_id: str):
         {
             "ok": True,
             "preview_id": preview_id,
-            "preview_url": url_for("main.preview", preview_id=preview_id),
-            "frame_url": url_for("main.preview_frame", preview_id=preview_id),
             "selected_variant_id": updated.selected_variant_id,
+            "selected_variant": selected,
             "render_plan": selected.get("render_plan", {}),
+            **_preview_urls(preview_id),
         }
     )
 
@@ -1186,8 +1214,8 @@ def canvas_command(preview_id: str):
             "preview_id": preview_id,
             "selected_variant_id": updated.selected_variant_id,
             "selected_variant": selected,
-            "frame_url": url_for("main.preview_frame", preview_id=preview_id),
             "changed_paths": changed_paths,
+            **_preview_urls(preview_id),
         }
     )
 
@@ -1228,10 +1256,9 @@ def regenerate_preview(preview_id: str):
         {
             "ok": True,
             "preview_id": preview_id,
-            "preview_url": url_for("main.preview", preview_id=preview_id),
-            "frame_url": url_for("main.preview_frame", preview_id=preview_id),
             "selected_variant_id": updated.selected_variant_id,
             "selected_variant": selected,
+            **_preview_urls(preview_id),
         }
     )
 

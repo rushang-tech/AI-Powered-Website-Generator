@@ -386,15 +386,27 @@ class RouteTests(unittest.TestCase):
         self.assertTrue(data["conversation_id"])
         self.assertEqual(data["selected_variant_id"], "variant-1")
         self.assertEqual(len(data["variants"]), 3)
+        self.assertEqual(data["studio_url"], "/preview/preview-123/studio")
+        self.assertEqual(data["frame_url"], "/preview/preview-123/frame")
 
         preview_response = self.client.get(data["preview_url"])
         self.assertEqual(preview_response.status_code, 200)
-        body = preview_response.get_data(as_text=True)
-        self.assertIn("Conversation", body)
-        self.assertIn("Recent chats", body)
-        self.assertIn('data-workspace-nav', body)
-        self.assertIn('id="workspace-conversation-list"', body)
-        self.assertNotIn("data-workspace-shell", body)
+        preview_body = preview_response.get_data(as_text=True)
+        self.assertIn("Open Studio", preview_body)
+        self.assertIn('id="preview-prompt-bar"', preview_body)
+        self.assertIn('data-workspace-nav', preview_body)
+        self.assertIn('id="workspace-conversation-list"', preview_body)
+        self.assertIn('src="/preview/preview-123/frame?embed=1"', preview_body)
+        self.assertNotIn('id="layer-list"', preview_body)
+
+        studio_response = self.client.get(data["studio_url"])
+        self.assertEqual(studio_response.status_code, 200)
+        studio_body = studio_response.get_data(as_text=True)
+        self.assertIn("Back to Preview", studio_body)
+        self.assertIn("Deep editing workspace", studio_body)
+        self.assertIn('id="layer-list"', studio_body)
+        self.assertIn('id="advanced-panel"', studio_body)
+        self.assertIn('src="/preview/preview-123/frame?studio=1"', studio_body)
 
         with self.app.app_context():
             conversation = db.session.get(Conversation, data["conversation_id"])
@@ -402,7 +414,7 @@ class RouteTests(unittest.TestCase):
             self.assertEqual(conversation.preview_id, "preview-123")
             self.assertEqual(Message.query.filter_by(conversation_id=conversation.id).count(), 2)
 
-    def test_workspace_nav_only_renders_for_dashboard_and_studio(self):
+    def test_workspace_nav_renders_for_dashboard_preview_and_studio(self):
         for route in ("/", "/product", "/showcase", "/solutions", "/how-it-works", "/pricing", "/resources", "/about", "/contact"):
             response = self.client.get(route)
             self.assertEqual(response.status_code, 200)
@@ -434,6 +446,16 @@ class RouteTests(unittest.TestCase):
         settings_response = self.client.get("/settings")
         self.assertEqual(settings_response.status_code, 200)
         self.assertNotIn("data-workspace-nav", settings_response.get_data(as_text=True))
+
+        self._seed_conversation(preview_id="preview-nav")
+
+        preview_response = self.client.get("/preview/preview-nav")
+        self.assertEqual(preview_response.status_code, 200)
+        self.assertIn("data-workspace-nav", preview_response.get_data(as_text=True))
+
+        studio_response = self.client.get("/preview/preview-nav/studio")
+        self.assertEqual(studio_response.status_code, 200)
+        self.assertIn("data-workspace-nav", studio_response.get_data(as_text=True))
 
     @patch("app.routes.generate_project_manifest")
     def test_generate_forwards_brand_assets_and_icon_style(self, mocked_generate):
@@ -502,6 +524,9 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(data["selected_variant"]["content"]["hero_title"], "A refined headline")
         self.assertEqual(len(data["messages"]), 4)
         self.assertEqual(data["messages"][-1]["role"], "assistant")
+        self.assertEqual(data["preview_url"], "/preview/preview-continue")
+        self.assertEqual(data["studio_url"], "/preview/preview-continue/studio")
+        self.assertEqual(data["frame_url"], "/preview/preview-continue/frame")
 
         with self.app.app_context():
             conversation = db.session.get(Conversation, conversation_id)
@@ -585,6 +610,9 @@ class RouteTests(unittest.TestCase):
         preview_response = self.client.get("/preview/preview-owner")
         self.assertEqual(preview_response.status_code, 404)
 
+        studio_response = self.client.get("/preview/preview-owner/studio")
+        self.assertEqual(studio_response.status_code, 404)
+
         override_response = self.client.post("/preview/preview-owner/override", json={"variant_id": "variant-2"})
         self.assertEqual(override_response.status_code, 404)
 
@@ -634,6 +662,30 @@ class RouteTests(unittest.TestCase):
         self.assertIn("--theme-frame-background", body)
         self.assertIn("Contact", body)
 
+        embed_response = self.client.get("/preview/preview-frame/frame?embed=1")
+        self.assertEqual(embed_response.status_code, 200)
+        embed_body = embed_response.get_data(as_text=True)
+        self.assertNotIn('class="frame-meta"', embed_body)
+
+    def test_override_payload_includes_selected_variant_and_navigation_urls(self):
+        self._signup_and_login()
+        self._seed_conversation(preview_id="preview-override")
+
+        response = self.client.post(
+            "/preview/preview-override/override",
+            json={"variant_id": "variant-2", "layout_mode": "immersive_layers"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["preview_id"], "preview-override")
+        self.assertEqual(data["selected_variant_id"], "variant-2")
+        self.assertEqual(data["selected_variant"]["variant_id"], "variant-2")
+        self.assertEqual(data["preview_url"], "/preview/preview-override")
+        self.assertEqual(data["studio_url"], "/preview/preview-override/studio")
+        self.assertEqual(data["frame_url"], "/preview/preview-override/frame")
+
     def test_branding_and_canvas_actions_persist_to_conversation(self):
         self._signup_and_login()
         self._seed_conversation(preview_id="preview-branding")
@@ -643,6 +695,11 @@ class RouteTests(unittest.TestCase):
             json={"brief": {"brand_assets": [_brand_asset()], "icon_style": "Rounded interface icons"}},
         )
         self.assertEqual(branding_response.status_code, 200)
+        branding_data = branding_response.get_json()
+        self.assertEqual(branding_data["preview_url"], "/preview/preview-branding")
+        self.assertEqual(branding_data["studio_url"], "/preview/preview-branding/studio")
+        self.assertEqual(branding_data["frame_url"], "/preview/preview-branding/frame")
+        self.assertEqual(branding_data["selected_variant"]["variant_id"], "variant-1")
 
         command_response = self.client.post(
             "/preview/preview-branding/command",
@@ -655,7 +712,11 @@ class RouteTests(unittest.TestCase):
             },
         )
         self.assertEqual(command_response.status_code, 200)
-        self.assertEqual(command_response.get_json()["selected_variant"]["content"]["hero_title"], "A sharper hero headline")
+        command_data = command_response.get_json()
+        self.assertEqual(command_data["selected_variant"]["content"]["hero_title"], "A sharper hero headline")
+        self.assertEqual(command_data["preview_url"], "/preview/preview-branding")
+        self.assertEqual(command_data["studio_url"], "/preview/preview-branding/studio")
+        self.assertEqual(command_data["frame_url"], "/preview/preview-branding/frame")
 
         with self.app.app_context():
             conversation = Conversation.query.filter_by(preview_id="preview-branding").first()

@@ -46,6 +46,9 @@ if (shell) {
     const fullscreenBtn = document.getElementById("fullscreen-btn");
     const canvasVariantTitle = document.getElementById("canvas-variant-title");
     const canvasVariantSummary = document.getElementById("canvas-variant-summary");
+    const inspectorVariantTitle = document.getElementById("inspector-variant-title");
+    const inspectorVariantSummary = document.getElementById("inspector-variant-summary");
+    const inspectorVariantMeta = document.getElementById("inspector-variant-meta");
     const generationWarning = document.getElementById("generation-warning");
     const generationWarningCopy = document.getElementById("generation-warning-copy");
     const generationWarningList = document.getElementById("generation-warning-list");
@@ -62,7 +65,9 @@ if (shell) {
     let busy = false;
 
     function setStatus(message) {
-        statusEl.textContent = message || "";
+        if (statusEl) {
+            statusEl.textContent = message || "";
+        }
     }
 
     function setBusy(isBusy, label) {
@@ -85,6 +90,14 @@ if (shell) {
         if (sendMessageBtn) {
             sendMessageBtn.textContent = isBusy && label ? label : "Send";
         }
+    }
+
+    function syncComposerHeight() {
+        if (!conversationInput) {
+            return;
+        }
+        conversationInput.style.height = "auto";
+        conversationInput.style.height = `${Math.min(conversationInput.scrollHeight, 260)}px`;
     }
 
     function fileToDataUrl(file) {
@@ -218,6 +231,7 @@ if (shell) {
 
             conversationMessagesEl.appendChild(card);
         });
+        conversationMessagesEl.scrollTop = conversationMessagesEl.scrollHeight;
     }
 
     function renderRecentConversations(items) {
@@ -279,6 +293,14 @@ if (shell) {
         return String(value || "").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
     }
 
+    function buildVariantMeta(variant) {
+        const plan = variant && variant.render_plan ? variant.render_plan : {};
+        return [plan.art_direction, plan.layout_mode, plan.motion_level]
+            .filter(Boolean)
+            .map((value) => formatLabel(value))
+            .join(" / ");
+    }
+
     function remixFrameUrl(candidate) {
         const params = {
             variant_id: selectedVariantId,
@@ -332,6 +354,15 @@ if (shell) {
         if (canvasVariantSummary) {
             canvasVariantSummary.textContent = selectedVariant.summary || "";
         }
+        if (inspectorVariantTitle) {
+            inspectorVariantTitle.textContent = selectedVariant.label || "Variant";
+        }
+        if (inspectorVariantSummary) {
+            inspectorVariantSummary.textContent = selectedVariant.summary || "";
+        }
+        if (inspectorVariantMeta) {
+            inspectorVariantMeta.textContent = buildVariantMeta(selectedVariant);
+        }
     }
 
     function syncControlsFromVariant(variant) {
@@ -359,7 +390,9 @@ if (shell) {
 
     function syncVariantSelection() {
         document.querySelectorAll("[data-variant-id]").forEach((button) => {
-            button.classList.toggle("is-selected", button.getAttribute("data-variant-id") === selectedVariantId);
+            const isSelected = button.getAttribute("data-variant-id") === selectedVariantId;
+            button.classList.toggle("is-selected", isSelected);
+            button.setAttribute("aria-pressed", isSelected ? "true" : "false");
         });
     }
 
@@ -482,6 +515,7 @@ if (shell) {
                 variant_id: selectedVariantId,
             });
             conversationInput.value = "";
+            syncComposerHeight();
             applyConversationData(data);
             applyStudioResponse(data, "Conversation update applied.");
         } catch (error) {
@@ -705,6 +739,10 @@ if (shell) {
     }
     if (conversationForm) {
         conversationForm.addEventListener("submit", sendConversationMessage);
+    }
+    if (conversationInput) {
+        conversationInput.addEventListener("input", syncComposerHeight);
+        syncComposerHeight();
     }
     if (navPublishBtn) {
         navPublishBtn.addEventListener("click", async () => {

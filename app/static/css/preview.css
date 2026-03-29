@@ -1,0 +1,498 @@
+/* ─── VeloSite Preview — Clean Minimal Light Layout ─── */
+
+.preview-page {
+    padding-top: 0;
+    position: relative;
+}
+
+.preview-page .workspace-stage {
+    padding: 0;
+    background: #f8f7fb;
+}
+
+
+/* ── Header ── */
+
+.preview-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100svh;
+}
+
+.preview-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+[data-theme='dark'] .preview-header {
+    background: rgba(20, 19, 24, 0.90);
+}
+
+.preview-header-left,
+.preview-header-right,
+.preview-toolbar-group {
+    display: flex;
+    align-items: center;
+}
+
+.preview-header-left {
+    gap: 12px;
+    min-width: 0;
+    flex-shrink: 1;
+}
+
+.preview-header-right {
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.preview-nav-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border-color: var(--line);
+    background: transparent;
+}
+
+.preview-header-id {
+    min-width: 0;
+}
+
+.preview-header-id strong {
+    display: block;
+    color: var(--ink);
+    font-size: 0.92rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+
+/* ── Variant strip (inline in header) ── */
+
+.preview-variant-strip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.preview-variant-strip::-webkit-scrollbar {
+    height: 0;
+}
+
+.preview-variant-chip {
+    appearance: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--muted);
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color var(--duration-fast) ease,
+        background var(--duration-fast) ease,
+        color var(--duration-fast) ease;
+}
+
+.preview-variant-chip:hover {
+    border-color: var(--accent-muted);
+    color: var(--ink);
+    background: var(--accent-soft);
+}
+
+.preview-variant-chip.is-selected {
+    border-color: rgba(138, 43, 226, 0.30);
+    background: rgba(138, 43, 226, 0.08);
+    color: var(--accent);
+}
+
+
+/* ── Device switch ── */
+
+.device-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-full);
+    background: transparent;
+    padding: 3px;
+}
+
+.device-btn {
+    appearance: none;
+    border: 0;
+    border-radius: var(--radius-full);
+    background: transparent;
+    padding: 7px 10px;
+    color: var(--muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--duration-fast) ease,
+        color var(--duration-fast) ease;
+}
+
+.device-btn:hover {
+    color: var(--ink);
+}
+
+.device-btn.is-active {
+    background: var(--gradient-accent);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(138, 43, 226, 0.20);
+}
+
+
+/* ── Toolbar icons ── */
+
+.preview-toolbar-group {
+    gap: 4px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-full);
+}
+
+.preview-icon-btn {
+    appearance: none;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color var(--duration-fast) ease,
+        background var(--duration-fast) ease;
+}
+
+.preview-icon-btn:hover {
+    color: var(--ink);
+    background: var(--surface-hover);
+}
+
+.preview-icon-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+
+/* ── Open Studio button ── */
+
+.preview-open-studio {
+    white-space: nowrap;
+    font-size: 0.82rem;
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    gap: 6px;
+}
+
+
+/* ── Canvas ── */
+
+.preview-canvas {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 16px 20px;
+    padding-bottom: 180px; /* space for floating prompt bar */
+}
+
+.preview-canvas-shell {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #ffffff;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    transition: max-width var(--duration-normal) var(--ease-out);
+}
+
+[data-theme='dark'] .preview-canvas-shell {
+    background: #1a191d;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.preview-canvas-shell.device-desktop {
+    max-width: 100%;
+}
+
+.preview-canvas-shell.device-tablet {
+    max-width: 860px;
+}
+
+.preview-canvas-shell.device-mobile {
+    max-width: 430px;
+}
+
+.preview-frame {
+    width: 100%;
+    min-height: calc(100vh - 220px);
+    border: 0;
+    background: #ffffff;
+    display: block;
+}
+
+[data-theme='dark'] .preview-frame {
+    background: #1a191d;
+}
+
+
+/* ── Floating Prompt Bar ── */
+
+.preview-prompt-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    padding: 0 20px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.preview-prompt-bar > * {
+    pointer-events: auto;
+}
+
+/* workspace nav offset */
+.workspace-layout .preview-prompt-bar {
+    left: 0;
+}
+
+
+/* ── Suggestion chips ── */
+
+.preview-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    max-width: 720px;
+}
+
+.preview-suggestion-chip {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--muted);
+    padding: 6px 13px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: border-color var(--duration-fast) ease,
+        background var(--duration-fast) ease,
+        color var(--duration-fast) ease,
+        transform var(--duration-fast) var(--ease-out);
+}
+
+[data-theme='dark'] .preview-suggestion-chip {
+    background: rgba(30, 29, 34, 0.88);
+}
+
+.preview-suggestion-chip:hover {
+    border-color: var(--accent-muted);
+    background: rgba(138, 43, 226, 0.06);
+    color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.preview-suggestion-chip:disabled {
+    opacity: 0.5;
+    cursor: default;
+    transform: none;
+}
+
+.preview-suggestion-chip svg {
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+.preview-suggestion-chip:hover svg {
+    opacity: 1;
+}
+
+
+/* ── Composer (inside prompt bar) ── */
+
+.preview-composer {
+    width: 100%;
+    max-width: 720px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.preview-composer-shell {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 10px 10px 10px 18px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+
+[data-theme='dark'] .preview-composer-shell {
+    background: rgba(30, 29, 34, 0.94);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.preview-composer-shell textarea {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 22px;
+    max-height: 160px;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    resize: none;
+    outline: 0;
+    padding: 4px 0;
+}
+
+.preview-composer-shell textarea::placeholder {
+    color: var(--faint);
+}
+
+.preview-send-btn {
+    appearance: none;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 12px;
+    background: var(--gradient-accent);
+    color: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(138, 43, 226, 0.20);
+    transition: transform var(--duration-fast) var(--ease-out),
+        opacity var(--duration-fast) ease;
+}
+
+.preview-send-btn:hover {
+    transform: translateY(-1px);
+}
+
+.preview-send-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+    transform: none;
+}
+
+.preview-status-text {
+    margin: 0;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.76rem;
+    min-height: 18px;
+}
+
+.preview-status-text:empty {
+    display: none;
+}
+
+
+/* ── Responsive ── */
+
+@media (max-width: 1080px) {
+    .preview-header-id strong {
+        max-width: 140px;
+    }
+}
+
+@media (max-width: 860px) {
+    .preview-header {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 16px;
+    }
+
+    .preview-header-left {
+        order: 1;
+        flex: 1;
+    }
+
+    .preview-header-right {
+        order: 2;
+        flex-shrink: 0;
+    }
+
+    .preview-variant-strip {
+        order: 3;
+        width: 100%;
+        padding-top: 4px;
+        border-top: 1px solid var(--line);
+    }
+
+    .preview-canvas {
+        padding: 12px;
+        padding-bottom: 170px;
+    }
+}
+
+@media (max-width: 600px) {
+    .preview-header-id strong {
+        max-width: 100px;
+    }
+
+    .preview-open-studio span {
+        display: none;
+    }
+
+    .preview-canvas-shell {
+        border-radius: 12px;
+    }
+
+    .preview-prompt-bar {
+        padding: 0 12px 14px;
+    }
+
+    .preview-composer-shell {
+        border-radius: 16px;
+        padding: 8px 8px 8px 14px;
+    }
+}
