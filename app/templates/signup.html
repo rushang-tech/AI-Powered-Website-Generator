@@ -47,10 +47,12 @@
                     <span>OR</span>
                 </div>
 
-                <button class="login-google-action" type="button" disabled aria-disabled="true">
-                    <span class="login-google-icon">G</span>
-                    <span>Continue with Google</span>
-                </button>
+                <a class="login-google-action" href="{{ google_auth_url }}" {% if not google_oauth_enabled %}data-auth-disabled="true"{% endif %}>
+                    <span class="login-google-icon" aria-hidden="true">
+                        <img src="{{ url_for('static', filename='logo/google-g.svg') }}" alt="">
+                    </span>
+                    <span>Sign up with Google</span>
+                </a>
 
                 <p class="auth-switch login-switch">Already have an account? <a href="{{ url_for('main.login', next=request.args.get('next')) }}">Log in</a></p>
             </div>

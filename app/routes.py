@@ -4,6 +4,7 @@ import time
 from collections import defaultdict
 from datetime import UTC, datetime
 from functools import wraps
+from secrets import token_urlsafe
 from threading import Lock
 from typing import Any, Callable
 from uuid import uuid4
@@ -24,7 +25,6 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
-from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
 from app.models import User, UserOnboarding
@@ -58,6 +58,14 @@ from app.services.conversation_service import (
     visible_messages,
 )
 from app.services.export_service import build_export_bundle, render_export_site
+from app.services.google_oauth import (
+    GoogleOAuthError,
+    GoogleOAuthProfile,
+    build_google_authorization_url,
+    exchange_google_code_for_tokens,
+    google_oauth_enabled,
+    verify_google_id_token,
+)
 from app.services.published_site_service import PUBLISHED_SITE_SERVICE
 from app.services.taste_engine import LAYOUT_LIBRARY, normalize_brief
 
@@ -156,6 +164,8 @@ _ONBOARDING_PROTECTED_ENDPOINTS = _ONBOARDING_HTML_ENDPOINTS | _ONBOARDING_API_E
 _ONBOARDING_TOTAL_STEPS = 3
 _ONBOARDING_DRAFT_SESSION_KEY = "onboarding_draft"
 _ONBOARDING_NEXT_SESSION_KEY = "onboarding_next"
+_GOOGLE_OAUTH_SESSION_KEY = "google_oauth_flow"
+_GOOGLE_OAUTH_MODES = {"login", "signup"}
 
 
 def _public_ai_error_message(exc: AIProviderUnavailableError) -> str:
@@ -324,6 +334,103 @@ def _safe_next_or_none(raw_value: object) -> str | None:
     if value.startswith("/") and not value.startswith("//"):
         return value
     return None
+
+
+def _google_oauth_is_enabled() -> bool:
+    return google_oauth_enabled(
+        current_app.config.get("GOOGLE_OAUTH_CLIENT_ID"),
+        current_app.config.get("GOOGLE_OAUTH_CLIENT_SECRET"),
+    )
+
+
+def _google_oauth_mode(raw_value: object, *, default: str = "login") -> str:
+    candidate = _clean_text(raw_value, max_length=12).lower()
+    if candidate in _GOOGLE_OAUTH_MODES:
+        return candidate
+    return default
+
+
+def _google_oauth_redirect_uri() -> str:
+    return url_for("main.google_oauth_callback", _external=True)
+
+
+def _google_oauth_fallback_target(mode: str, raw_next: object) -> str:
+    endpoint = "main.signup" if mode == "signup" else "main.login"
+    safe_next = _safe_next_or_none(raw_next)
+    if safe_next:
+        return url_for(endpoint, next=safe_next)
+    return url_for(endpoint)
+
+
+def _auth_template_context(mode: str) -> dict[str, object]:
+    normalized_mode = _google_oauth_mode(mode)
+    safe_next = _safe_next_or_none(request.args.get("next"))
+    context = {
+        "google_auth_url": url_for("main.google_oauth_start", mode=normalized_mode, next=safe_next),
+        "google_oauth_enabled": _google_oauth_is_enabled(),
+    }
+    return context
+
+
+def _identity_display_name(email: str, name: str) -> str:
+    preferred_name = _clean_text(name, max_length=120)
+    if preferred_name:
+        return preferred_name
+
+    local_part = (email.split("@", 1)[0] if email else "").replace(".", " ").replace("_", " ").strip()
+    fallback_name = local_part.title() if local_part else "VeloSite User"
+    return _clean_text(fallback_name, max_length=120)
+
+
+def _apply_google_identity(user: User, profile: GoogleOAuthProfile) -> None:
+    user.email = profile.email
+    if not _clean_text(user.display_name, max_length=120):
+        user.display_name = _identity_display_name(profile.email, profile.name)
+    user.google_sub = profile.sub
+    user.avatar_url = _clean_text(profile.picture, max_length=512)
+    user.email_verified = profile.email_verified
+    user.sync_auth_provider()
+
+
+def _upsert_google_user(profile: GoogleOAuthProfile) -> tuple[User, bool]:
+    if not profile.sub:
+        raise GoogleOAuthError("Google sign-in did not return a stable account ID.")
+    if not profile.email:
+        raise GoogleOAuthError("Google sign-in did not return an email address.")
+    if not profile.email_verified:
+        raise GoogleOAuthError("Your Google account email must be verified before you can sign in.")
+
+    created = False
+    user = User.query.filter_by(google_sub=profile.sub).first()
+    if user is None:
+        user = User.query.filter_by(email=profile.email).first()
+
+    if user is not None and user.google_sub and user.google_sub != profile.sub:
+        raise GoogleOAuthError("This Google account is already linked to another user.")
+
+    email_owner = User.query.filter(User.email == profile.email, User.id != getattr(user, "id", None)).first()
+    if email_owner is not None:
+        raise GoogleOAuthError("Another account is already using that Google email.")
+
+    if user is None:
+        created = True
+        user = User(
+            email=profile.email,
+            password_hash=User.make_unusable_password(),
+            display_name=_identity_display_name(profile.email, profile.name),
+            google_sub=profile.sub,
+            avatar_url=_clean_text(profile.picture, max_length=512),
+            auth_provider="google",
+            email_verified=profile.email_verified,
+        )
+        db.session.add(user)
+        db.session.flush()
+        db.session.add(UserOnboarding(user_id=user.id))
+
+    _apply_google_identity(user, profile)
+    db.session.add(user)
+    db.session.commit()
+    return user, created
 
 
 def _normalize_density_choice(value: object, *, default: str = "balanced") -> str:
@@ -553,19 +660,24 @@ def signup():
         email = _clean_text(request.form.get("email"), max_length=255).lower()
         password = str(request.form.get("password", ""))
         display_name = _clean_text(request.form.get("display_name"), max_length=120)
+        existing_user = User.query.filter_by(email=email).first() if email else None
 
         if not email:
             flash("Email is required.", "error")
         elif len(password) < 8:
             flash("Password must be at least 8 characters.", "error")
-        elif User.query.filter_by(email=email).first():
-            flash("That email is already registered.", "error")
+        elif existing_user:
+            if existing_user.is_google_linked and not existing_user.has_password_login:
+                flash("That email already uses Google sign-in. Use the Google button to continue.", "error")
+            else:
+                flash("That email is already registered.", "error")
         else:
             user = User(
                 email=email,
-                password_hash=generate_password_hash(password),
                 display_name=display_name,
+                email_verified=False,
             )
+            user.set_password(password)
             db.session.add(user)
             db.session.flush()
             db.session.add(UserOnboarding(user_id=user.id))
@@ -573,7 +685,7 @@ def signup():
             login_user(user)
             return redirect(_onboarding_redirect_url(request.args.get("next")))
 
-    return render_template("signup.html")
+    return render_template("signup.html", **_auth_template_context("signup"))
 
 
 @main.route("/login", methods=["GET", "POST"])
@@ -586,14 +698,117 @@ def login():
         password = str(request.form.get("password", ""))
         user = User.query.filter_by(email=email).first()
 
-        if not user or not check_password_hash(user.password_hash, password):
+        if not user:
+            flash("Email or password is incorrect.", "error")
+        elif not user.has_password_login:
+            flash("This account uses Google sign-in. Use the Google button to continue.", "error")
+        elif not user.check_password(password):
             flash("Email or password is incorrect.", "error")
         else:
             login_user(user)
             flash("Welcome back.", "success")
             return redirect(_post_auth_destination(user, request.args.get("next")))
 
-    return render_template("login.html")
+    return render_template("login.html", **_auth_template_context("login"))
+
+
+@main.route("/auth/google", methods=["GET"])
+def google_oauth_start():
+    mode = _google_oauth_mode(request.args.get("mode"))
+    if current_user.is_authenticated:
+        return redirect(_post_auth_destination(current_user, request.args.get("next")))
+
+    if not _google_oauth_is_enabled():
+        flash("Google sign-in is not configured yet. Add Google OAuth credentials first.", "error")
+        return redirect(_google_oauth_fallback_target(mode, request.args.get("next")))
+
+    state = token_urlsafe(24)
+    nonce = token_urlsafe(24)
+    session[_GOOGLE_OAUTH_SESSION_KEY] = {
+        "state": state,
+        "nonce": nonce,
+        "next": _safe_next_or_none(request.args.get("next")) or "",
+        "mode": mode,
+    }
+    session.modified = True
+
+    try:
+        authorization_url = build_google_authorization_url(
+            client_id=str(current_app.config.get("GOOGLE_OAUTH_CLIENT_ID", "")).strip(),
+            redirect_uri=_google_oauth_redirect_uri(),
+            state=state,
+            nonce=nonce,
+            discovery_url=str(current_app.config.get("GOOGLE_OAUTH_DISCOVERY_URL", "")).strip(),
+        )
+    except GoogleOAuthError as exc:
+        current_app.logger.warning("google.oauth.start_failed id=%s error=%s", getattr(g, "request_id", ""), exc)
+        flash(str(exc), "error")
+        return redirect(_google_oauth_fallback_target(mode, request.args.get("next")))
+
+    return redirect(authorization_url)
+
+
+@main.route("/auth/google/callback", methods=["GET"])
+def google_oauth_callback():
+    flow = session.pop(_GOOGLE_OAUTH_SESSION_KEY, None)
+    if not isinstance(flow, dict):
+        flow = {}
+
+    mode = _google_oauth_mode(flow.get("mode"))
+    fallback_target = _google_oauth_fallback_target(mode, flow.get("next"))
+
+    if not _google_oauth_is_enabled():
+        flash("Google sign-in is not configured yet. Add Google OAuth credentials first.", "error")
+        return redirect(fallback_target)
+
+    returned_state = _clean_text(request.args.get("state"), max_length=255)
+    expected_state = _clean_text(flow.get("state"), max_length=255)
+    if not expected_state or returned_state != expected_state:
+        flash("Google sign-in could not be verified. Please try again.", "error")
+        return redirect(fallback_target)
+
+    oauth_error = _clean_text(request.args.get("error"), max_length=80)
+    if oauth_error:
+        if oauth_error == "access_denied":
+            flash("Google sign-in was cancelled before it finished.", "error")
+        else:
+            description = _clean_text(request.args.get("error_description"), max_length=180)
+            message = f"Google sign-in failed: {oauth_error}."
+            if description:
+                message = f"{message} {description}"
+            flash(message, "error")
+        return redirect(fallback_target)
+
+    authorization_code = _clean_text(request.args.get("code"), max_length=1800)
+    if not authorization_code:
+        flash("Google sign-in did not return an authorization code.", "error")
+        return redirect(fallback_target)
+
+    try:
+        token_response = exchange_google_code_for_tokens(
+            code=authorization_code,
+            client_id=str(current_app.config.get("GOOGLE_OAUTH_CLIENT_ID", "")).strip(),
+            client_secret=str(current_app.config.get("GOOGLE_OAUTH_CLIENT_SECRET", "")).strip(),
+            redirect_uri=_google_oauth_redirect_uri(),
+            discovery_url=str(current_app.config.get("GOOGLE_OAUTH_DISCOVERY_URL", "")).strip(),
+        )
+        profile = verify_google_id_token(
+            token_response=token_response,
+            client_id=str(current_app.config.get("GOOGLE_OAUTH_CLIENT_ID", "")).strip(),
+            expected_nonce=_clean_text(flow.get("nonce"), max_length=255),
+        )
+        user, created = _upsert_google_user(profile)
+    except GoogleOAuthError as exc:
+        current_app.logger.warning("google.oauth.callback_failed id=%s error=%s", getattr(g, "request_id", ""), exc)
+        flash(str(exc), "error")
+        return redirect(fallback_target)
+
+    login_user(user)
+    if created:
+        flash("Your account was created with Google. Finish onboarding to get started.", "success")
+    else:
+        flash("Signed in with Google.", "success")
+    return redirect(_post_auth_destination(user, flow.get("next")))
 
 
 @main.route("/onboarding", methods=["GET", "POST"])
@@ -829,6 +1044,8 @@ def settings():
             existing = User.query.filter_by(email=email).first() if email else None
             if not email:
                 flash("Email is required.", "error")
+            elif current_user.is_google_linked and email != current_user.email:
+                flash("Email is managed by your Google account and cannot be changed here.", "error")
             elif existing and existing.id != current_user.id:
                 flash("That email is already in use.", "error")
             else:
@@ -844,36 +1061,47 @@ def settings():
                 return redirect(url_for("main.settings"))
 
         elif action == "password":
+            had_password_login = current_user.has_password_login
             current_password = str(request.form.get("current_password", ""))
             next_password = str(request.form.get("new_password", ""))
             confirm_password = str(request.form.get("confirm_password", ""))
 
-            if not check_password_hash(current_user.password_hash, current_password):
+            if current_user.has_password_login and not current_user.check_password(current_password):
                 flash("Current password is incorrect.", "error")
             elif len(next_password) < 8:
                 flash("New password must be at least 8 characters.", "error")
             elif next_password != confirm_password:
                 flash("New password confirmation does not match.", "error")
             else:
-                current_user.password_hash = generate_password_hash(next_password)
+                current_user.set_password(next_password)
                 db.session.add(current_user)
                 db.session.commit()
-                flash("Password updated.", "success")
+                if had_password_login:
+                    flash("Password updated.", "success")
+                else:
+                    flash("Password added. You can now sign in with email or Google.", "success")
                 return redirect(url_for("main.settings"))
 
         elif action == "delete":
-            current_password = str(request.form.get("current_password", ""))
-            if not check_password_hash(current_user.password_hash, current_password):
-                flash("Current password is incorrect.", "error")
+            if current_user.has_password_login:
+                current_password = str(request.form.get("current_password", ""))
+                if not current_user.check_password(current_password):
+                    flash("Current password is incorrect.", "error")
+                    return redirect(url_for("main.settings"))
             else:
-                user_id = current_user.id
-                logout_user()
-                user = db.session.get(User, user_id)
-                if user is not None:
-                    db.session.delete(user)
-                    db.session.commit()
-                flash("Your account and conversations were deleted.", "success")
-                return redirect(url_for("main.signup"))
+                confirmation_email = _clean_text(request.form.get("confirmation_email"), max_length=255).lower()
+                if confirmation_email != current_user.email:
+                    flash("Type your account email to confirm deletion.", "error")
+                    return redirect(url_for("main.settings"))
+
+            user_id = current_user.id
+            logout_user()
+            user = db.session.get(User, user_id)
+            if user is not None:
+                db.session.delete(user)
+                db.session.commit()
+            flash("Your account and conversations were deleted.", "success")
+            return redirect(url_for("main.signup"))
 
     conversation_count = len(list_recent_conversations(current_user, limit=500))
     return render_template(
@@ -882,6 +1110,7 @@ def settings():
         motion_option_cards=_MOTION_OPTION_CARDS,
         conversation_count=conversation_count,
         user_defaults=_user_defaults(),
+        email_managed_by_google=current_user.is_google_linked,
     )
 
 

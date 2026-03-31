@@ -28,6 +28,8 @@ Set a local session secret and database path:
 ```bash
 SECRET_KEY=change-me-for-local-dev
 DATABASE_URL=sqlite:///instance/velosite.db
+GOOGLE_OAUTH_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=your-google-oauth-client-secret
 ```
 
 Then set at least one Gemini key:
@@ -75,10 +77,22 @@ If `5001` is already in use and `PORT` is unset, local startup now automatically
 ## Local Accounts and Chat History
 
 - Accounts use local `email + password` authentication via Flask sessions.
+- Google OAuth sign-in is also supported when `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` are configured.
 - User data, settings, conversations, and resumable Studio/chat history are stored in `SQLite` by default at `instance/velosite.db`.
 - Brand-new signups complete a short first-time onboarding step before entering `/app`; existing users continue to log in directly.
 - The main dashboard and all `/preview/*` authoring routes require login.
 - Published share links under `/published/<publish_id>` stay public.
+
+### Google OAuth setup
+
+1. In Google Cloud Console, create an OAuth client for a web application.
+2. Add the callback URL to that client:
+   - Local: `http://localhost:5001/auth/google/callback`
+   - Production: `https://<your-domain>/auth/google/callback`
+3. Add the generated client ID and client secret to `.env` or your deployment environment.
+4. Restart the Flask app and use the Google button on `/login` or `/signup`.
+
+The server uses the OpenID Connect authorization-code flow, verifies the returned ID token, and links Google sign-in to an existing account automatically when the verified Google email matches an existing user.
 
 ### 5) Run tests
 
@@ -115,6 +129,8 @@ Render uses `render.yaml` automatically:
 - `GEMINI_ROTATION_RETRY_BACKOFF_SECONDS` (optional, defaults to `0.35`)
 - `SECRET_KEY` (required for stable Flask sessions)
 - `DATABASE_URL` (optional, defaults to `sqlite:///instance/velosite.db`)
+- `GOOGLE_OAUTH_CLIENT_ID` (optional, enables Google sign-in when paired with the secret)
+- `GOOGLE_OAUTH_CLIENT_SECRET` (optional, enables Google sign-in when paired with the client ID)
 - `REDIS_URL` (recommended if you want more than one web worker)
 
 Optional:

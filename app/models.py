@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import secrets
 from datetime import UTC, datetime
 
 from flask_login import UserMixin
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
 
@@ -18,6 +20,10 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     display_name = db.Column(db.String(120), nullable=False, default="")
+    google_sub = db.Column(db.String(255), unique=True, nullable=True, index=True)
+    avatar_url = db.Column(db.String(512), nullable=False, default="")
+    auth_provider = db.Column(db.String(32), nullable=False, default="password")
+    email_verified = db.Column(db.Boolean, nullable=False, default=False)
     default_brand_tone = db.Column(db.String(160), nullable=False, default="")
     default_content_density = db.Column(db.String(24), nullable=False, default="balanced")
     default_motion_level = db.Column(db.String(24), nullable=False, default="moderate")
@@ -37,6 +43,38 @@ class User(UserMixin, db.Model):
         cascade="all, delete-orphan",
         uselist=False,
     )
+
+    @staticmethod
+    def make_unusable_password() -> str:
+        return generate_password_hash(secrets.token_urlsafe(32))
+
+    @property
+    def is_google_linked(self) -> bool:
+        return bool((self.google_sub or "").strip())
+
+    @property
+    def has_password_login(self) -> bool:
+        return self.auth_provider in {"password", "google+password"}
+
+    def set_password(self, raw_password: str) -> None:
+        self.password_hash = generate_password_hash(raw_password)
+        self.auth_provider = "google+password" if self.is_google_linked else "password"
+
+    def check_password(self, raw_password: str) -> bool:
+        if not self.has_password_login:
+            return False
+        password_hash = (self.password_hash or "").strip()
+        if not password_hash:
+            return False
+        return check_password_hash(password_hash, raw_password)
+
+    def sync_auth_provider(self) -> None:
+        if self.is_google_linked and self.has_password_login:
+            self.auth_provider = "google+password"
+        elif self.is_google_linked:
+            self.auth_provider = "google"
+        else:
+            self.auth_provider = "password"
 
 
 class UserOnboarding(db.Model):

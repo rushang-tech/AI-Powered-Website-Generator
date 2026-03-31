@@ -1,14 +1,16 @@
 import os
 import tempfile
 import unittest
+from datetime import UTC, datetime
 from urllib.parse import quote
 from unittest.mock import patch
 
 from app import create_app
 from app.extensions import db
-from app.models import Conversation, Message, User
+from app.models import Conversation, Message, User, UserOnboarding
 from app.services.contracts import ProjectManifest
 from app.services.conversation_service import create_conversation, manifest_from_conversation
+from app.services.google_oauth import GoogleOAuthProfile
 from app.services.published_site_service import PUBLISHED_SITE_SERVICE
 from werkzeug.security import generate_password_hash
 
@@ -135,6 +137,8 @@ class RouteTests(unittest.TestCase):
                 "TESTING": True,
                 "SECRET_KEY": "test-secret",
                 "SQLALCHEMY_DATABASE_URI": f"sqlite:///{database_path}",
+                "GOOGLE_OAUTH_CLIENT_ID": "test-client-id.apps.googleusercontent.com",
+                "GOOGLE_OAUTH_CLIENT_SECRET": "test-client-secret",
             }
         )
         self.client = self.app.test_client()
@@ -202,6 +206,11 @@ class RouteTests(unittest.TestCase):
     def _logout(self):
         response = self.client.post("/logout")
         self.assertEqual(response.status_code, 302)
+
+    def _force_login(self, user_id: int):
+        with self.client.session_transaction() as session:
+            session["_user_id"] = str(user_id)
+            session["_fresh"] = True
 
     def _seed_conversation(self, *, email: str = "rush@example.com", preview_id: str = "preview-123", title: str | None = None):
         with self.app.app_context():
@@ -360,6 +369,97 @@ class RouteTests(unittest.TestCase):
             self.assertNotIn("Pricing", body)
             self.assertNotIn("Open App", body)
             self.assertNotIn("m-menu-toggle", body)
+
+    @patch("app.routes.build_google_authorization_url")
+    def test_google_start_redirects_to_provider_and_stores_flow(self, mocked_build_auth_url):
+        mocked_build_auth_url.return_value = "https://accounts.google.com/o/oauth2/v2/auth?state=test-state"
+
+        response = self.client.get("/auth/google?mode=login&next=/app")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], mocked_build_auth_url.return_value)
+        with self.client.session_transaction() as session:
+            flow = session.get("google_oauth_flow")
+        self.assertEqual(flow["mode"], "login")
+        self.assertEqual(flow["next"], "/app")
+        self.assertTrue(flow["state"])
+        self.assertTrue(flow["nonce"])
+
+    @patch("app.routes.verify_google_id_token")
+    @patch("app.routes.exchange_google_code_for_tokens")
+    def test_google_callback_creates_user_and_redirects_to_onboarding(self, mocked_exchange_tokens, mocked_verify_token):
+        mocked_exchange_tokens.return_value = {"id_token": "header.payload.signature"}
+        mocked_verify_token.return_value = GoogleOAuthProfile(
+            sub="google-sub-new-user",
+            email="google-new@example.com",
+            email_verified=True,
+            name="Google New User",
+            picture="https://example.com/avatar.png",
+        )
+
+        with self.client.session_transaction() as session:
+            session["google_oauth_flow"] = {
+                "state": "google-state-1",
+                "nonce": "google-nonce-1",
+                "next": "/app",
+                "mode": "signup",
+            }
+
+        response = self.client.get("/auth/google/callback?state=google-state-1&code=google-code-1")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/onboarding", response.headers["Location"])
+        self.assertIn("next=/app", response.headers["Location"])
+        with self.app.app_context():
+            user = User.query.filter_by(email="google-new@example.com").first()
+            self.assertIsNotNone(user)
+            self.assertEqual(user.google_sub, "google-sub-new-user")
+            self.assertEqual(user.auth_provider, "google")
+            self.assertFalse(user.has_password_login)
+            self.assertTrue(user.email_verified)
+            self.assertEqual(user.avatar_url, "https://example.com/avatar.png")
+            self.assertIsNotNone(user.onboarding)
+            self.assertIsNone(user.onboarding.completed_at)
+
+    @patch("app.routes.verify_google_id_token")
+    @patch("app.routes.exchange_google_code_for_tokens")
+    def test_google_callback_links_existing_password_user(self, mocked_exchange_tokens, mocked_verify_token):
+        email = "linked@example.com"
+        password = "password123"
+        self._signup_and_login(email=email, password=password)
+        self._logout()
+
+        mocked_exchange_tokens.return_value = {"id_token": "header.payload.signature"}
+        mocked_verify_token.return_value = GoogleOAuthProfile(
+            sub="google-sub-linked-user",
+            email=email,
+            email_verified=True,
+            name="Linked User",
+            picture="https://example.com/linked.png",
+        )
+
+        with self.client.session_transaction() as session:
+            session["google_oauth_flow"] = {
+                "state": "google-state-2",
+                "nonce": "google-nonce-2",
+                "next": "/app",
+                "mode": "login",
+            }
+
+        response = self.client.get("/auth/google/callback?state=google-state-2&code=google-code-2")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/app", response.headers["Location"])
+        with self.app.app_context():
+            user = User.query.filter_by(email=email).first()
+            self.assertEqual(user.google_sub, "google-sub-linked-user")
+            self.assertEqual(user.auth_provider, "google+password")
+            self.assertTrue(user.has_password_login)
+            self.assertTrue(user.email_verified)
+
+        self._logout()
+        relogin = self.client.post("/login", data={"email": email, "password": password})
+        self.assertEqual(relogin.status_code, 302)
 
     @patch("app.routes.generate_project_manifest")
     def test_generate_returns_variant_metadata_and_creates_conversation(self, mocked_generate):
@@ -589,6 +689,78 @@ class RouteTests(unittest.TestCase):
             self.assertEqual(User.query.count(), 0)
             self.assertEqual(Conversation.query.count(), 0)
             self.assertEqual(Message.query.count(), 0)
+
+    def test_google_only_user_can_add_password_from_settings(self):
+        email = "google-only@example.com"
+        with self.app.app_context():
+            user = User(
+                email=email,
+                password_hash=User.make_unusable_password(),
+                display_name="Google Only",
+                google_sub="google-only-sub",
+                auth_provider="google",
+                email_verified=True,
+            )
+            db.session.add(user)
+            db.session.flush()
+            db.session.add(
+                UserOnboarding(
+                    user_id=user.id,
+                    completed_at=datetime.now(UTC),
+                )
+            )
+            db.session.commit()
+            user_id = user.id
+
+        self._force_login(user_id)
+        password_response = self.client.post(
+            "/settings",
+            data={
+                "action": "password",
+                "new_password": "newpassword123",
+                "confirm_password": "newpassword123",
+            },
+            follow_redirects=True,
+        )
+        self.assertEqual(password_response.status_code, 200)
+        self.assertIn("Password added.", password_response.get_data(as_text=True))
+
+        self._logout()
+        relogin = self.client.post("/login", data={"email": email, "password": "newpassword123"})
+        self.assertEqual(relogin.status_code, 302)
+
+    def test_google_only_user_can_delete_account_with_email_confirmation(self):
+        with self.app.app_context():
+            user = User(
+                email="delete-google@example.com",
+                password_hash=User.make_unusable_password(),
+                display_name="Delete Me",
+                google_sub="google-delete-sub",
+                auth_provider="google",
+                email_verified=True,
+            )
+            db.session.add(user)
+            db.session.flush()
+            db.session.add(
+                UserOnboarding(
+                    user_id=user.id,
+                    completed_at=datetime.now(UTC),
+                )
+            )
+            db.session.commit()
+            user_id = user.id
+
+        self._force_login(user_id)
+        delete_response = self.client.post(
+            "/settings",
+            data={"action": "delete", "confirmation_email": "delete-google@example.com"},
+            follow_redirects=True,
+        )
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertIn("deleted", delete_response.get_data(as_text=True).lower())
+
+        with self.app.app_context():
+            self.assertEqual(User.query.filter_by(email="delete-google@example.com").count(), 0)
 
     def test_settings_renders_density_and_motion_option_cards(self):
         self._signup_and_login()

@@ -26,7 +26,16 @@
                 </label>
                 <label class="field">
                     <span>Email</span>
-                    <input name="email" type="email" value="{{ current_user.email }}" required>
+                    <input
+                        name="email"
+                        type="email"
+                        value="{{ current_user.email }}"
+                        {% if email_managed_by_google %}readonly{% endif %}
+                        required
+                    >
+                    {% if email_managed_by_google %}
+                    <small class="field-hint">Email is managed by your linked Google account.</small>
+                    {% endif %}
                 </label>
                 <label class="field">
                     <span>Default brand tone</span>
@@ -92,14 +101,19 @@
     <article class="settings-card settings-card-split">
         <section>
             <p class="eyebrow">Security</p>
-            <h2>Change password</h2>
+            <h2>{% if current_user.has_password_login %}Change password{% else %}Create a password{% endif %}</h2>
+            {% if not current_user.has_password_login %}
+            <p class="settings-copy">You currently sign in with Google. Add a password if you also want email login.</p>
+            {% endif %}
             <form class="settings-form" method="post">
                 <input type="hidden" name="action" value="password">
                 <div class="brief-grid">
+                    {% if current_user.has_password_login %}
                     <label class="field">
                         <span>Current password</span>
                         <input name="current_password" type="password" autocomplete="current-password" required>
                     </label>
+                    {% endif %}
                     <label class="field">
                         <span>New password</span>
                         <input name="new_password" type="password" autocomplete="new-password" minlength="8" required>
@@ -109,7 +123,7 @@
                         <input name="confirm_password" type="password" autocomplete="new-password" minlength="8" required>
                     </label>
                 </div>
-                <button class="btn btn-primary" type="submit">Update Password</button>
+                <button class="btn btn-primary" type="submit">{% if current_user.has_password_login %}Update Password{% else %}Add Password{% endif %}</button>
             </form>
         </section>
 
@@ -119,10 +133,17 @@
             <p class="settings-copy">This permanently removes your user, conversations, and chat history.</p>
             <form class="settings-form" method="post">
                 <input type="hidden" name="action" value="delete">
+                {% if current_user.has_password_login %}
                 <label class="field">
                     <span>Current password</span>
                     <input name="current_password" type="password" autocomplete="current-password" required>
                 </label>
+                {% else %}
+                <label class="field">
+                    <span>Type your email to confirm</span>
+                    <input name="confirmation_email" type="email" autocomplete="email" required>
+                </label>
+                {% endif %}
                 <button class="btn danger-btn" type="submit">Delete Account</button>
             </form>
         </section>
