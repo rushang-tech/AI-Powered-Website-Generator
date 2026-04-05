@@ -34,11 +34,39 @@ if (form) {
     /* ── Details toggle (progressive disclosure) ── */
     const detailsToggle = document.getElementById("details-toggle");
     const detailsPanel = document.getElementById("details-panel");
+    let hasVisitedDetailsStep = !detailsPanel;
+
+    function setDetailsOpen(isOpen) {
+        if (!detailsPanel) {
+            return;
+        }
+        detailsPanel.classList.toggle("is-open", isOpen);
+        if (detailsToggle) {
+            detailsToggle.classList.toggle("is-open", isOpen);
+            detailsToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        }
+    }
+
+    function revealDetailsStep({ focusField = false } = {}) {
+        if (!detailsPanel) {
+            return;
+        }
+        setDetailsOpen(true);
+        hasVisitedDetailsStep = true;
+        detailsPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        if (focusField && audienceInput) {
+            audienceInput.focus();
+        }
+    }
 
     if (detailsToggle && detailsPanel) {
+        setDetailsOpen(detailsPanel.classList.contains("is-open"));
         detailsToggle.addEventListener("click", () => {
-            const isOpen = detailsPanel.classList.toggle("is-open");
-            detailsToggle.classList.toggle("is-open", isOpen);
+            const isOpen = !detailsPanel.classList.contains("is-open");
+            setDetailsOpen(isOpen);
+            if (isOpen) {
+                hasVisitedDetailsStep = true;
+            }
         });
     }
 
@@ -290,10 +318,7 @@ if (form) {
     document.querySelectorAll("[data-sample]").forEach((chip) => {
         chip.addEventListener("click", () => {
             goalInput.value = chip.getAttribute("data-sample");
-            if (detailsPanel && !detailsPanel.classList.contains("is-open")) {
-                detailsPanel.classList.add("is-open");
-                if (detailsToggle) detailsToggle.classList.add("is-open");
-            }
+            revealDetailsStep();
             if (audienceInput && !audienceInput.value) {
                 audienceInput.value = "People ready to buy quickly";
             }
@@ -308,10 +333,7 @@ if (form) {
     if (demoBriefBtn) {
         demoBriefBtn.addEventListener("click", () => {
             goalInput.value = demoBrief.goal || goalInput.value;
-            if (detailsPanel && !detailsPanel.classList.contains("is-open")) {
-                detailsPanel.classList.add("is-open");
-                if (detailsToggle) detailsToggle.classList.add("is-open");
-            }
+            revealDetailsStep();
             if (audienceInput) audienceInput.value = demoBrief.audience || audienceInput.value;
             if (toneInput) toneInput.value = demoBrief.brand_tone || toneInput.value;
             const densitySelect = densityInput ? densityInput.closest("[data-brief-select]") : null;
@@ -322,6 +344,23 @@ if (form) {
             if (notesInput) notesInput.value = demoBrief.notes || notesInput.value;
             setBusy(false, "Demo prompt loaded. Hit → to generate.");
             goalInput.focus();
+        });
+    }
+
+    if (goalInput) {
+        goalInput.addEventListener("keydown", (event) => {
+            if (event.isComposing || event.key !== "Enter" || event.shiftKey) {
+                return;
+            }
+            if (event.metaKey || event.ctrlKey || event.altKey) {
+                return;
+            }
+            event.preventDefault();
+            if (typeof form.requestSubmit === "function") {
+                form.requestSubmit();
+                return;
+            }
+            form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
         });
     }
 
@@ -347,6 +386,20 @@ if (form) {
     /* ── Form submit ── */
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
+        const goal = goalInput.value.trim();
+
+        if (!goal) {
+            setBusy(false, "Describe what you want to build.");
+            goalInput.focus();
+            return;
+        }
+
+        if (!hasVisitedDetailsStep) {
+            revealDetailsStep({ focusField: true });
+            setBusy(false, "Details opened. Add anything you want, then generate again.");
+            return;
+        }
+
         let brandAssets = [];
         try {
             brandAssets = await serializeBrandAssets(brandAssetsInput ? brandAssetsInput.files : []);
@@ -355,7 +408,7 @@ if (form) {
             return;
         }
         const brief = {
-            goal: goalInput.value.trim(),
+            goal,
             audience: audienceInput ? audienceInput.value.trim() : "",
             brand_tone: toneInput ? toneInput.value.trim() : "",
             content_density: densityInput ? densityInput.value : "balanced",
@@ -365,12 +418,6 @@ if (form) {
             brand_assets: brandAssets,
             icon_style: iconStyleInput ? iconStyleInput.value.trim() : "",
         };
-
-        if (!brief.goal) {
-            setBusy(false, "Describe what you want to build.");
-            goalInput.focus();
-            return;
-        }
 
         if (!brief.audience) brief.audience = "General audience";
         if (!brief.brand_tone) brief.brand_tone = "Clear and modern";

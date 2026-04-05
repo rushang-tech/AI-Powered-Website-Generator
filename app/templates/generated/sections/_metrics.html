@@ -1,9 +1,21 @@
 {% set is_consumer = consumer_mode|default(false) %}
+{% set plan = selected_variant.render_plan %}
 {% set metrics_title = selected_variant.content.metrics_title or ("Performance at a glance" if is_consumer else "Numbers that support the point, not distract from it.") %}
 {% set metrics_intro = selected_variant.content.metrics_intro or ("A few signals that make the promise easier to trust." if is_consumer else "") %}
+
+{# ── Determine metrics layout variant ── #}
+{% set metric_mode = "default" %}
+{% if plan.art_direction in ("cyber_signal",) %}
+    {% set metric_mode = "counter" %}
+{% elif plan.art_direction in ("luxury_serif", "botanical_noir", "modern_editorial") %}
+    {% set metric_mode = "strip" %}
+{% elif plan.art_direction in ("playful_blocks",) %}
+    {% set metric_mode = "pills" %}
+{% endif %}
+
 <section
     id="section-metrics"
-    class="preview-section metrics-section"
+    class="preview-section metrics-section metric-mode-{{ metric_mode }}"
     data-section="metrics"
     data-node-id="section-metrics"
     data-node-type="section"
@@ -19,9 +31,77 @@
                 {% endif %}
             </div>
             {% if not is_consumer %}
-            <span class="section-chip">{{ selected_variant.render_plan.layout_mode|replace("_", " ")|title }}</span>
+            <span class="section-chip">{{ plan.layout_mode|replace("_", " ")|title }}</span>
             {% endif %}
         </div>
+
+        {# ═══════════════════════════════ #}
+        {# COUNTER — cyber signal         #}
+        {# ═══════════════════════════════ #}
+        {% if metric_mode == "counter" %}
+        <div class="metric-counter-grid">
+            <article class="metric-card metric-counter-card">
+                <span class="metric-counter-label">SYS.01</span>
+                <strong class="metric-value metric-value-mono" data-node-id="metric-1-value" data-node-type="text" data-edit-path="stat_1_value" data-section="metrics">{{ selected_variant.content.stat_1_value }}</strong>
+                <p class="metric-label" data-node-id="metric-1-label" data-node-type="text" data-edit-path="stat_1_label" data-section="metrics">{{ selected_variant.content.stat_1_label }}</p>
+            </article>
+            <article class="metric-card metric-counter-card">
+                <span class="metric-counter-label">SYS.02</span>
+                <strong class="metric-value metric-value-mono" data-node-id="metric-2-value" data-node-type="text" data-edit-path="stat_2_value" data-section="metrics">{{ selected_variant.content.stat_2_value }}</strong>
+                <p class="metric-label" data-node-id="metric-2-label" data-node-type="text" data-edit-path="stat_2_label" data-section="metrics">{{ selected_variant.content.stat_2_label }}</p>
+            </article>
+            <article class="metric-card metric-counter-card">
+                <span class="metric-counter-label">SYS.03</span>
+                <strong class="metric-value metric-value-mono" data-node-id="metric-3-value" data-node-type="text" data-edit-path="stat_3_value" data-section="metrics">{{ selected_variant.content.stat_3_value }}</strong>
+                <p class="metric-label" data-node-id="metric-3-label" data-node-type="text" data-edit-path="stat_3_label" data-section="metrics">{{ selected_variant.content.stat_3_label }}</p>
+            </article>
+        </div>
+
+        {# ═══════════════════════════════ #}
+        {# STRIP — luxury / editorial     #}
+        {# ═══════════════════════════════ #}
+        {% elif metric_mode == "strip" %}
+        <div class="metric-strip">
+            <article class="metric-strip-item">
+                <strong class="metric-value" data-node-id="metric-1-value" data-node-type="text" data-edit-path="stat_1_value" data-section="metrics">{{ selected_variant.content.stat_1_value }}</strong>
+                <span class="metric-strip-rule"></span>
+                <p class="metric-label" data-node-id="metric-1-label" data-node-type="text" data-edit-path="stat_1_label" data-section="metrics">{{ selected_variant.content.stat_1_label }}</p>
+            </article>
+            <article class="metric-strip-item">
+                <strong class="metric-value" data-node-id="metric-2-value" data-node-type="text" data-edit-path="stat_2_value" data-section="metrics">{{ selected_variant.content.stat_2_value }}</strong>
+                <span class="metric-strip-rule"></span>
+                <p class="metric-label" data-node-id="metric-2-label" data-node-type="text" data-edit-path="stat_2_label" data-section="metrics">{{ selected_variant.content.stat_2_label }}</p>
+            </article>
+            <article class="metric-strip-item">
+                <strong class="metric-value" data-node-id="metric-3-value" data-node-type="text" data-edit-path="stat_3_value" data-section="metrics">{{ selected_variant.content.stat_3_value }}</strong>
+                <span class="metric-strip-rule"></span>
+                <p class="metric-label" data-node-id="metric-3-label" data-node-type="text" data-edit-path="stat_3_label" data-section="metrics">{{ selected_variant.content.stat_3_label }}</p>
+            </article>
+        </div>
+
+        {# ═══════════════════════════════ #}
+        {# PILLS — playful blocks         #}
+        {# ═══════════════════════════════ #}
+        {% elif metric_mode == "pills" %}
+        <div class="metric-pill-row">
+            <article class="metric-pill">
+                <strong class="metric-value" data-node-id="metric-1-value" data-node-type="text" data-edit-path="stat_1_value" data-section="metrics">{{ selected_variant.content.stat_1_value }}</strong>
+                <p class="metric-label" data-node-id="metric-1-label" data-node-type="text" data-edit-path="stat_1_label" data-section="metrics">{{ selected_variant.content.stat_1_label }}</p>
+            </article>
+            <article class="metric-pill">
+                <strong class="metric-value" data-node-id="metric-2-value" data-node-type="text" data-edit-path="stat_2_value" data-section="metrics">{{ selected_variant.content.stat_2_value }}</strong>
+                <p class="metric-label" data-node-id="metric-2-label" data-node-type="text" data-edit-path="stat_2_label" data-section="metrics">{{ selected_variant.content.stat_2_label }}</p>
+            </article>
+            <article class="metric-pill">
+                <strong class="metric-value" data-node-id="metric-3-value" data-node-type="text" data-edit-path="stat_3_value" data-section="metrics">{{ selected_variant.content.stat_3_value }}</strong>
+                <p class="metric-label" data-node-id="metric-3-label" data-node-type="text" data-edit-path="stat_3_label" data-section="metrics">{{ selected_variant.content.stat_3_label }}</p>
+            </article>
+        </div>
+
+        {# ═══════════════════════════════ #}
+        {# DEFAULT — card grid            #}
+        {# ═══════════════════════════════ #}
+        {% else %}
         <div class="metric-grid">
             <article class="metric-card">
                 <span class="section-index">01</span>
@@ -39,5 +119,6 @@
                 <p class="metric-label" data-node-id="metric-3-label" data-node-type="text" data-edit-path="stat_3_label" data-section="metrics">{{ selected_variant.content.stat_3_label }}</p>
             </article>
         </div>
+        {% endif %}
     </div>
 </section>

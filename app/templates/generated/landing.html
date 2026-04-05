@@ -1,131 +1,716 @@
-<article class="generated-site landing-site">
-    <header class="landing-topbar" data-section="hero">
-        <div class="brand-row">
-            <p class="eyebrow {{ data.theme.accent_classes }}">{{ data.theme.name }}</p>
-            <span class="mini-status {{ data.theme.muted_text_classes }}">Generated from your prompt</span>
-        </div>
-        <h2 class="hero-title {{ data.theme.text_classes }}">{{ data.content.hero_title }}</h2>
-        <p class="hero-subtitle {{ data.theme.muted_text_classes }}">{{ data.content.hero_subtitle }}</p>
-        <div class="hero-actions">
-            <button class="cta {{ data.theme.button_classes }}">{{ data.content.cta_text }}</button>
-            <p class="microcopy {{ data.theme.muted_text_classes }}">No code setup required. Launch fast.</p>
-        </div>
+{% set theme = selected_variant.theme or {} %}
+{% set plan = selected_variant.render_plan %}
+{% set preview_name = brief.name or selected_variant.content.hero_title or "VeloSite" %}
+{% set is_consumer = consumer_mode|default(false) %}
+{% set brand_assets = brief.brand_assets or [] %}
+{% set primary_brand_asset = brand_assets[0] if brand_assets else none %}
+{% set support_brand_asset = brand_assets[1] if brand_assets|length > 1 else none %}
+{% set proof_brand_asset = brand_assets[2] if brand_assets|length > 2 else primary_brand_asset %}
+{% set feature_items = selected_variant.content.features or [] %}
+{% set section_labels = {"hero": "Overview", "metrics": "Results", "features": "Highlights", "proof": "Proof", "cta": "Contact"} %}
+<article
+    class="site-preview landing-preview art-{{ plan.art_direction }} layout-{{ plan.layout_mode }} shell-{{ plan.shell_variant }} media-{{ plan.media_direction }} density-{{ plan.density }} motion-{{ plan.motion_level }}"
+    style="
+        --landing-canvas: {{ theme.get('canvas_background', 'linear-gradient(180deg, #f5efe6 0%, #ece4d8 100%)') }};
+        --landing-panel: {{ theme.get('panel_background', 'rgba(255, 252, 247, 0.88)') }};
+        --landing-surface: {{ theme.get('surface', '#fffaf2') }};
+        --landing-surface-alt: {{ theme.get('surface_alt', '#f2ece1') }};
+        --landing-text: {{ theme.get('text', '#171412') }};
+        --landing-muted: {{ theme.get('muted', '#6d645b') }};
+        --landing-accent: {{ theme.get('accent', '#a16e36') }};
+        --landing-accent-soft: {{ theme.get('accent_soft', 'rgba(161, 110, 54, 0.14)') }};
+        --landing-border: {{ theme.get('border', 'rgba(23, 20, 18, 0.12)') }};
+        --landing-button-bg: {{ theme.get('button_bg', '#171412') }};
+        --landing-button-text: {{ theme.get('button_text', '#fdf9f2') }};
+        --landing-display-font: {{ theme.get('display_font', "'Cormorant Garamond', serif") }};
+        --landing-body-font: {{ theme.get('body_font', "'Space Grotesk', sans-serif") }};
+    "
+>
+    {% if is_consumer %}
+    <header class="landing-header">
+        <a class="landing-brand" href="#section-hero">
+            <span class="landing-brand-mark {% if primary_brand_asset %}has-image{% endif %}">
+                {% if primary_brand_asset %}
+                <img src="{{ primary_brand_asset.data_url }}" alt="{{ primary_brand_asset.alt }}">
+                {% endif %}
+            </span>
+            <span>
+                <strong>{{ preview_name }}</strong>
+                <span>{{ brief.audience or "Made for real visitors" }}</span>
+            </span>
+        </a>
+        <nav class="landing-nav" aria-label="Primary">
+            {% for section in plan.section_order %}
+                {% if plan.section_visibility.get(section) and section != "hero" %}
+                <a href="#section-{{ section }}">{{ section_labels.get(section, section|replace("_", " ")|title) }}</a>
+                {% endif %}
+            {% endfor %}
+        </nav>
+        <a class="landing-nav-cta" href="#section-cta">{{ selected_variant.content.cta_text }}</a>
     </header>
+    {% endif %}
 
-    <section class="feature-grid" data-section="highlights">
-        {% for feature in data.content.features %}
-        <div class="feature-card {{ data.theme.card_classes }}">
-            <h3 class="{{ data.theme.text_classes }}">{{ feature.title }}</h3>
-            <p class="{{ data.theme.muted_text_classes }}">{{ feature.desc }}</p>
-        </div>
+    <div class="landing-flow">
+        {% for section in plan.section_order %}
+            {% if plan.section_visibility.get(section) %}
+                {% if section == "hero" %}
+                <section
+                    id="section-hero"
+                    class="preview-section landing-section landing-hero"
+                    data-section="hero"
+                    data-node-id="section-hero"
+                    data-node-type="section"
+                    data-section-name="hero"
+                >
+                    <div class="landing-hero-copy">
+                        <p class="landing-kicker" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                        <h2 class="landing-title" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                        <p class="landing-subtitle" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+                        <div class="landing-hero-actions">
+                            <button class="landing-cta" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                            <p class="landing-cta-note" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</p>
+                        </div>
+                        <div class="landing-chip-row">
+                            {% for feature in feature_items[:3] %}
+                            <span>{{ feature.title }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="landing-hero-stage">
+                        <figure class="landing-stage-media {% if primary_brand_asset %}has-image{% else %}is-placeholder{% endif %}">
+                            {% if primary_brand_asset %}
+                            <img src="{{ primary_brand_asset.data_url }}" alt="{{ primary_brand_asset.alt }}">
+                            {% endif %}
+                            <div class="landing-stage-overlay">
+                                <span>{{ plan.media_direction|replace("_", " ")|title }}</span>
+                                <strong>{{ feature_items[0].title if feature_items else selected_variant.content.metrics_title }}</strong>
+                                <p>{{ feature_items[0].desc if feature_items else selected_variant.content.metrics_intro }}</p>
+                            </div>
+                        </figure>
+                        <div class="landing-signal-stack">
+                            <article class="landing-signal-card">
+                                <span>Conversion signal</span>
+                                <strong data-node-id="metric-1-value" data-node-type="text" data-edit-path="stat_1_value" data-section="hero">{{ selected_variant.content.stat_1_value }}</strong>
+                                <p data-node-id="metric-1-label" data-node-type="text" data-edit-path="stat_1_label" data-section="hero">{{ selected_variant.content.stat_1_label }}</p>
+                            </article>
+                            <article class="landing-signal-card landing-proof-card">
+                                <span>Trust cue</span>
+                                <blockquote data-node-id="proof-quote" data-node-type="text" data-edit-path="proof_quote" data-section="hero">"{{ selected_variant.content.proof_quote }}"</blockquote>
+                                <p data-node-id="proof-author" data-node-type="text" data-edit-path="proof_author" data-section="hero">{{ selected_variant.content.proof_author }}</p>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+                {% elif section == "metrics" %}
+                <section
+                    id="section-metrics"
+                    class="preview-section landing-section landing-metrics"
+                    data-section="metrics"
+                    data-node-id="section-metrics"
+                    data-node-type="section"
+                    data-section-name="metrics"
+                >
+                    <div class="landing-section-head">
+                        <p class="landing-section-label">Results</p>
+                        <h3 class="landing-section-title" data-node-id="metrics-title" data-node-type="text" data-edit-path="metrics_title" data-section="metrics">{{ selected_variant.content.metrics_title }}</h3>
+                        <p class="landing-section-copy" data-node-id="metrics-intro" data-node-type="text" data-edit-path="metrics_intro" data-section="metrics">{{ selected_variant.content.metrics_intro }}</p>
+                    </div>
+                    <div class="landing-metric-ribbon">
+                        <article class="landing-metric-card">
+                            <span>01</span>
+                            <strong data-node-id="metric-ribbon-1-value" data-node-type="text" data-edit-path="stat_1_value" data-section="metrics">{{ selected_variant.content.stat_1_value }}</strong>
+                            <p data-node-id="metric-ribbon-1-label" data-node-type="text" data-edit-path="stat_1_label" data-section="metrics">{{ selected_variant.content.stat_1_label }}</p>
+                        </article>
+                        <article class="landing-metric-card">
+                            <span>02</span>
+                            <strong data-node-id="metric-ribbon-2-value" data-node-type="text" data-edit-path="stat_2_value" data-section="metrics">{{ selected_variant.content.stat_2_value }}</strong>
+                            <p data-node-id="metric-ribbon-2-label" data-node-type="text" data-edit-path="stat_2_label" data-section="metrics">{{ selected_variant.content.stat_2_label }}</p>
+                        </article>
+                        <article class="landing-metric-card">
+                            <span>03</span>
+                            <strong data-node-id="metric-ribbon-3-value" data-node-type="text" data-edit-path="stat_3_value" data-section="metrics">{{ selected_variant.content.stat_3_value }}</strong>
+                            <p data-node-id="metric-ribbon-3-label" data-node-type="text" data-edit-path="stat_3_label" data-section="metrics">{{ selected_variant.content.stat_3_label }}</p>
+                        </article>
+                    </div>
+                </section>
+                {% elif section == "features" %}
+                <section
+                    id="section-features"
+                    class="preview-section landing-section landing-features"
+                    data-section="features"
+                    data-node-id="section-features"
+                    data-node-type="section"
+                    data-section-name="features"
+                >
+                    <div class="landing-section-head">
+                        <p class="landing-section-label">Highlights</p>
+                        <h3 class="landing-section-title" data-node-id="features-title" data-node-type="text" data-edit-path="features_title" data-section="features">{{ selected_variant.content.features_title }}</h3>
+                        <p class="landing-section-copy" data-node-id="features-intro" data-node-type="text" data-edit-path="features_intro" data-section="features">{{ selected_variant.content.features_intro }}</p>
+                    </div>
+                    <div class="landing-feature-grid">
+                        {% for feature in feature_items %}
+                        {% set feature_asset = brand_assets[loop.index0 % (brand_assets|length)] if brand_assets else none %}
+                        <article
+                            class="landing-feature-card {% if loop.first %}is-spotlight{% endif %}"
+                            data-node-id="features-{{ loop.index0 }}"
+                            data-node-type="list-item"
+                            data-edit-path="features.{{ loop.index0 }}"
+                            data-list-key="features"
+                            data-item-index="{{ loop.index0 }}"
+                            data-edit-fields="title,desc"
+                            data-section="features"
+                        >
+                            <figure class="landing-feature-media {% if feature_asset %}has-image{% else %}is-placeholder{% endif %}">
+                                {% if feature_asset %}
+                                <img src="{{ feature_asset.data_url }}" alt="{{ feature_asset.alt }}">
+                                {% endif %}
+                            </figure>
+                            <div class="landing-feature-copy">
+                                <span>{{ "%02d"|format(loop.index) }}</span>
+                                <h4 data-node-id="features-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.title" data-item-field="title" data-section="features">{{ feature.title }}</h4>
+                                <p data-node-id="features-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.desc" data-item-field="desc" data-section="features">{{ feature.desc }}</p>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "proof" %}
+                <section
+                    id="section-proof"
+                    class="preview-section landing-section landing-proof"
+                    data-section="proof"
+                    data-node-id="section-proof"
+                    data-node-type="section"
+                    data-section-name="proof"
+                >
+                    <div class="landing-proof-copy">
+                        <p class="landing-section-label">Proof</p>
+                        <blockquote class="landing-proof-quote" data-node-id="proof-quote-main" data-node-type="text" data-edit-path="proof_quote" data-section="proof">"{{ selected_variant.content.proof_quote }}"</blockquote>
+                        <p class="landing-proof-author" data-node-id="proof-author-main" data-node-type="text" data-edit-path="proof_author" data-section="proof">{{ selected_variant.content.proof_author }}</p>
+                    </div>
+                    <aside class="landing-proof-panel">
+                        <figure class="landing-proof-portrait {% if proof_brand_asset %}has-image{% else %}is-placeholder{% endif %}">
+                            {% if proof_brand_asset %}
+                            <img src="{{ proof_brand_asset.data_url }}" alt="{{ proof_brand_asset.alt }}">
+                            {% endif %}
+                        </figure>
+                        <div>
+                            <strong>{{ brief.audience or "High-intent visitors" }}</strong>
+                            <p>{{ plan.shell_variant|replace("_", " ")|title }} route with {{ plan.navigation_style|replace("_", " ")|title }} navigation.</p>
+                        </div>
+                    </aside>
+                </section>
+                {% elif section == "cta" %}
+                <section
+                    id="section-cta"
+                    class="preview-section landing-section landing-cta-band"
+                    data-section="cta"
+                    data-node-id="section-cta"
+                    data-node-type="section"
+                    data-section-name="cta"
+                >
+                    <div class="landing-cta-copy">
+                        <p class="landing-section-label">Next step</p>
+                        <h3 data-node-id="cta-title" data-node-type="text" data-edit-path="cta_text" data-section="cta">{{ selected_variant.content.cta_text }}</h3>
+                        <p data-node-id="cta-note" data-node-type="text" data-edit-path="cta_note" data-section="cta">{{ selected_variant.content.cta_note }}</p>
+                    </div>
+                    <div class="landing-cta-actions">
+                        <button class="landing-cta" type="button">{{ selected_variant.content.cta_text }}</button>
+                        <div class="landing-cta-meta">
+                            <span>{{ plan.vibe|replace("_", " ")|title }}</span>
+                            <span>{{ plan.art_direction|replace("_", " ")|title }}</span>
+                        </div>
+                    </div>
+                </section>
+                {% endif %}
+            {% endif %}
         {% endfor %}
-    </section>
-
-    <section class="detail-band" data-section="details">
-        <p class="detail-copy {{ data.theme.muted_text_classes }}">
-            This generated layout uses high-intent landing structure: clear value prop, focused CTA, and scannable benefits.
-        </p>
-    </section>
+    </div>
 </article>
 
 <style>
-    .generated-site {
-        max-width: 1060px;
-        margin: 0 auto;
-    }
-    .landing-site {
-        display: grid;
-        gap: 24px;
-    }
-    .landing-topbar {
-        position: relative;
-        border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
-        border-radius: 18px;
-        padding: clamp(22px, 3.5vw, 42px);
+    .landing-preview {
+        color: var(--landing-text);
         background:
-            radial-gradient(circle at 85% 12%, rgba(255, 255, 255, 0.18), transparent 42%),
-            color-mix(in srgb, currentColor 6%, transparent);
+            radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.6), transparent 24%),
+            radial-gradient(circle at 88% 14%, var(--landing-accent-soft), transparent 28%),
+            var(--landing-canvas);
+        padding: clamp(18px, 2.6vw, 32px);
+        border-radius: 34px;
+        border: 1px solid color-mix(in srgb, var(--landing-border) 70%, transparent);
+        box-shadow: 0 28px 80px color-mix(in srgb, var(--landing-accent-soft) 22%, rgba(15, 12, 10, 0.08));
+        font-family: var(--landing-body-font);
     }
-    .brand-row {
+    .landing-header,
+    .landing-section,
+    .landing-signal-card,
+    .landing-feature-card,
+    .landing-proof-panel {
+        backdrop-filter: blur(14px);
+    }
+    .landing-header {
         display: flex;
+        align-items: center;
         justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 18px;
+        padding: 12px 14px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--landing-panel) 82%, white 18%);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--landing-border) 66%, transparent);
     }
-    .eyebrow {
-        margin: 0;
-        font-size: 0.78rem;
+    .landing-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: inherit;
+        text-decoration: none;
+        min-width: 0;
+    }
+    .landing-brand-mark {
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        background: var(--landing-accent);
+        flex: 0 0 auto;
+    }
+    .landing-brand-mark.has-image {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    .landing-brand-mark img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .landing-brand strong,
+    .landing-nav-cta,
+    .landing-title,
+    .landing-section-title,
+    .landing-proof-quote,
+    .landing-cta-copy h3 {
+        font-family: var(--landing-display-font);
+    }
+    .landing-brand strong {
+        display: block;
+        font-size: 1rem;
+        letter-spacing: -0.03em;
+    }
+    .landing-brand span span {
+        color: var(--landing-muted);
+        font-size: 0.76rem;
+    }
+    .landing-nav,
+    .landing-nav a,
+    .landing-chip-row span,
+    .landing-cta-meta span {
+        display: inline-flex;
+        align-items: center;
+    }
+    .landing-nav {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .landing-nav a,
+    .landing-nav-cta,
+    .landing-chip-row span,
+    .landing-cta-meta span,
+    .landing-feature-copy span,
+    .landing-metric-card span {
+        border-radius: 999px;
+        text-decoration: none;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        letter-spacing: 0.14em;
+        font-size: 0.72rem;
     }
-    .mini-status {
+    .landing-nav a {
+        padding: 8px 12px;
+        color: var(--landing-muted);
+        background: color-mix(in srgb, var(--landing-surface) 72%, white 28%);
+    }
+    .landing-nav-cta {
+        min-height: 42px;
+        padding: 0 18px;
+        background: var(--landing-button-bg);
+        color: var(--landing-button-text);
+    }
+    .landing-flow {
+        display: grid;
+        gap: 18px;
+    }
+    .landing-section {
+        position: relative;
+        overflow: hidden;
+        border-radius: 30px;
+        background: color-mix(in srgb, var(--landing-panel) 84%, white 16%);
+        box-shadow:
+            inset 0 0 0 1px color-mix(in srgb, var(--landing-border) 62%, transparent),
+            0 18px 40px color-mix(in srgb, var(--landing-accent-soft) 16%, transparent);
+    }
+    .landing-hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+        gap: 22px;
+        padding: clamp(24px, 3vw, 38px);
+        align-items: stretch;
+        background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 40%),
+            linear-gradient(180deg, color-mix(in srgb, var(--landing-surface) 84%, white 16%), color-mix(in srgb, var(--landing-surface-alt) 70%, transparent));
+    }
+    .landing-kicker,
+    .landing-section-label {
+        margin: 0 0 12px;
+        color: var(--landing-accent);
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+    .landing-title {
         margin: 0;
-        font-size: 0.84rem;
+        font-size: clamp(3rem, 7vw, 6.4rem);
+        line-height: 0.92;
+        letter-spacing: -0.05em;
+        max-width: 8ch;
     }
-    .hero-title {
-        margin: 12px 0 10px;
-        font-family: "Source Serif 4", serif;
-        font-size: clamp(2.2rem, 5vw, 4.4rem);
-        line-height: 1.02;
-        max-width: 920px;
-    }
-    .hero-subtitle {
+    .landing-subtitle,
+    .landing-section-copy,
+    .landing-proof-panel p,
+    .landing-cta-copy p {
         margin: 0;
-        font-size: clamp(1.02rem, 1.8vw, 1.26rem);
-        line-height: 1.65;
-        max-width: 760px;
+        color: var(--landing-muted);
+        line-height: 1.7;
+        font-size: 1rem;
     }
-    .hero-actions {
-        margin-top: 20px;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
+    .landing-hero-copy,
+    .landing-hero-stage,
+    .landing-stage-overlay,
+    .landing-feature-copy,
+    .landing-proof-copy,
+    .landing-cta-copy {
+        display: grid;
         gap: 14px;
     }
-    .cta {
-        border: 0;
-        padding: 12px 20px;
-        font: inherit;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .microcopy {
-        margin: 0;
-        font-size: 0.88rem;
-    }
-    .feature-grid {
+    .landing-hero-actions {
         display: grid;
         gap: 12px;
-        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        margin-top: 8px;
     }
-    .feature-card {
-        border-radius: 14px;
+    .landing-cta {
+        appearance: none;
+        border: 0;
+        border-radius: 18px;
+        background: var(--landing-button-bg);
+        color: var(--landing-button-text);
+        padding: 14px 20px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        justify-self: start;
+        box-shadow: 0 18px 36px color-mix(in srgb, var(--landing-accent-soft) 28%, transparent);
+    }
+    .landing-cta-note {
+        margin: 0;
+        color: var(--landing-muted);
+        max-width: 36ch;
+        line-height: 1.6;
+    }
+    .landing-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    .landing-chip-row span,
+    .landing-cta-meta span,
+    .landing-feature-copy span,
+    .landing-metric-card span {
+        padding: 7px 10px;
+        background: color-mix(in srgb, var(--landing-surface) 70%, white 30%);
+        color: var(--landing-muted);
+        border: 1px solid color-mix(in srgb, var(--landing-border) 56%, transparent);
+    }
+    .landing-stage-media,
+    .landing-feature-media,
+    .landing-proof-portrait {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        min-height: 220px;
+        background:
+            radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.8), transparent 22%),
+            linear-gradient(180deg, color-mix(in srgb, var(--landing-accent-soft) 100%, transparent), color-mix(in srgb, var(--landing-surface-alt) 78%, transparent));
+    }
+    .landing-stage-media.has-image img,
+    .landing-feature-media.has-image img,
+    .landing-proof-portrait.has-image img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .landing-stage-media::after,
+    .landing-feature-media.is-placeholder::after,
+    .landing-proof-portrait.is-placeholder::after {
+        content: "";
+        position: absolute;
+        inset: 14px;
+        border-radius: 18px;
+        border: 1px solid color-mix(in srgb, var(--landing-border) 40%, transparent);
+    }
+    .landing-stage-overlay {
+        position: absolute;
+        inset: auto 18px 18px 18px;
         padding: 16px;
+        border-radius: 20px;
+        background: rgba(14, 14, 18, 0.54);
+        color: #fffdf8;
     }
-    .feature-card h3 {
-        margin: 0 0 9px;
-        font-size: 1.04rem;
+    .landing-stage-overlay span {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        opacity: 0.76;
     }
-    .feature-card p {
+    .landing-stage-overlay strong {
+        font-size: 1.32rem;
+        letter-spacing: -0.03em;
+    }
+    .landing-stage-overlay p {
         margin: 0;
-        line-height: 1.58;
-        font-size: 0.93rem;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.78);
     }
-    .detail-band {
-        border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
-        padding-top: 16px;
+    .landing-signal-stack {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
     }
-    .detail-copy {
+    .landing-signal-card,
+    .landing-metric-card,
+    .landing-feature-card,
+    .landing-proof-panel,
+    .landing-cta-band {
+        border-radius: 24px;
+        background: linear-gradient(180deg, color-mix(in srgb, var(--landing-surface) 76%, white 24%), color-mix(in srgb, var(--landing-surface-alt) 82%, transparent));
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--landing-border) 60%, transparent);
+    }
+    .landing-signal-card {
+        padding: 16px;
+        align-content: start;
+    }
+    .landing-signal-card span,
+    .landing-proof-panel strong {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--landing-accent);
+    }
+    .landing-signal-card strong {
+        font-size: 2.1rem;
+        letter-spacing: -0.05em;
+    }
+    .landing-signal-card p,
+    .landing-proof-card blockquote,
+    .landing-proof-card p {
         margin: 0;
-        max-width: 760px;
         line-height: 1.55;
-        font-size: 0.9rem;
     }
-    @media (max-width: 680px) {
-        .landing-topbar {
-            border-radius: 14px;
-            padding: 18px;
+    .landing-proof-card {
+        grid-column: span 2;
+    }
+    .landing-proof-card blockquote {
+        font-family: var(--landing-display-font);
+        font-size: 1.5rem;
+        line-height: 1.05;
+    }
+    .landing-section-head {
+        display: grid;
+        gap: 10px;
+        padding: 22px 22px 0;
+        max-width: 42rem;
+    }
+    .landing-section-title,
+    .landing-cta-copy h3 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+    }
+    .landing-metrics {
+        padding-bottom: 20px;
+    }
+    .landing-metric-ribbon {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        padding: 20px 22px 0;
+    }
+    .landing-metric-card {
+        padding: 20px;
+    }
+    .landing-metric-card strong {
+        display: block;
+        margin: 12px 0 6px;
+        font-size: clamp(1.8rem, 4vw, 3rem);
+        line-height: 1;
+        letter-spacing: -0.05em;
+    }
+    .landing-metric-card p {
+        margin: 0;
+        color: var(--landing-muted);
+    }
+    .landing-features {
+        padding-bottom: 22px;
+    }
+    .landing-feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        padding: 20px 22px 0;
+    }
+    .landing-feature-card {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+    }
+    .landing-feature-card.is-spotlight {
+        grid-column: span 2;
+        grid-template-columns: minmax(180px, 0.92fr) minmax(0, 1.08fr);
+        align-items: stretch;
+    }
+    .landing-feature-media {
+        min-height: 160px;
+    }
+    .landing-feature-copy h4 {
+        margin: 0;
+        font-size: 1.18rem;
+        letter-spacing: -0.03em;
+    }
+    .landing-feature-copy p {
+        margin: 0;
+        color: var(--landing-muted);
+        line-height: 1.6;
+    }
+    .landing-proof {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+        gap: 18px;
+        padding: 24px;
+        align-items: stretch;
+        background:
+            radial-gradient(circle at 88% 16%, var(--landing-accent-soft), transparent 24%),
+            linear-gradient(180deg, color-mix(in srgb, var(--landing-surface) 78%, white 22%), color-mix(in srgb, var(--landing-surface-alt) 70%, transparent));
+    }
+    .landing-proof-quote {
+        margin: 0;
+        font-size: clamp(2.1rem, 4vw, 3.8rem);
+        line-height: 0.96;
+        letter-spacing: -0.04em;
+    }
+    .landing-proof-author {
+        margin: 0;
+        color: var(--landing-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.78rem;
+    }
+    .landing-proof-panel {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        align-content: start;
+    }
+    .landing-proof-portrait {
+        min-height: 200px;
+    }
+    .landing-cta-band {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 18px;
+        align-items: center;
+        padding: 24px;
+        background:
+            radial-gradient(circle at 80% 24%, var(--landing-accent-soft), transparent 28%),
+            linear-gradient(135deg, color-mix(in srgb, var(--landing-surface) 82%, white 18%), color-mix(in srgb, var(--landing-surface-alt) 76%, transparent));
+    }
+    .landing-cta-actions {
+        display: grid;
+        justify-items: end;
+        gap: 10px;
+    }
+    .landing-cta-meta {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+    .shell-story_bands .landing-section {
+        border-radius: 22px;
+    }
+    .shell-immersive_story .landing-hero {
+        grid-template-columns: 1fr;
+    }
+    .shell-trust_stack .landing-proof {
+        grid-template-columns: 1fr;
+    }
+    .motion-energetic .landing-feature-card:hover,
+    .motion-energetic .landing-signal-card:hover {
+        transform: translateY(-3px);
+        transition: transform 180ms ease;
+    }
+    @media (max-width: 980px) {
+        .landing-hero,
+        .landing-proof,
+        .landing-cta-band,
+        .landing-feature-card.is-spotlight {
+            grid-template-columns: 1fr;
+        }
+        .landing-header {
+            flex-direction: column;
+            align-items: stretch;
+            border-radius: 24px;
+        }
+        .landing-nav,
+        .landing-cta-actions,
+        .landing-cta-meta {
+            justify-content: flex-start;
+        }
+        .landing-metric-ribbon,
+        .landing-feature-grid,
+        .landing-signal-stack {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .landing-proof-card {
+            grid-column: span 1;
+        }
+    }
+    @media (max-width: 720px) {
+        .landing-preview {
+            padding: 14px;
+            border-radius: 24px;
+        }
+        .landing-title {
+            font-size: clamp(2.6rem, 14vw, 4.4rem);
+        }
+        .landing-metric-ribbon,
+        .landing-feature-grid,
+        .landing-signal-stack {
+            grid-template-columns: 1fr;
+        }
+        .landing-section,
+        .landing-stage-media,
+        .landing-feature-media,
+        .landing-proof-portrait,
+        .landing-signal-card,
+        .landing-feature-card,
+        .landing-proof-panel,
+        .landing-cta-band {
+            border-radius: 20px;
         }
     }
 </style>

@@ -1,110 +1,527 @@
-<article class="generated-site portfolio-site">
-    <header class="portfolio-hero" data-section="hero">
-        <p class="eyebrow {{ data.theme.accent_classes }}">Portfolio</p>
-        <h2 class="hero-title {{ data.theme.text_classes }}">{{ data.content.hero_title }}</h2>
-        <p class="hero-subtitle {{ data.theme.muted_text_classes }}">{{ data.content.hero_subtitle }}</p>
+{% set theme = selected_variant.theme or {} %}
+{% set plan = selected_variant.render_plan %}
+{% set preview_name = brief.name or selected_variant.content.hero_title or "VeloSite" %}
+{% set is_consumer = consumer_mode|default(false) %}
+{% set brand_assets = brief.brand_assets or [] %}
+{% set portrait_asset = brand_assets[0] if brand_assets else none %}
+{% set project_assets = brand_assets %}
+{% set project_items = selected_variant.content.projects or [] %}
+{% set capability_items = selected_variant.content.capabilities or [] %}
+{% set section_labels = {"hero": "Intro", "projects": "Work", "about": "About", "capabilities": "Practice", "proof": "Review", "cta": "Contact"} %}
+<article
+    class="site-preview portfolio-preview art-{{ plan.art_direction }} layout-{{ plan.layout_mode }} shell-{{ plan.shell_variant }} media-{{ plan.media_direction }} density-{{ plan.density }} motion-{{ plan.motion_level }}"
+    style="
+        --portfolio-canvas: {{ theme.get('canvas_background', 'linear-gradient(180deg, #f6f2ea 0%, #ede8dd 100%)') }};
+        --portfolio-panel: {{ theme.get('panel_background', 'rgba(255, 252, 247, 0.82)') }};
+        --portfolio-surface: {{ theme.get('surface', '#fffaf2') }};
+        --portfolio-surface-alt: {{ theme.get('surface_alt', '#f1eadf') }};
+        --portfolio-text: {{ theme.get('text', '#151311') }};
+        --portfolio-muted: {{ theme.get('muted', '#696057') }};
+        --portfolio-accent: {{ theme.get('accent', '#a16e36') }};
+        --portfolio-accent-soft: {{ theme.get('accent_soft', 'rgba(161, 110, 54, 0.12)') }};
+        --portfolio-border: {{ theme.get('border', 'rgba(21, 19, 17, 0.12)') }};
+        --portfolio-display-font: {{ theme.get('display_font', "'Cormorant Garamond', serif") }};
+        --portfolio-body-font: {{ theme.get('body_font', "'Space Grotesk', sans-serif") }};
+        --portfolio-button-bg: {{ theme.get('button_bg', '#151311') }};
+        --portfolio-button-text: {{ theme.get('button_text', '#fdf9f2') }};
+    "
+>
+    {% if is_consumer %}
+    <header class="portfolio-header">
+        <a class="portfolio-brand" href="#section-hero">
+            <strong>{{ preview_name }}</strong>
+            <span>{{ brief.audience or "Selected work" }}</span>
+        </a>
+        <nav class="portfolio-nav" aria-label="Primary">
+            {% for section in plan.section_order %}
+                {% if plan.section_visibility.get(section) and section != "hero" %}
+                <a href="#section-{{ section }}">{{ section_labels.get(section, section|replace("_", " ")|title) }}</a>
+                {% endif %}
+            {% endfor %}
+        </nav>
     </header>
+    {% endif %}
 
-    <section class="portfolio-detail" data-section="details">
-        <div class="about-card {{ data.theme.card_classes }}">
-            <h3 class="{{ data.theme.text_classes }}">About</h3>
-            <p class="{{ data.theme.muted_text_classes }}">{{ data.content.about_text }}</p>
-        </div>
-    </section>
-
-    <section class="project-grid" data-section="highlights">
-        {% for project in data.content.projects %}
-        <article class="project-card {{ data.theme.card_classes }}">
-            <p class="project-index {{ data.theme.accent_classes }}">0{{ loop.index }}</p>
-            <h3 class="{{ data.theme.text_classes }}">{{ project.title }}</h3>
-            <p class="{{ data.theme.muted_text_classes }}">{{ project.desc }}</p>
-        </article>
+    <div class="portfolio-flow">
+        {% for section in plan.section_order %}
+            {% if plan.section_visibility.get(section) %}
+                {% if section == "hero" %}
+                <section
+                    id="section-hero"
+                    class="preview-section portfolio-section portfolio-hero"
+                    data-section="hero"
+                    data-node-id="section-hero"
+                    data-node-type="section"
+                    data-section-name="hero"
+                >
+                    <div class="portfolio-hero-rail">
+                        <span>{{ plan.navigation_style|replace("_", " ")|title }}</span>
+                        <span>{{ plan.media_direction|replace("_", " ")|title }}</span>
+                    </div>
+                    <div class="portfolio-hero-main">
+                        <p class="portfolio-kicker" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                        <h2 class="portfolio-title" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                        <p class="portfolio-subtitle" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+                    </div>
+                    <aside class="portfolio-hero-note">
+                        <p class="portfolio-note-label">Practice note</p>
+                        <p class="portfolio-note-body" data-node-id="hero-about-text" data-node-type="text" data-edit-path="about_text" data-section="hero">{{ selected_variant.content.about_text }}</p>
+                        <button class="portfolio-cta" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                    </aside>
+                </section>
+                {% elif section == "projects" %}
+                <section
+                    id="section-projects"
+                    class="preview-section portfolio-section portfolio-projects"
+                    data-section="projects"
+                    data-node-id="section-projects"
+                    data-node-type="section"
+                    data-section-name="projects"
+                >
+                    <div class="portfolio-section-head">
+                        <p class="portfolio-section-label">Selected work</p>
+                        <h3 class="portfolio-section-title" data-node-id="projects-title" data-node-type="text" data-edit-path="projects_title" data-section="projects">{{ selected_variant.content.projects_title }}</h3>
+                        <p class="portfolio-section-copy" data-node-id="projects-intro" data-node-type="text" data-edit-path="projects_intro" data-section="projects">{{ selected_variant.content.projects_intro }}</p>
+                    </div>
+                    <div class="portfolio-project-list">
+                        {% for project in project_items %}
+                        {% set project_asset = project_assets[loop.index0 % (project_assets|length)] if project_assets else none %}
+                        <article
+                            class="portfolio-project-row {% if loop.index is even %}is-reversed{% endif %}"
+                            data-node-id="projects-{{ loop.index0 }}"
+                            data-node-type="list-item"
+                            data-edit-path="projects.{{ loop.index0 }}"
+                            data-list-key="projects"
+                            data-item-index="{{ loop.index0 }}"
+                            data-edit-fields="meta,title,desc"
+                            data-section="projects"
+                        >
+                            <figure class="portfolio-project-media {% if project_asset %}has-image{% else %}is-placeholder{% endif %}">
+                                {% if project_asset %}
+                                <img src="{{ project_asset.data_url }}" alt="{{ project_asset.alt }}">
+                                {% endif %}
+                                <figcaption>{{ project.meta }}</figcaption>
+                            </figure>
+                            <div class="portfolio-project-copy">
+                                <span class="portfolio-project-index">{{ "%02d"|format(loop.index) }}</span>
+                                <p class="portfolio-project-meta" data-node-id="projects-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.meta" data-item-field="meta" data-section="projects">{{ project.meta }}</p>
+                                <h4 data-node-id="projects-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.title" data-item-field="title" data-section="projects">{{ project.title }}</h4>
+                                <p data-node-id="projects-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="projects.{{ loop.index0 }}.desc" data-item-field="desc" data-section="projects">{{ project.desc }}</p>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "about" %}
+                <section
+                    id="section-about"
+                    class="preview-section portfolio-section portfolio-about"
+                    data-section="about"
+                    data-node-id="section-about"
+                    data-node-type="section"
+                    data-section-name="about"
+                >
+                    <div class="portfolio-about-copy">
+                        <p class="portfolio-section-label">About</p>
+                        <h3 class="portfolio-section-title" data-node-id="about-title" data-node-type="text" data-edit-path="about_title" data-section="about">{{ selected_variant.content.about_title }}</h3>
+                        <p class="portfolio-section-copy" data-node-id="about-intro" data-node-type="text" data-edit-path="about_intro" data-section="about">{{ selected_variant.content.about_intro }}</p>
+                        <div class="portfolio-about-note">
+                            <p data-node-id="about-text" data-node-type="text" data-edit-path="about_text" data-section="about">{{ selected_variant.content.about_text }}</p>
+                        </div>
+                    </div>
+                    <figure class="portfolio-about-portrait {% if portrait_asset %}has-image{% else %}is-placeholder{% endif %}">
+                        {% if portrait_asset %}
+                        <img src="{{ portrait_asset.data_url }}" alt="{{ portrait_asset.alt }}">
+                        {% endif %}
+                        <figcaption>{{ plan.shell_variant|replace("_", " ")|title }}</figcaption>
+                    </figure>
+                </section>
+                {% elif section == "capabilities" %}
+                <section
+                    id="section-capabilities"
+                    class="preview-section portfolio-section portfolio-capabilities"
+                    data-section="capabilities"
+                    data-node-id="section-capabilities"
+                    data-node-type="section"
+                    data-section-name="capabilities"
+                >
+                    <div class="portfolio-section-head">
+                        <p class="portfolio-section-label">Capabilities</p>
+                        <h3 class="portfolio-section-title" data-node-id="capabilities-title" data-node-type="text" data-edit-path="capabilities_title" data-section="capabilities">{{ selected_variant.content.capabilities_title }}</h3>
+                        <p class="portfolio-section-copy" data-node-id="capabilities-intro" data-node-type="text" data-edit-path="capabilities_intro" data-section="capabilities">{{ selected_variant.content.capabilities_intro }}</p>
+                    </div>
+                    <div class="portfolio-capability-list">
+                        {% for item in capability_items %}
+                        <article
+                            class="portfolio-capability-item"
+                            data-node-id="capabilities-{{ loop.index0 }}"
+                            data-node-type="list-item"
+                            data-edit-path="capabilities.{{ loop.index0 }}"
+                            data-list-key="capabilities"
+                            data-item-index="{{ loop.index0 }}"
+                            data-edit-fields="title,desc"
+                            data-section="capabilities"
+                        >
+                            <span>{{ "%02d"|format(loop.index) }}</span>
+                            <div>
+                                <h4 data-node-id="capabilities-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="capabilities.{{ loop.index0 }}.title" data-item-field="title" data-section="capabilities">{{ item.title }}</h4>
+                                <p data-node-id="capabilities-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="capabilities.{{ loop.index0 }}.desc" data-item-field="desc" data-section="capabilities">{{ item.desc }}</p>
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "proof" %}
+                <section
+                    id="section-proof"
+                    class="preview-section portfolio-section portfolio-proof"
+                    data-section="proof"
+                    data-node-id="section-proof"
+                    data-node-type="section"
+                    data-section-name="proof"
+                >
+                    <p class="portfolio-section-label">Review</p>
+                    <blockquote class="portfolio-proof-quote" data-node-id="proof-quote" data-node-type="text" data-edit-path="proof_quote" data-section="proof">"{{ selected_variant.content.proof_quote }}"</blockquote>
+                    <p class="portfolio-proof-author" data-node-id="proof-author" data-node-type="text" data-edit-path="proof_author" data-section="proof">{{ selected_variant.content.proof_author }}</p>
+                </section>
+                {% elif section == "cta" %}
+                <section
+                    id="section-cta"
+                    class="preview-section portfolio-section portfolio-cta-band"
+                    data-section="cta"
+                    data-node-id="section-cta"
+                    data-node-type="section"
+                    data-section-name="cta"
+                >
+                    <div>
+                        <p class="portfolio-section-label">Next move</p>
+                        <h3 data-node-id="cta-title" data-node-type="text" data-edit-path="cta_text" data-section="cta">{{ selected_variant.content.cta_text }}</h3>
+                        <p data-node-id="cta-note" data-node-type="text" data-edit-path="cta_note" data-section="cta">{{ selected_variant.content.cta_note }}</p>
+                    </div>
+                    <button class="portfolio-cta" type="button">{{ selected_variant.content.cta_text }}</button>
+                </section>
+                {% endif %}
+            {% endif %}
         {% endfor %}
-    </section>
-
-    <section class="portfolio-cta" data-section="details">
-        <button class="cta {{ data.theme.button_classes }}">{{ data.content.cta_text }}</button>
-    </section>
+    </div>
 </article>
 
 <style>
-    .generated-site {
-        max-width: 1060px;
-        margin: 0 auto;
+    .portfolio-preview {
+        color: var(--portfolio-text);
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.32), transparent 14%),
+            linear-gradient(180deg, rgba(17, 17, 17, 0.03), transparent 18%),
+            var(--portfolio-canvas);
+        padding: clamp(18px, 2.6vw, 32px);
+        border-radius: 22px;
+        border: 1px solid color-mix(in srgb, var(--portfolio-border) 68%, transparent);
+        box-shadow: 0 24px 68px rgba(17, 15, 12, 0.08);
+        font-family: var(--portfolio-body-font);
     }
-    .portfolio-site {
+    .portfolio-header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 26px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid color-mix(in srgb, var(--portfolio-border) 76%, transparent);
+    }
+    .portfolio-brand,
+    .portfolio-nav a {
+        color: inherit;
+        text-decoration: none;
+    }
+    .portfolio-brand strong,
+    .portfolio-title,
+    .portfolio-section-title,
+    .portfolio-proof-quote,
+    .portfolio-cta-band h3 {
+        font-family: var(--portfolio-display-font);
+    }
+    .portfolio-brand strong {
+        display: block;
+        font-size: 1.1rem;
+        letter-spacing: -0.03em;
+    }
+    .portfolio-brand span {
+        color: var(--portfolio-muted);
+        font-size: 0.78rem;
+    }
+    .portfolio-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .portfolio-nav a {
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--portfolio-muted);
+    }
+    .portfolio-flow {
         display: grid;
-        gap: 22px;
+        gap: 24px;
+    }
+    .portfolio-section {
+        position: relative;
     }
     .portfolio-hero {
-        padding: clamp(16px, 2.5vw, 24px) 0 6px;
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr) minmax(280px, 0.54fr);
+        gap: 20px;
+        align-items: start;
+        padding-bottom: 24px;
+        border-bottom: 1px solid color-mix(in srgb, var(--portfolio-border) 74%, transparent);
     }
-    .eyebrow {
-        margin: 0;
-        font-size: 0.78rem;
+    .portfolio-hero-rail,
+    .portfolio-project-index,
+    .portfolio-kicker,
+    .portfolio-section-label,
+    .portfolio-note-label,
+    .portfolio-project-meta,
+    .portfolio-capability-item span,
+    .portfolio-proof-author {
         text-transform: uppercase;
         letter-spacing: 0.16em;
+        font-size: 0.72rem;
     }
-    .hero-title {
-        margin: 12px 0 8px;
-        font-family: "Source Serif 4", serif;
-        font-size: clamp(2.15rem, 4.8vw, 4rem);
-        line-height: 1.04;
-        max-width: 900px;
+    .portfolio-hero-rail,
+    .portfolio-capability-item span,
+    .portfolio-note-label,
+    .portfolio-section-label,
+    .portfolio-kicker {
+        color: var(--portfolio-accent);
     }
-    .hero-subtitle {
-        margin: 0;
-        max-width: 740px;
-        line-height: 1.64;
-        font-size: clamp(1rem, 1.7vw, 1.15rem);
-    }
-    .about-card {
-        border-radius: 16px;
-        padding: 16px;
-    }
-    .about-card h3 {
-        margin: 0 0 10px;
-        font-size: 1rem;
-    }
-    .about-card p {
-        margin: 0;
-        line-height: 1.62;
-        font-size: 0.94rem;
-    }
-    .project-grid {
+    .portfolio-hero-rail {
         display: grid;
         gap: 12px;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        padding-top: 10px;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
     }
-    .project-card {
-        border-radius: 16px;
-        padding: 16px;
-    }
-    .project-index {
-        margin: 0 0 10px;
-        font-size: 0.78rem;
-        letter-spacing: 0.13em;
-        text-transform: uppercase;
-    }
-    .project-card h3 {
-        margin: 0 0 8px;
-        font-size: 1.03rem;
-    }
-    .project-card p {
+    .portfolio-title {
         margin: 0;
-        line-height: 1.58;
-        font-size: 0.92rem;
+        font-size: clamp(3.2rem, 8vw, 7rem);
+        line-height: 0.9;
+        letter-spacing: -0.05em;
+        max-width: 8ch;
+    }
+    .portfolio-subtitle,
+    .portfolio-note-body,
+    .portfolio-section-copy,
+    .portfolio-project-copy p,
+    .portfolio-about-note p,
+    .portfolio-capability-item p,
+    .portfolio-cta-band p {
+        margin: 0;
+        color: var(--portfolio-muted);
+        line-height: 1.7;
+    }
+    .portfolio-hero-main,
+    .portfolio-hero-note,
+    .portfolio-about-copy {
+        display: grid;
+        gap: 14px;
+    }
+    .portfolio-hero-note {
+        padding: 18px;
+        background: color-mix(in srgb, var(--portfolio-panel) 84%, white 16%);
+        border: 1px solid color-mix(in srgb, var(--portfolio-border) 62%, transparent);
+        border-radius: 18px;
     }
     .portfolio-cta {
-        display: flex;
-        justify-content: flex-start;
-        padding-bottom: 6px;
-    }
-    .cta {
+        appearance: none;
         border: 0;
-        padding: 12px 20px;
+        border-radius: 999px;
+        background: var(--portfolio-button-bg);
+        color: var(--portfolio-button-text);
+        padding: 13px 18px;
         font: inherit;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
+        justify-self: start;
+    }
+    .portfolio-section-head {
+        display: grid;
+        gap: 10px;
+        max-width: 42rem;
+        margin-bottom: 18px;
+    }
+    .portfolio-section-title,
+    .portfolio-cta-band h3 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+    }
+    .portfolio-project-list {
+        display: grid;
+        gap: 18px;
+    }
+    .portfolio-project-row {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.05fr);
+        gap: 18px;
+        align-items: stretch;
+        padding: 18px 0;
+        border-top: 1px solid color-mix(in srgb, var(--portfolio-border) 56%, transparent);
+    }
+    .portfolio-project-row.is-reversed .portfolio-project-media {
+        order: 2;
+    }
+    .portfolio-project-row.is-reversed .portfolio-project-copy {
+        order: 1;
+    }
+    .portfolio-project-media,
+    .portfolio-about-portrait {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        min-height: 260px;
+        background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 36%),
+            linear-gradient(180deg, color-mix(in srgb, var(--portfolio-accent-soft) 100%, transparent), color-mix(in srgb, var(--portfolio-surface-alt) 74%, transparent));
+    }
+    .portfolio-project-media img,
+    .portfolio-about-portrait img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .portfolio-project-media::after,
+    .portfolio-about-portrait::after {
+        content: "";
+        position: absolute;
+        inset: 14px;
+        border: 1px solid color-mix(in srgb, var(--portfolio-border) 42%, transparent);
+        border-radius: 16px;
+    }
+    .portfolio-project-media figcaption,
+    .portfolio-about-portrait figcaption {
+        position: absolute;
+        left: 14px;
+        bottom: 14px;
+        margin: 0;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(12, 12, 14, 0.62);
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+    }
+    .portfolio-project-copy {
+        display: grid;
+        align-content: start;
+        gap: 10px;
+        padding-top: 8px;
+    }
+    .portfolio-project-index {
+        color: var(--portfolio-muted);
+    }
+    .portfolio-project-copy h4,
+    .portfolio-capability-item h4 {
+        margin: 0;
+        font-size: 1.3rem;
+        letter-spacing: -0.03em;
+    }
+    .portfolio-about {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+        gap: 18px;
+        align-items: stretch;
+    }
+    .portfolio-about-note,
+    .portfolio-cta-band {
+        padding: 18px;
+        border-radius: 18px;
+        background: color-mix(in srgb, var(--portfolio-panel) 86%, white 14%);
+        border: 1px solid color-mix(in srgb, var(--portfolio-border) 60%, transparent);
+    }
+    .portfolio-capability-list {
+        display: grid;
+        gap: 12px;
+    }
+    .portfolio-capability-item {
+        display: grid;
+        grid-template-columns: 68px minmax(0, 1fr);
+        gap: 16px;
+        padding: 18px 0;
+        border-top: 1px solid color-mix(in srgb, var(--portfolio-border) 56%, transparent);
+    }
+    .portfolio-proof {
+        padding: 18px 0 0;
+        border-top: 1px solid color-mix(in srgb, var(--portfolio-border) 66%, transparent);
+    }
+    .portfolio-proof-quote {
+        margin: 0;
+        max-width: 15ch;
+        font-size: clamp(2rem, 4vw, 3.6rem);
+        line-height: 0.96;
+        letter-spacing: -0.04em;
+    }
+    .portfolio-proof-author {
+        margin: 14px 0 0;
+        color: var(--portfolio-muted);
+    }
+    .portfolio-cta-band {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-top: 8px;
+    }
+    .shell-gallery_wall .portfolio-project-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .shell-atelier_resume .portfolio-hero {
+        grid-template-columns: 1fr;
+    }
+    .shell-atelier_resume .portfolio-hero-rail {
+        writing-mode: initial;
+        transform: none;
+        grid-auto-flow: column;
+    }
+    .motion-energetic .portfolio-project-row {
+        transition: transform 180ms ease;
+    }
+    .motion-energetic .portfolio-project-row:hover {
+        transform: translateY(-3px);
+    }
+    @media (max-width: 980px) {
+        .portfolio-hero,
+        .portfolio-about,
+        .portfolio-project-row,
+        .portfolio-project-row.is-reversed {
+            grid-template-columns: 1fr;
+        }
+        .portfolio-project-row.is-reversed .portfolio-project-media,
+        .portfolio-project-row.is-reversed .portfolio-project-copy {
+            order: initial;
+        }
+        .portfolio-header,
+        .portfolio-cta-band {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .portfolio-capability-item {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 720px) {
+        .portfolio-preview {
+            padding: 14px;
+        }
+        .portfolio-title {
+            font-size: clamp(2.6rem, 15vw, 4.8rem);
+        }
+        .portfolio-project-media,
+        .portfolio-about-portrait {
+            min-height: 220px;
+        }
     }
 </style>

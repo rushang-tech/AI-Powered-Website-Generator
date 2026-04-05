@@ -141,6 +141,26 @@ class TasteEngineTests(unittest.TestCase):
         )
         self.assertEqual(plan.art_direction, "mono_signal")
 
+    def test_product_plans_include_media_direction_for_mockups(self):
+        plan = build_render_plan(
+            "Create a SaaS launch page with pricing, dashboard previews, and workflow screenshots.",
+            brief={
+                "goal": "Create a SaaS launch page with pricing, dashboard previews, and workflow screenshots.",
+                "audience": "Operations teams evaluating software",
+                "brand_tone": "Clear, modern, product-focused",
+                "content_density": "balanced",
+                "motion_level": "moderate",
+            },
+            model=None,
+            theme_catalog=THEME_MAP,
+            template_catalog=TEMPLATE_CATALOG,
+        )
+        self.assertEqual(plan.template_key, "product")
+        self.assertEqual(plan.template_file, "generated/product.html")
+        self.assertEqual(plan.media_direction, "interface_mockups")
+        self.assertEqual(plan.shell_variant, "workflow_console")
+        self.assertEqual(plan.navigation_style, "product_tabs")
+
     def test_normalize_brief_preserves_brand_assets_and_icon_style(self):
         brief = normalize_brief(
             "Create a landing page",

@@ -1,9 +1,19 @@
 {% set is_consumer = consumer_mode|default(false) %}
+{% set plan = selected_variant.render_plan %}
 {% set features_title = selected_variant.content.features_title or ("What this delivers" if is_consumer else "Distinct sections with actual jobs to do.") %}
 {% set features_intro = selected_variant.content.features_intro or ("Each point should add a different reason to care." if is_consumer else "Every feature card should carry a different idea so the page keeps building meaning as people move through it.") %}
+
+{# ── Determine feature layout variant ── #}
+{% set feature_layout = "grid" %}
+{% if plan.art_direction in ("luxury_serif", "modern_editorial", "botanical_noir") %}
+    {% set feature_layout = "horizontal" %}
+{% elif plan.art_direction in ("cyber_signal", "studio_pop") %}
+    {% set feature_layout = "showcase" %}
+{% endif %}
+
 <section
     id="section-features"
-    class="preview-section section-features"
+    class="preview-section section-features feature-layout-{{ feature_layout }}"
     data-section="features"
     data-node-id="section-features"
     data-node-type="section"
@@ -17,9 +27,98 @@
                 <p class="section-copy" data-node-id="features-intro" data-node-type="text" data-edit-path="features_intro" data-section="features">{{ features_intro }}</p>
             </div>
             {% if not is_consumer %}
-            <span class="section-chip">{{ selected_variant.render_plan.template_key|title }}</span>
+            <span class="section-chip">{{ plan.template_key|title }}</span>
             {% endif %}
         </div>
+
+        {# ═══════════════════════════════════════════ #}
+        {# HORIZONTAL CARDS — editorial / luxury / botanical #}
+        {# Full-width rows: icon left, text right         #}
+        {# ═══════════════════════════════════════════ #}
+        {% if feature_layout == "horizontal" %}
+        <div class="feature-list-horizontal">
+            {% for feature in selected_variant.content.features %}
+            <article
+                class="feature-card feature-card-horizontal"
+                data-node-id="features-{{ loop.index0 }}"
+                data-node-type="list-item"
+                data-edit-path="features.{{ loop.index0 }}"
+                data-list-key="features"
+                data-item-index="{{ loop.index0 }}"
+                data-edit-fields="title,desc"
+                data-section="features"
+            >
+                <div class="feature-horizontal-index">
+                    <span class="feature-icon feature-icon-lg">{{ feature.title[:2]|upper }}</span>
+                    <span class="feature-horizontal-line"></span>
+                </div>
+                <div class="feature-horizontal-body">
+                    <h3 data-node-id="features-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.title" data-item-field="title" data-section="features">{{ feature.title }}</h3>
+                    <p class="feature-copy" data-node-id="features-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.desc" data-item-field="desc" data-section="features">{{ feature.desc }}</p>
+                </div>
+                {% set media_asset = brand_assets[loop.index0 % (brand_assets|length)] if brand_assets else none %}
+                <figure class="feature-horizontal-media visual-panel visual-panel-compact {% if media_asset %}has-image{% else %}is-placeholder{% endif %}">
+                    {% if media_asset %}
+                    <img src="{{ media_asset.data_url }}" alt="{{ media_asset.alt }}">
+                    {% endif %}
+                    <div class="visual-overlay">
+                        <div class="visual-copy">
+                            <strong>{{ feature.title }}</strong>
+                        </div>
+                    </div>
+                </figure>
+            </article>
+            {% endfor %}
+        </div>
+
+        {# ═══════════════════════════════════════════ #}
+        {# SHOWCASE — cyber / studio pop               #}
+        {# Stacked vertical with alternating media     #}
+        {# ═══════════════════════════════════════════ #}
+        {% elif feature_layout == "showcase" %}
+        <div class="feature-showcase">
+            {% for feature in selected_variant.content.features %}
+            <article
+                class="feature-card feature-card-showcase {% if loop.index is odd %}showcase-left{% else %}showcase-right{% endif %}"
+                data-node-id="features-{{ loop.index0 }}"
+                data-node-type="list-item"
+                data-edit-path="features.{{ loop.index0 }}"
+                data-list-key="features"
+                data-item-index="{{ loop.index0 }}"
+                data-edit-fields="title,desc"
+                data-section="features"
+            >
+                {% set media_asset = brand_assets[loop.index0 % (brand_assets|length)] if brand_assets else none %}
+                <figure class="card-media feature-media visual-panel {% if media_asset %}has-image{% else %}is-placeholder{% endif %}">
+                    {% if media_asset %}
+                    <img src="{{ media_asset.data_url }}" alt="{{ media_asset.alt }}">
+                    {% endif %}
+                    <div class="visual-overlay">
+                        <div class="visual-chip-row">
+                            <span class="visual-chip">{{ "%02d"|format(loop.index) }}</span>
+                            {% if not is_consumer %}
+                            <span class="visual-chip">{{ plan.media_direction|replace("_", " ")|title }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </figure>
+                <div class="feature-showcase-body">
+                    <div class="feature-card-head">
+                        <span class="feature-icon">{{ feature.title[:2]|upper }}</span>
+                        <span class="section-chip">{{ "%02d"|format(loop.index) }}</span>
+                    </div>
+                    <h3 data-node-id="features-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.title" data-item-field="title" data-section="features">{{ feature.title }}</h3>
+                    <p class="feature-copy" data-node-id="features-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.desc" data-item-field="desc" data-section="features">{{ feature.desc }}</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        {# ═══════════════════════════════════════════ #}
+        {# DEFAULT GRID — warm / coastal / brutalist / playful / mono #}
+        {# 3-column cards with media                    #}
+        {# ═══════════════════════════════════════════ #}
+        {% else %}
         <div class="feature-grid">
             {% for feature in selected_variant.content.features %}
             <article
@@ -32,14 +131,42 @@
                 data-edit-fields="title,desc"
                 data-section="features"
             >
+                {% set media_asset = brand_assets[loop.index0 % (brand_assets|length)] if brand_assets else none %}
+                <figure class="card-media feature-media visual-panel {% if media_asset %}has-image{% else %}is-placeholder{% endif %}">
+                    {% if media_asset %}
+                    <img src="{{ media_asset.data_url }}" alt="{{ media_asset.alt }}">
+                    {% endif %}
+                    <div class="visual-overlay">
+                        <div class="visual-chip-row">
+                            <span class="visual-chip">{{ "%02d"|format(loop.index) }}</span>
+                            {% if not is_consumer %}
+                            <span class="visual-chip">{{ plan.media_direction|replace("_", " ")|title }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="visual-copy">
+                            {% if is_consumer %}
+                            <strong>{{ feature.title }}</strong>
+                            {% else %}
+                            <span class="visual-kicker">Feature block</span>
+                            <strong>{{ feature.title }}</strong>
+                            <p>{{ brief.audience or plan.vibe|replace("_", " ")|title }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </figure>
                 <div class="feature-card-head">
                     <span class="feature-icon">{{ feature.title[:2]|upper }}</span>
-                    <span class="section-chip">{{ selected_variant.render_plan.art_direction|replace("_", " ")|title }}</span>
+                    {% if not is_consumer %}
+                    <span class="section-chip">{{ plan.art_direction|replace("_", " ")|title }}</span>
+                    {% else %}
+                    <span class="section-chip">{{ "%02d"|format(loop.index) }}</span>
+                    {% endif %}
                 </div>
                 <h3 data-node-id="features-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.title" data-item-field="title" data-section="features">{{ feature.title }}</h3>
                 <p class="feature-copy" data-node-id="features-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.desc" data-item-field="desc" data-section="features">{{ feature.desc }}</p>
             </article>
             {% endfor %}
         </div>
+        {% endif %}
     </div>
 </section>

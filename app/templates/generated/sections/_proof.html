@@ -1,20 +1,94 @@
 {% set is_consumer = consumer_mode|default(false) %}
+{% set plan = selected_variant.render_plan %}
+{% set proof_asset = brand_assets[0] if brand_assets else none %}
+
+{# ── Determine proof layout ── #}
+{% set proof_mode = "default" %}
+{% if plan.art_direction in ("brutalist_poster", "mono_signal") %}
+    {% set proof_mode = "banner" %}
+{% elif plan.art_direction in ("luxury_serif", "botanical_noir") %}
+    {% set proof_mode = "editorial" %}
+{% endif %}
+
 <section
     id="section-proof"
-    class="preview-section"
+    class="preview-section proof-mode-{{ proof_mode }}"
     data-section="proof"
     data-node-id="section-proof"
     data-node-type="section"
     data-section-name="proof"
 >
     <div class="section-pad">
+        {# ═══════════════════════════════ #}
+        {# BANNER — brutalist / mono      #}
+        {# ═══════════════════════════════ #}
+        {% if proof_mode == "banner" %}
+        <div class="proof-banner">
+            <p class="section-overline">{{ "What people say" if is_consumer else "Proof" }}</p>
+            <blockquote class="proof-quote proof-quote-banner" data-node-id="proof-quote" data-node-type="text" data-edit-path="proof_quote" data-section="proof">"{{ selected_variant.content.proof_quote }}"</blockquote>
+            <figcaption class="proof-author" data-node-id="proof-author" data-node-type="text" data-edit-path="proof_author" data-section="proof">{{ selected_variant.content.proof_author }}</figcaption>
+        </div>
+
+        {# ═══════════════════════════════ #}
+        {# EDITORIAL — luxury / botanical #}
+        {# ═══════════════════════════════ #}
+        {% elif proof_mode == "editorial" %}
+        <div class="proof-editorial">
+            <figure class="proof-card proof-card-editorial">
+                <div>
+                    <p class="section-overline">{{ "Testimonial" if is_consumer else "Proof" }}</p>
+                    <blockquote class="proof-quote" data-node-id="proof-quote" data-node-type="text" data-edit-path="proof_quote" data-section="proof">"{{ selected_variant.content.proof_quote }}"</blockquote>
+                </div>
+                <div class="proof-editorial-footer">
+                    <figcaption class="proof-author proof-author-rich" data-node-id="proof-author" data-node-type="text" data-edit-path="proof_author" data-section="proof">
+                        <span class="proof-avatar {% if proof_asset %}has-image{% endif %}">
+                            {% if proof_asset %}
+                            <img src="{{ proof_asset.data_url }}" alt="{{ proof_asset.alt }}">
+                            {% else %}
+                            {{ selected_variant.content.proof_author[:1]|upper }}
+                            {% endif %}
+                        </span>
+                        <span class="proof-author-copy">
+                            <strong>{{ selected_variant.content.proof_author }}</strong>
+                            {% if is_consumer %}
+                            <span>{{ brief.audience or "Verified review" }}</span>
+                            {% else %}
+                            <span>{{ plan.media_direction|replace("_", " ")|title }}</span>
+                            {% endif %}
+                        </span>
+                    </figcaption>
+                    <span class="proof-editorial-rule"></span>
+                </div>
+            </figure>
+        </div>
+
+        {# ═══════════════════════════════ #}
+        {# DEFAULT — split layout         #}
+        {# ═══════════════════════════════ #}
+        {% else %}
         <div class="proof-shell">
             <figure class="proof-card">
                 <div>
-                    <p class="section-overline">Proof</p>
+                    <p class="section-overline">{{ "What people say" if is_consumer else "Proof" }}</p>
                     <blockquote class="proof-quote" data-node-id="proof-quote" data-node-type="text" data-edit-path="proof_quote" data-section="proof">"{{ selected_variant.content.proof_quote }}"</blockquote>
                 </div>
-                <figcaption class="proof-author" data-node-id="proof-author" data-node-type="text" data-edit-path="proof_author" data-section="proof">{{ selected_variant.content.proof_author }}</figcaption>
+                <figcaption class="proof-author proof-author-rich" data-node-id="proof-author" data-node-type="text" data-edit-path="proof_author" data-section="proof">
+                    <span class="proof-avatar {% if proof_asset %}has-image{% endif %}">
+                        {% if proof_asset %}
+                        <img src="{{ proof_asset.data_url }}" alt="{{ proof_asset.alt }}">
+                        {% else %}
+                        {{ selected_variant.content.proof_author[:1]|upper }}
+                        {% endif %}
+                    </span>
+                    <span class="proof-author-copy">
+                        <strong>{{ selected_variant.content.proof_author }}</strong>
+                        {% if is_consumer %}
+                        <span>{{ brief.audience or "Verified review" }}</span>
+                        {% else %}
+                        <span>{{ plan.media_direction|replace("_", " ")|title }}</span>
+                        {% endif %}
+                    </span>
+                </figcaption>
             </figure>
             {% if not is_consumer %}
             <aside class="proof-card">
@@ -22,19 +96,35 @@
                 <div class="micro-grid">
                     <div>
                         <span class="micro-label">Art direction</span>
-                        <strong>{{ selected_variant.render_plan.art_direction|replace("_", " ")|title }}</strong>
+                        <strong>{{ plan.art_direction|replace("_", " ")|title }}</strong>
                     </div>
                     <div>
                         <span class="micro-label">Layout</span>
-                        <strong>{{ selected_variant.render_plan.layout_mode|replace("_", " ")|title }}</strong>
+                        <strong>{{ plan.layout_mode|replace("_", " ")|title }}</strong>
                     </div>
                     <div>
                         <span class="micro-label">Intent</span>
-                        <strong>{{ selected_variant.render_plan.template_key|title }}</strong>
+                        <strong>{{ plan.template_key|title }}</strong>
+                    </div>
+                </div>
+            </aside>
+            {% else %}
+            {# Consumer: show a trust signal instead of direction metadata #}
+            <aside class="proof-card proof-trust-card">
+                <p class="section-overline">{{ brief.name or "Trust" }}</p>
+                <div class="proof-trust-stats">
+                    <div class="stack-card">
+                        <strong>{{ selected_variant.content.stat_1_value or "100%" }}</strong>
+                        <span class="micro-copy">{{ selected_variant.content.stat_1_label or "Client satisfaction" }}</span>
+                    </div>
+                    <div class="stack-card">
+                        <strong>{{ selected_variant.content.stat_2_value or "5★" }}</strong>
+                        <span class="micro-copy">{{ selected_variant.content.stat_2_label or "Average rating" }}</span>
                     </div>
                 </div>
             </aside>
             {% endif %}
         </div>
+        {% endif %}
     </div>
 </section>

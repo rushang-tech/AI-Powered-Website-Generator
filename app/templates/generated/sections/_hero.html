@@ -1,18 +1,80 @@
 {% set plan = selected_variant.render_plan %}
 {% set is_consumer = consumer_mode|default(false) %}
+{% set feature_items = selected_variant.content.features or [] %}
+{% set project_items = selected_variant.content.projects or [] %}
+{% set offer_items = selected_variant.content.offers or [] %}
+{% set capability_items = selected_variant.content.capabilities or [] %}
+{% set primary_visual_asset = brand_assets[0] if brand_assets else none %}
+{% set secondary_visual_asset = brand_assets[1] if brand_assets|length > 1 else none %}
+{% set tertiary_visual_asset = brand_assets[2] if brand_assets|length > 2 else none %}
+{% if plan.template_key == "product" %}
+    {% set hero_visual_label = "Product preview" %}
+    {% set hero_visual_title = offer_items[0].title if offer_items else (selected_variant.content.price_badge or selected_variant.content.cta_text) %}
+    {% set hero_visual_note = feature_items[0].title if feature_items else (selected_variant.content.stat_1_label or brief.audience) %}
+{% elif plan.template_key == "portfolio" %}
+    {% set hero_visual_label = "Featured case" %}
+    {% set hero_visual_title = project_items[0].title if project_items else selected_variant.content.hero_title %}
+    {% set hero_visual_note = project_items[0].meta if project_items else (capability_items[0].title if capability_items else brief.audience) %}
+{% else %}
+    {% set hero_visual_label = "Hero visual" %}
+    {% set hero_visual_title = feature_items[0].title if feature_items else selected_variant.content.hero_title %}
+    {% set hero_visual_note = feature_items[0].desc if feature_items else (selected_variant.content.stat_1_label or brief.audience) %}
+{% endif %}
+
+{# ── Determine hero layout mode based on art direction ── #}
+{% set hero_mode = "split" %}
+{% if plan.art_direction in ("brutalist_poster", "mono_signal") %}
+    {% set hero_mode = "stacked" %}
+{% elif plan.art_direction in ("luxury_serif", "botanical_noir") %}
+    {% set hero_mode = "centered" %}
+{% elif plan.art_direction in ("cyber_signal", "studio_pop") %}
+    {% set hero_mode = "asymmetric" %}
+{% elif plan.art_direction in ("playful_blocks",) %}
+    {% set hero_mode = "playful" %}
+{% endif %}
+
 <section
     id="section-hero"
-    class="preview-section section-emphasis hero-section hero-section-{{ plan.art_direction }} hero-template-{{ plan.template_key }}"
+    class="preview-section section-emphasis hero-section hero-mode-{{ hero_mode }} hero-section-{{ plan.art_direction }} hero-template-{{ plan.template_key }}"
     data-section="hero"
     data-node-id="section-hero"
     data-node-type="section"
     data-section-name="hero"
 >
-    <div class="section-pad hero-layout">
-        <div class="hero-copy">
-            <div class="hero-copy-inner">
+    <div class="section-pad">
+
+        {# ═══════════════════════════════════════════ #}
+        {# STACKED HERO — brutalist / mono             #}
+        {# Full-width vertical flow: title → visual → CTA #}
+        {# ═══════════════════════════════════════════ #}
+        {% if hero_mode == "stacked" %}
+        <div class="hero-stacked">
+            <div class="hero-stacked-header">
                 <p class="section-overline" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
-                <h2 class="display-title hero-title" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                <h2 class="display-title hero-title hero-title-stacked" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+            </div>
+            <div class="hero-stacked-visual-row">
+                <figure class="hero-visual-panel visual-panel hero-visual-wide {% if primary_visual_asset %}has-image{% else %}is-placeholder{% endif %}">
+                    {% if primary_visual_asset %}
+                    <img src="{{ primary_visual_asset.data_url }}" alt="{{ primary_visual_asset.alt }}">
+                    {% endif %}
+                    <div class="visual-overlay">
+                        <div class="visual-chip-row">
+                            {% if is_consumer %}
+                            <span class="visual-chip">{{ brief.name or preview_name }}</span>
+                            {% else %}
+                            <span class="visual-chip">{{ plan.media_direction|replace("_", " ")|title }}</span>
+                            <span class="visual-chip">{{ plan.layout_mode|replace("_", " ")|title }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="visual-copy">
+                            <span class="visual-kicker">{{ hero_visual_label if not is_consumer else (brief.name or "Featured") }}</span>
+                            <strong>{{ hero_visual_title }}</strong>
+                        </div>
+                    </div>
+                </figure>
+            </div>
+            <div class="hero-stacked-bottom">
                 <p class="body-copy hero-subtitle" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
                 <div class="hero-detail-strip">
                     {% if plan.template_key == "product" %}
@@ -20,16 +82,12 @@
                         <span class="detail-pill">{{ selected_variant.content.price_badge }}</span>
                         {% endif %}
                         <span class="detail-pill">{{ selected_variant.content.stat_1_label }}</span>
-                        <span class="detail-pill">{{ selected_variant.content.stat_2_label }}</span>
                     {% elif plan.template_key == "portfolio" %}
-                        {% for project in selected_variant.content.projects[:2] %}
+                        {% for project in project_items[:2] %}
                         <span class="detail-pill">{{ project.meta }}</span>
                         {% endfor %}
-                        {% if selected_variant.content.capabilities %}
-                        <span class="detail-pill">{{ selected_variant.content.capabilities[0].title }}</span>
-                        {% endif %}
                     {% else %}
-                        {% for feature in selected_variant.content.features[:3] %}
+                        {% for feature in feature_items[:3] %}
                         <span class="detail-pill">{{ feature.title }}</span>
                         {% endfor %}
                     {% endif %}
@@ -44,20 +102,104 @@
                     {% endfor %}
                 </div>
                 {% endif %}
-            </div>
-            <div>
                 <div class="action-row">
                     <button class="cta-btn" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
-                    {% if is_consumer %}
-                    <button class="cta-btn ghost" type="button">Contact</button>
-                    {% else %}
-                    <button class="cta-btn ghost" type="button">Explore Flow</button>
-                    {% endif %}
+                    <button class="cta-btn ghost" type="button">{{ "Contact" if is_consumer else "Explore Flow" }}</button>
                 </div>
                 <p class="meta-note" style="margin-top: 12px;" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</p>
             </div>
+        </div>
+
+        {# ═══════════════════════════════════════════ #}
+        {# CENTERED HERO — luxury / botanical          #}
+        {# Centered editorial: title → subtitle → visual #}
+        {# ═══════════════════════════════════════════ #}
+        {% elif hero_mode == "centered" %}
+        <div class="hero-centered">
+            <div class="hero-centered-header">
+                <p class="section-overline" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                <h2 class="display-title hero-title hero-title-centered" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                <p class="body-copy hero-subtitle hero-subtitle-centered" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+                <div class="action-row action-row-centered">
+                    <button class="cta-btn" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                    <button class="cta-btn ghost" type="button">{{ "Contact" if is_consumer else "Explore Flow" }}</button>
+                </div>
+            </div>
+            <div class="hero-centered-media-row">
+                <figure class="hero-visual-panel visual-panel {% if primary_visual_asset %}has-image{% else %}is-placeholder{% endif %}">
+                    {% if primary_visual_asset %}
+                    <img src="{{ primary_visual_asset.data_url }}" alt="{{ primary_visual_asset.alt }}">
+                    {% endif %}
+                    <div class="visual-overlay">
+                        <div class="visual-chip-row">
+                            {% if is_consumer %}
+                            <span class="visual-chip">{{ brief.name or preview_name }}</span>
+                            {% else %}
+                            <span class="visual-chip">{{ plan.media_direction|replace("_", " ")|title }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="visual-copy">
+                            <span class="visual-kicker">{{ hero_visual_label if not is_consumer else (brief.name or "Featured") }}</span>
+                            <strong>{{ hero_visual_title }}</strong>
+                            <p>{{ hero_visual_note }}</p>
+                        </div>
+                    </div>
+                </figure>
+                <div class="hero-centered-details">
+                    <article class="hero-stage-card hero-stage-card-primary">
+                        {% if plan.template_key == "product" %}
+                        <p class="hero-stage-label">{{ "Pricing" if is_consumer else "Launch pricing" }}</p>
+                        <h3 class="stage-title" data-node-id="hero-price-badge" data-node-type="text" data-edit-path="price_badge" data-section="hero">{{ selected_variant.content.price_badge }}</h3>
+                        {% elif plan.template_key == "portfolio" %}
+                        <p class="hero-stage-label">{{ "Selected projects" if is_consumer else "Casebook preview" }}</p>
+                        {% else %}
+                        <p class="hero-stage-label">{{ "Highlights" if is_consumer else "Narrative stack" }}</p>
+                        {% endif %}
+                        <div class="hero-stage-stack">
+                            {% if plan.template_key == "product" %}
+                            <div class="stack-card">
+                                <span class="hero-stage-label">{{ "Signal" if not is_consumer else "" }}</span>
+                                <strong>{{ selected_variant.content.stat_1_value }}</strong>
+                                <span class="micro-copy">{{ selected_variant.content.stat_1_label }}</span>
+                            </div>
+                            <div class="stack-card">
+                                <span class="hero-stage-label">{{ "Speed" if not is_consumer else "" }}</span>
+                                <strong>{{ selected_variant.content.stat_2_value }}</strong>
+                                <span class="micro-copy">{{ selected_variant.content.stat_2_label }}</span>
+                            </div>
+                            {% elif plan.template_key == "portfolio" %}
+                                {% for project in project_items[:2] %}
+                                <div class="stack-card">
+                                    <span class="project-meta">{{ project.meta }}</span>
+                                    <strong>{{ project.title }}</strong>
+                                    <span class="micro-copy">{{ project.desc }}</span>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                {% for feature in feature_items[:2] %}
+                                <div class="stack-card">
+                                    <strong>{{ feature.title }}</strong>
+                                    <span class="micro-copy">{{ feature.desc }}</span>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </article>
+                </div>
+            </div>
+            {% if brief.brand_assets %}
+            <div class="brand-asset-strip">
+                {% for asset in brief.brand_assets[:3] %}
+                <figure class="brand-asset-tile">
+                    <img src="{{ asset.data_url }}" alt="{{ asset.alt }}">
+                    <figcaption>{{ asset.name }}</figcaption>
+                </figure>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <p class="meta-note" style="margin-top: 14px; text-align: center;" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</p>
             {% if not is_consumer %}
-            <div class="hero-keyword-row">
+            <div class="hero-keyword-row" style="justify-content: center;">
                 {% for keyword in plan.keywords[:3] %}
                 <span class="accent-pill">{{ keyword|replace("_", " ")|title }}</span>
                 {% endfor %}
@@ -65,85 +207,418 @@
             </div>
             {% endif %}
         </div>
-        <div class="hero-stage hero-stage-{{ plan.art_direction }}">
-            <article class="hero-stage-card hero-stage-card-primary">
-                {% if plan.template_key == "product" %}
-                <p class="hero-stage-label">{{ "Pricing" if is_consumer else "Launch pricing" }}</p>
-                <h3 class="stage-title" data-node-id="hero-price-badge" data-node-type="text" data-edit-path="price_badge" data-section="hero">{{ selected_variant.content.price_badge }}</h3>
-                {% if not is_consumer %}
-                <p class="stage-caption">The first screen sets the promise, the pricing frames the decision, and the page keeps momentum all the way through proof.</p>
-                {% endif %}
-                <div class="hero-stage-stack">
-                    <div class="stack-card">
-                        <span class="hero-stage-label">Signal</span>
-                        <strong>{{ selected_variant.content.stat_1_value }}</strong>
-                        <span class="micro-copy">{{ selected_variant.content.stat_1_label }}</span>
-                    </div>
-                    <div class="stack-card">
-                        <span class="hero-stage-label">Speed</span>
-                        <strong>{{ selected_variant.content.stat_2_value }}</strong>
-                        <span class="micro-copy">{{ selected_variant.content.stat_2_label }}</span>
-                    </div>
+
+        {# ═══════════════════════════════════════════ #}
+        {# ASYMMETRIC HERO — cyber / studio pop        #}
+        {# Offset visual overlapping title boundary    #}
+        {# ═══════════════════════════════════════════ #}
+        {% elif hero_mode == "asymmetric" %}
+        <div class="hero-asymmetric">
+            <div class="hero-asymmetric-copy">
+                <p class="section-overline" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                <h2 class="display-title hero-title hero-title-asymmetric" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                <p class="body-copy hero-subtitle" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+                <div class="hero-detail-strip">
+                    {% if plan.template_key == "product" %}
+                        {% if selected_variant.content.price_badge %}
+                        <span class="detail-pill">{{ selected_variant.content.price_badge }}</span>
+                        {% endif %}
+                        <span class="detail-pill">{{ selected_variant.content.stat_1_label }}</span>
+                        <span class="detail-pill">{{ selected_variant.content.stat_2_label }}</span>
+                    {% elif plan.template_key == "portfolio" %}
+                        {% for project in project_items[:2] %}
+                        <span class="detail-pill">{{ project.meta }}</span>
+                        {% endfor %}
+                    {% else %}
+                        {% for feature in feature_items[:3] %}
+                        <span class="detail-pill">{{ feature.title }}</span>
+                        {% endfor %}
+                    {% endif %}
                 </div>
-                {% elif plan.template_key == "portfolio" %}
-                <p class="hero-stage-label">{{ "Selected projects" if is_consumer else "Casebook preview" }}</p>
-                <div class="hero-stage-stack">
-                    {% for project in selected_variant.content.projects[:2] %}
-                    <div class="stack-card">
-                        <span class="project-meta">{{ project.meta }}</span>
-                        <strong>{{ project.title }}</strong>
-                        <span class="micro-copy">{{ project.desc }}</span>
-                    </div>
+                {% if brief.brand_assets %}
+                <div class="brand-asset-strip">
+                    {% for asset in brief.brand_assets[:3] %}
+                    <figure class="brand-asset-tile">
+                        <img src="{{ asset.data_url }}" alt="{{ asset.alt }}">
+                        <figcaption>{{ asset.name }}</figcaption>
+                    </figure>
                     {% endfor %}
                 </div>
-                {% if not is_consumer %}
-                <p class="stage-caption">A good portfolio should feel curated in the first ten seconds, before anyone scrolls into the details.</p>
                 {% endif %}
-                {% else %}
-                <p class="hero-stage-label">{{ "Highlights" if is_consumer else "Narrative stack" }}</p>
-                <div class="hero-stage-stack">
-                    {% for feature in selected_variant.content.features[:3] %}
-                    <div class="stack-card">
-                        <span class="hero-stage-label">{{ "%02d"|format(loop.index) }}</span>
-                        <strong>{{ feature.title }}</strong>
-                        <span class="micro-copy">{{ feature.desc }}</span>
-                    </div>
-                    {% endfor %}
+                <div class="action-row">
+                    <button class="cta-btn" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                    <button class="cta-btn ghost" type="button">{{ "Contact" if is_consumer else "Explore Flow" }}</button>
                 </div>
-                {% if not is_consumer %}
-                <p class="stage-caption">The page should feel like one coherent argument, not a series of disconnected cards.</p>
-                {% endif %}
-                {% endif %}
-            </article>
-            <article class="hero-stage-card hero-stage-card-secondary">
-                {% if plan.template_key == "portfolio" %}
-                <p class="hero-stage-label">{{ "About" if is_consumer else "Practice note" }}</p>
-                <p class="body-copy" data-node-id="hero-about-text" data-node-type="text" data-edit-path="about_text" data-section="hero">{{ selected_variant.content.about_text }}</p>
-                {% else %}
-                <p class="hero-stage-label">{{ "Testimonial" if is_consumer else "Proof note" }}</p>
-                <p class="proof-quote">"{{ selected_variant.content.proof_quote }}"</p>
-                <span class="proof-author">{{ selected_variant.content.proof_author }}</span>
-                {% endif %}
-                {% if not is_consumer %}
-                <div class="micro-grid">
-                    <div>
-                        <span class="micro-label">Audience</span>
-                        <strong>{{ brief.audience or "General audience" }}</strong>
+                <p class="meta-note" style="margin-top: 12px;" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</p>
+            </div>
+            <div class="hero-asymmetric-stage">
+                <figure class="hero-visual-panel visual-panel hero-visual-offset {% if primary_visual_asset %}has-image{% else %}is-placeholder{% endif %}">
+                    {% if primary_visual_asset %}
+                    <img src="{{ primary_visual_asset.data_url }}" alt="{{ primary_visual_asset.alt }}">
+                    {% endif %}
+                    <div class="visual-overlay">
+                        <div class="visual-chip-row">
+                            {% if is_consumer %}
+                            <span class="visual-chip">{{ brief.name or preview_name }}</span>
+                            {% else %}
+                            <span class="visual-chip">{{ plan.media_direction|replace("_", " ")|title }}</span>
+                            <span class="visual-chip">{{ plan.layout_mode|replace("_", " ")|title }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="visual-copy">
+                            <span class="visual-kicker">{{ hero_visual_label if not is_consumer else (brief.name or "Featured") }}</span>
+                            <strong>{{ hero_visual_title }}</strong>
+                            <p>{{ hero_visual_note }}</p>
+                        </div>
                     </div>
-                    <div>
-                        <span class="micro-label">Density</span>
-                        <strong>{{ plan.density|capitalize }}</strong>
-                    </div>
-                    <div>
-                        <span class="micro-label">Motion</span>
-                        <strong>{{ plan.motion_level|capitalize }}</strong>
-                    </div>
+                </figure>
+                <div class="hero-asymmetric-cards">
+                    <article class="hero-stage-card hero-stage-card-primary">
+                        {% if plan.template_key == "product" %}
+                        <p class="hero-stage-label">{{ "Pricing" if is_consumer else "Launch pricing" }}</p>
+                        <h3 class="stage-title" data-node-id="hero-price-badge" data-node-type="text" data-edit-path="price_badge" data-section="hero">{{ selected_variant.content.price_badge }}</h3>
+                        {% elif plan.template_key == "portfolio" %}
+                        <p class="hero-stage-label">{{ "Selected projects" if is_consumer else "Casebook preview" }}</p>
+                        {% else %}
+                        <p class="hero-stage-label">{{ "Highlights" if is_consumer else "Narrative stack" }}</p>
+                        {% endif %}
+                        <div class="hero-stage-stack">
+                            {% if plan.template_key == "product" %}
+                            <div class="stack-card">
+                                <strong>{{ selected_variant.content.stat_1_value }}</strong>
+                                <span class="micro-copy">{{ selected_variant.content.stat_1_label }}</span>
+                            </div>
+                            <div class="stack-card">
+                                <strong>{{ selected_variant.content.stat_2_value }}</strong>
+                                <span class="micro-copy">{{ selected_variant.content.stat_2_label }}</span>
+                            </div>
+                            {% elif plan.template_key == "portfolio" %}
+                                {% for project in project_items[:2] %}
+                                <div class="stack-card">
+                                    <span class="project-meta">{{ project.meta }}</span>
+                                    <strong>{{ project.title }}</strong>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                {% for feature in feature_items[:3] %}
+                                <div class="stack-card">
+                                    <span class="hero-stage-label">{{ "%02d"|format(loop.index) }}</span>
+                                    <strong>{{ feature.title }}</strong>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </article>
+                    <article class="hero-stage-card hero-stage-card-secondary">
+                        {% if plan.template_key == "portfolio" %}
+                        <p class="hero-stage-label">{{ "About" if is_consumer else "Practice note" }}</p>
+                        <p class="body-copy" data-node-id="hero-about-text" data-node-type="text" data-edit-path="about_text" data-section="hero">{{ selected_variant.content.about_text }}</p>
+                        {% else %}
+                        <p class="hero-stage-label">{{ "Testimonial" if is_consumer else "Proof note" }}</p>
+                        <p class="proof-quote">"{{ selected_variant.content.proof_quote }}"</p>
+                        <span class="proof-author">{{ selected_variant.content.proof_author }}</span>
+                        {% endif %}
+                    </article>
                 </div>
-                {% endif %}
-                {% if brief.icon_style %}
-                <p class="stage-caption">{{ brief.icon_style }}</p>
-                {% endif %}
-            </article>
+            </div>
         </div>
+        {% if not is_consumer %}
+        <div class="hero-keyword-row">
+            {% for keyword in plan.keywords[:3] %}
+            <span class="accent-pill">{{ keyword|replace("_", " ")|title }}</span>
+            {% endfor %}
+            <span class="accent-pill">{{ plan.vibe|replace("_", " ")|title }}</span>
+        </div>
+        {% endif %}
+
+        {# ═══════════════════════════════════════════ #}
+        {# PLAYFUL HERO — playful blocks               #}
+        {# Sticker-offset rotated cards                #}
+        {# ═══════════════════════════════════════════ #}
+        {% elif hero_mode == "playful" %}
+        <div class="hero-playful">
+            <div class="hero-playful-header">
+                <p class="section-overline" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                <h2 class="display-title hero-title hero-title-playful" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                <p class="body-copy hero-subtitle" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+            </div>
+            <div class="hero-playful-grid">
+                <figure class="hero-visual-panel visual-panel hero-playful-visual-main {% if primary_visual_asset %}has-image{% else %}is-placeholder{% endif %}">
+                    {% if primary_visual_asset %}
+                    <img src="{{ primary_visual_asset.data_url }}" alt="{{ primary_visual_asset.alt }}">
+                    {% endif %}
+                    <div class="visual-overlay">
+                        <div class="visual-chip-row">
+                            {% if is_consumer %}
+                            <span class="visual-chip">{{ brief.name or preview_name }}</span>
+                            {% else %}
+                            <span class="visual-chip">{{ plan.media_direction|replace("_", " ")|title }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="visual-copy">
+                            <span class="visual-kicker">{{ hero_visual_label if not is_consumer else "✨" }}</span>
+                            <strong>{{ hero_visual_title }}</strong>
+                        </div>
+                    </div>
+                </figure>
+                <div class="hero-playful-cards">
+                    <div class="hero-playful-pill-row">
+                        {% if plan.template_key == "product" %}
+                            {% if selected_variant.content.price_badge %}
+                            <span class="detail-pill playful-pill">{{ selected_variant.content.price_badge }}</span>
+                            {% endif %}
+                            <span class="detail-pill playful-pill">{{ selected_variant.content.stat_1_label }}</span>
+                        {% elif plan.template_key == "portfolio" %}
+                            {% for project in project_items[:2] %}
+                            <span class="detail-pill playful-pill">{{ project.meta }}</span>
+                            {% endfor %}
+                        {% else %}
+                            {% for feature in feature_items[:2] %}
+                            <span class="detail-pill playful-pill">{{ feature.title }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <article class="hero-stage-card hero-stage-card-primary hero-stage-card-playful">
+                        {% if plan.template_key == "product" %}
+                        <h3 class="stage-title" data-node-id="hero-price-badge" data-node-type="text" data-edit-path="price_badge" data-section="hero">{{ selected_variant.content.price_badge }}</h3>
+                        {% elif plan.template_key == "portfolio" %}
+                            {% for project in project_items[:1] %}
+                            <strong>{{ project.title }}</strong>
+                            <span class="micro-copy">{{ project.desc }}</span>
+                            {% endfor %}
+                        {% else %}
+                            {% for feature in feature_items[:1] %}
+                            <strong>{{ feature.title }}</strong>
+                            <span class="micro-copy">{{ feature.desc }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </article>
+                    <figure class="visual-panel visual-panel-compact hero-playful-visual-sm {% if secondary_visual_asset %}has-image{% else %}is-placeholder{% endif %}">
+                        {% if secondary_visual_asset %}
+                        <img src="{{ secondary_visual_asset.data_url }}" alt="{{ secondary_visual_asset.alt }}">
+                        {% endif %}
+                        <div class="visual-overlay">
+                            <div class="visual-copy">
+                                <strong>{{ brief.audience or plan.industry|replace("_", " ")|title }}</strong>
+                            </div>
+                        </div>
+                    </figure>
+                </div>
+            </div>
+            <div class="hero-playful-footer">
+                <div class="action-row">
+                    <button class="cta-btn" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                    <button class="cta-btn ghost" type="button">{{ "Contact" if is_consumer else "Explore Flow" }}</button>
+                </div>
+                <p class="meta-note" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</p>
+            </div>
+        </div>
+        {% if brief.brand_assets %}
+        <div class="brand-asset-strip">
+            {% for asset in brief.brand_assets[:3] %}
+            <figure class="brand-asset-tile">
+                <img src="{{ asset.data_url }}" alt="{{ asset.alt }}">
+                <figcaption>{{ asset.name }}</figcaption>
+            </figure>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {# ═══════════════════════════════════════════ #}
+        {# DEFAULT SPLIT HERO — editorial / warm / coastal #}
+        {# Two-column: copy left, visuals right        #}
+        {# ═══════════════════════════════════════════ #}
+        {% else %}
+        <div class="hero-layout">
+            <div class="hero-copy">
+                <div class="hero-copy-inner">
+                    <p class="section-overline" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                    <h2 class="display-title hero-title" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                    <p class="body-copy hero-subtitle" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+                    <div class="hero-detail-strip">
+                        {% if plan.template_key == "product" %}
+                            {% if selected_variant.content.price_badge %}
+                            <span class="detail-pill">{{ selected_variant.content.price_badge }}</span>
+                            {% endif %}
+                            <span class="detail-pill">{{ selected_variant.content.stat_1_label }}</span>
+                            <span class="detail-pill">{{ selected_variant.content.stat_2_label }}</span>
+                        {% elif plan.template_key == "portfolio" %}
+                            {% for project in project_items[:2] %}
+                            <span class="detail-pill">{{ project.meta }}</span>
+                            {% endfor %}
+                            {% if capability_items %}
+                            <span class="detail-pill">{{ capability_items[0].title }}</span>
+                            {% endif %}
+                        {% else %}
+                            {% for feature in feature_items[:3] %}
+                            <span class="detail-pill">{{ feature.title }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% if brief.brand_assets %}
+                    <div class="brand-asset-strip">
+                        {% for asset in brief.brand_assets[:3] %}
+                        <figure class="brand-asset-tile">
+                            <img src="{{ asset.data_url }}" alt="{{ asset.alt }}">
+                            <figcaption>{{ asset.name }}</figcaption>
+                        </figure>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <div class="action-row">
+                        <button class="cta-btn" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                        <button class="cta-btn ghost" type="button">{{ "Contact" if is_consumer else "Explore Flow" }}</button>
+                    </div>
+                    <p class="meta-note" style="margin-top: 12px;" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</p>
+                </div>
+                {% if not is_consumer %}
+                <div class="hero-keyword-row">
+                    {% for keyword in plan.keywords[:3] %}
+                    <span class="accent-pill">{{ keyword|replace("_", " ")|title }}</span>
+                    {% endfor %}
+                    <span class="accent-pill">{{ plan.vibe|replace("_", " ")|title }}</span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="hero-stage hero-stage-{{ plan.art_direction }}">
+                <figure class="hero-visual-panel visual-panel {% if primary_visual_asset %}has-image{% else %}is-placeholder{% endif %}">
+                    {% if primary_visual_asset %}
+                    <img src="{{ primary_visual_asset.data_url }}" alt="{{ primary_visual_asset.alt }}">
+                    {% endif %}
+                    <div class="visual-overlay">
+                        <div class="visual-chip-row">
+                            {% if is_consumer %}
+                            <span class="visual-chip">{{ brief.name or preview_name }}</span>
+                            {% else %}
+                            <span class="visual-chip">{{ plan.media_direction|replace("_", " ")|title }}</span>
+                            <span class="visual-chip">{{ plan.layout_mode|replace("_", " ")|title }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="visual-copy">
+                            <span class="visual-kicker">{{ hero_visual_label if not is_consumer else (brief.name or "Featured") }}</span>
+                            <strong>{{ hero_visual_title }}</strong>
+                            <p>{{ hero_visual_note }}</p>
+                        </div>
+                    </div>
+                </figure>
+                <div class="hero-visual-grid">
+                    <figure class="visual-panel visual-panel-compact {% if secondary_visual_asset %}has-image{% else %}is-placeholder{% endif %}">
+                        {% if secondary_visual_asset %}
+                        <img src="{{ secondary_visual_asset.data_url }}" alt="{{ secondary_visual_asset.alt }}">
+                        {% endif %}
+                        <div class="visual-overlay">
+                            <div class="visual-copy">
+                                {% if is_consumer %}
+                                <strong>{{ selected_variant.content.stat_1_value or (project_items[0].meta if project_items else brief.audience) }}</strong>
+                                <p>{{ selected_variant.content.stat_1_label or (project_items[0].title if project_items else "") }}</p>
+                                {% else %}
+                                <span class="visual-kicker">Signal</span>
+                                <strong>{{ selected_variant.content.stat_1_value or (project_items[0].meta if project_items else plan.vibe|replace("_", " ")|title) }}</strong>
+                                <p>{{ selected_variant.content.stat_1_label or (project_items[0].title if project_items else brief.audience) }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </figure>
+                    <figure class="visual-panel visual-panel-compact {% if tertiary_visual_asset %}has-image{% else %}is-placeholder{% endif %}">
+                        {% if tertiary_visual_asset %}
+                        <img src="{{ tertiary_visual_asset.data_url }}" alt="{{ tertiary_visual_asset.alt }}">
+                        {% endif %}
+                        <div class="visual-overlay">
+                            <div class="visual-copy">
+                                {% if is_consumer %}
+                                <strong>{{ brief.audience or plan.industry|replace("_", " ")|title }}</strong>
+                                {% else %}
+                                <span class="visual-kicker">Frame</span>
+                                <strong>{{ brief.audience or plan.industry|replace("_", " ")|title }}</strong>
+                                <p>{{ plan.hero_variant|replace("_", " ")|title }} visual slot</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </figure>
+                </div>
+                <article class="hero-stage-card hero-stage-card-primary">
+                    {% if plan.template_key == "product" %}
+                    <p class="hero-stage-label">{{ "Pricing" if is_consumer else "Launch pricing" }}</p>
+                    <h3 class="stage-title" data-node-id="hero-price-badge" data-node-type="text" data-edit-path="price_badge" data-section="hero">{{ selected_variant.content.price_badge }}</h3>
+                    {% if not is_consumer %}
+                    <p class="stage-caption">The first screen sets the promise, the pricing frames the decision, and the page keeps momentum all the way through proof.</p>
+                    {% endif %}
+                    <div class="hero-stage-stack">
+                        <div class="stack-card">
+                            {% if not is_consumer %}<span class="hero-stage-label">Signal</span>{% endif %}
+                            <strong>{{ selected_variant.content.stat_1_value }}</strong>
+                            <span class="micro-copy">{{ selected_variant.content.stat_1_label }}</span>
+                        </div>
+                        <div class="stack-card">
+                            {% if not is_consumer %}<span class="hero-stage-label">Speed</span>{% endif %}
+                            <strong>{{ selected_variant.content.stat_2_value }}</strong>
+                            <span class="micro-copy">{{ selected_variant.content.stat_2_label }}</span>
+                        </div>
+                    </div>
+                    {% elif plan.template_key == "portfolio" %}
+                    <p class="hero-stage-label">{{ "Selected projects" if is_consumer else "Casebook preview" }}</p>
+                    <div class="hero-stage-stack">
+                        {% for project in project_items[:2] %}
+                        <div class="stack-card">
+                            <span class="project-meta">{{ project.meta }}</span>
+                            <strong>{{ project.title }}</strong>
+                            <span class="micro-copy">{{ project.desc }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if not is_consumer %}
+                    <p class="stage-caption">A good portfolio should feel curated in the first ten seconds, before anyone scrolls into the details.</p>
+                    {% endif %}
+                    {% else %}
+                    <p class="hero-stage-label">{{ "Highlights" if is_consumer else "Narrative stack" }}</p>
+                    <div class="hero-stage-stack">
+                        {% for feature in feature_items[:3] %}
+                        <div class="stack-card">
+                            {% if not is_consumer %}<span class="hero-stage-label">{{ "%02d"|format(loop.index) }}</span>{% endif %}
+                            <strong>{{ feature.title }}</strong>
+                            <span class="micro-copy">{{ feature.desc }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if not is_consumer %}
+                    <p class="stage-caption">The page should feel like one coherent argument, not a series of disconnected cards.</p>
+                    {% endif %}
+                    {% endif %}
+                </article>
+                <article class="hero-stage-card hero-stage-card-secondary">
+                    {% if plan.template_key == "portfolio" %}
+                    <p class="hero-stage-label">{{ "About" if is_consumer else "Practice note" }}</p>
+                    <p class="body-copy" data-node-id="hero-about-text" data-node-type="text" data-edit-path="about_text" data-section="hero">{{ selected_variant.content.about_text }}</p>
+                    {% else %}
+                    <p class="hero-stage-label">{{ "Testimonial" if is_consumer else "Proof note" }}</p>
+                    <p class="proof-quote">"{{ selected_variant.content.proof_quote }}"</p>
+                    <span class="proof-author">{{ selected_variant.content.proof_author }}</span>
+                    {% endif %}
+                    {% if not is_consumer %}
+                    <div class="micro-grid">
+                        <div>
+                            <span class="micro-label">Audience</span>
+                            <strong>{{ brief.audience or "General audience" }}</strong>
+                        </div>
+                        <div>
+                            <span class="micro-label">Density</span>
+                            <strong>{{ plan.density|capitalize }}</strong>
+                        </div>
+                        <div>
+                            <span class="micro-label">Motion</span>
+                            <strong>{{ plan.motion_level|capitalize }}</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if brief.icon_style %}
+                    <p class="stage-caption">{{ brief.icon_style }}</p>
+                    {% endif %}
+                </article>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 </section>

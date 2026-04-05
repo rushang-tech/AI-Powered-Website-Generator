@@ -1,9 +1,17 @@
 {% set is_consumer = consumer_mode|default(false) %}
+{% set plan = selected_variant.render_plan %}
 {% set capabilities_title = selected_variant.content.capabilities_title or ("Capabilities" if is_consumer else "The supporting system behind the visible work.") %}
 {% set capabilities_intro = selected_variant.content.capabilities_intro or ("The core strengths that shape the work." if is_consumer else "Capabilities read better when they feel like a framework for the practice rather than a generic services list.") %}
+
+{# ── Determine capability layout variant ── #}
+{% set cap_layout = "grid" %}
+{% if plan.art_direction in ("luxury_serif", "modern_editorial", "botanical_noir") %}
+    {% set cap_layout = "list" %}
+{% endif %}
+
 <section
     id="section-capabilities"
-    class="preview-section section-capabilities"
+    class="preview-section section-capabilities cap-layout-{{ cap_layout }}"
     data-section="capabilities"
     data-node-id="section-capabilities"
     data-node-type="section"
@@ -12,7 +20,7 @@
     <div class="section-pad">
         <div class="section-header">
             <div class="section-header-copy">
-                <p class="section-overline">Capabilities</p>
+                <p class="section-overline">{{ "Services" if is_consumer else "Capabilities" }}</p>
                 <h3 class="section-title" data-node-id="capabilities-title" data-node-type="text" data-edit-path="capabilities_title" data-section="capabilities">{{ capabilities_title }}</h3>
                 <p class="section-copy" data-node-id="capabilities-intro" data-node-type="text" data-edit-path="capabilities_intro" data-section="capabilities">{{ capabilities_intro }}</p>
             </div>
@@ -20,6 +28,36 @@
             <span class="section-chip">{{ brief.brand_tone or "Clear and modern" }}</span>
             {% endif %}
         </div>
+
+        {# ═══════════════════════════════ #}
+        {# LIST — editorial / luxury      #}
+        {# ═══════════════════════════════ #}
+        {% if cap_layout == "list" %}
+        <div class="capability-list">
+            {% for item in selected_variant.content.capabilities %}
+            <article
+                class="capability-card capability-card-row"
+                data-node-id="capabilities-{{ loop.index0 }}"
+                data-node-type="list-item"
+                data-edit-path="capabilities.{{ loop.index0 }}"
+                data-list-key="capabilities"
+                data-item-index="{{ loop.index0 }}"
+                data-edit-fields="title,desc"
+                data-section="capabilities"
+            >
+                <span class="capability-row-index">{{ "%02d"|format(loop.index) }}</span>
+                <div class="capability-row-body">
+                    <h3 data-node-id="capabilities-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="capabilities.{{ loop.index0 }}.title" data-item-field="title" data-section="capabilities">{{ item.title }}</h3>
+                    <p class="capability-copy" data-node-id="capabilities-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="capabilities.{{ loop.index0 }}.desc" data-item-field="desc" data-section="capabilities">{{ item.desc }}</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        {# ═══════════════════════════════ #}
+        {# DEFAULT GRID — everything else #}
+        {# ═══════════════════════════════ #}
+        {% else %}
         <div class="capability-grid">
             {% for item in selected_variant.content.capabilities %}
             <article
@@ -40,5 +78,6 @@
             </article>
             {% endfor %}
         </div>
+        {% endif %}
     </div>
 </section>

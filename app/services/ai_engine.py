@@ -317,9 +317,9 @@ THEME_MAP: dict[str, dict[str, str]] = {
 }
 
 TEMPLATE_CATALOG: dict[str, dict[str, str]] = {
-    "landing": {"template_file": "generated/site_builder.html"},
-    "portfolio": {"template_file": "generated/site_builder.html"},
-    "product": {"template_file": "generated/site_builder.html"},
+    "landing": {"template_file": "generated/landing.html"},
+    "portfolio": {"template_file": "generated/portfolio.html"},
+    "product": {"template_file": "generated/product.html"},
 }
 
 STATUS_BLUEPRINT = (
@@ -384,6 +384,17 @@ TEMPLATE_COPY_GUIDES: dict[str, str] = {
     "landing": "The page should feel like a focused argument for one offer and one next step.",
     "portfolio": "The page should feel like authored work with perspective, curation, and memorable framing.",
     "product": "The page should make the product and pricing feel tangible fast, then deepen trust through proof.",
+}
+
+MEDIA_DIRECTION_COPY_GUIDES: dict[str, str] = {
+    "editorial_collage": "Assume layered editorial imagery and branded detail shots sit beside the copy. Make headlines and labels strong enough to share space with visuals.",
+    "case_study_frames": "Assume the layout includes case-study imagery, thumbnails, or project photography. Let titles and captions feel curated rather than generic.",
+    "interface_mockups": "Assume screenshots or UI mockups appear throughout. Keep copy concrete, workflow-aware, and easy to pair with product visuals.",
+    "soft_focus_frames": "Assume the page uses atmospheric photography, portraits, or brand still life moments. Write with sensory clarity and tasteful restraint.",
+    "playful_stickers": "Assume the layout uses cheerful illustrated frames and sticker-like visual accents. Keep language compact, bright, and human.",
+    "poster_panels": "Assume bold graphic panels and image blocks help carry the rhythm. Use punchy lines that read well in short visual compositions.",
+    "glow_grid": "Assume the design includes glowing interface plates, dashboards, or neon visual tiles. Favor crisp, specific phrasing over abstract mood words.",
+    "cinematic_layers": "Assume large immersive visuals and layered scenes drive the pacing. Make each section feel like a distinct scroll moment.",
 }
 
 
@@ -555,6 +566,7 @@ def _build_content_prompt(*, brief: BriefInput, render_plan: RenderPlan, theme_n
     art_guide = ART_DIRECTION_COPY_GUIDES.get(render_plan.art_direction, "")
     layout_guide = LAYOUT_COPY_GUIDES.get(render_plan.layout_mode, "")
     template_guide = TEMPLATE_COPY_GUIDES.get(render_plan.template_key, "")
+    media_guide = MEDIA_DIRECTION_COPY_GUIDES.get(render_plan.media_direction, "")
     brand_guidance = _brand_asset_prompt_block(brief)
 
     return f"""
@@ -566,6 +578,9 @@ Context:
 - art direction: {render_plan.art_direction}
 - density: {render_plan.density}
 - motion level: {render_plan.motion_level}
+- media direction: {render_plan.media_direction}
+- shell variant: {render_plan.shell_variant}
+- navigation style: {render_plan.navigation_style}
 - sections: {", ".join(render_plan.section_order)}
 - industry: {render_plan.industry}
 - vibe: {render_plan.vibe}
@@ -574,6 +589,7 @@ Context:
 - narrative goal: {template_guide}
 - art direction writing guide: {art_guide}
 - layout writing guide: {layout_guide}
+- media writing guide: {media_guide}
 - project name: {brief.name or "Not provided"}
 - audience: {brief.audience}
 - tone: {brief.brand_tone}
@@ -585,6 +601,9 @@ Writing rules:
 - Make the site feel authored for this exact brand and audience, not like generic startup filler.
 - The finished result should read like a real launched website with clear hierarchy, not like a moodboard, poster, or abstract brand poem.
 - Think in website modules: a confident hero, a scannable proof or metrics block, a clear highlights/features section, and a decisive CTA.
+- Write with visual anchors in mind: headings, labels, and short supporting lines should pair naturally with image holders, screenshots, or editorial photography.
+- Some sections will reserve image space, so avoid relying on long paragraphs to make the page feel complete.
+- Match the shell: portfolio routes should feel authored and curated, landing routes should feel conversion-aware and persuasive, and product routes should feel like real software or launch experiences.
 - Avoid empty phrases such as "innovative solutions", "cutting-edge", "seamless experience", "world-class", or "next-generation".
 - Let the art direction influence the language: editorial should feel composed, brutalist should feel decisive, cyber should feel electric, warm should feel human.
 - Write section titles and intros like real page copy, not placeholder labels. Avoid default headings like "Features", "Pricing", "Projects", or "About Us" unless the brief clearly calls for plain language.
@@ -592,6 +611,7 @@ Writing rules:
 - Section titles should usually be 2 to 7 words, concrete, and easy to scan in a navigation-style website layout.
 - Make section intros do different jobs across the page: one can frame proof, another can create intrigue, another can reduce purchase friction.
 - Give each list item a distinct angle. Do not repeat the same idea with synonyms.
+- Keep list item titles compact enough to sit inside designed cards that may also carry imagery or UI thumbnails.
 - Keep hero titles punchy, memorable, and under 10 words when possible.
 - Keep CTA text short and active, usually 2 to 4 words.
 - Use concrete nouns, outcomes, and imagery instead of vague claims.

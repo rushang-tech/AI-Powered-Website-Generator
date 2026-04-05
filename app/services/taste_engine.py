@@ -376,6 +376,63 @@ LAYOUT_LIBRARY: dict[str, dict[str, dict[str, Any]]] = {
     },
 }
 
+TEMPLATE_MEDIA_DIRECTIONS: dict[str, str] = {
+    "landing": "editorial_collage",
+    "portfolio": "case_study_frames",
+    "product": "interface_mockups",
+}
+
+ART_DIRECTION_MEDIA_DIRECTIONS: dict[str, str] = {
+    "modern_editorial": "editorial_collage",
+    "luxury_serif": "soft_focus_frames",
+    "playful_blocks": "playful_stickers",
+    "cyber_signal": "glow_grid",
+    "brutalist_poster": "poster_panels",
+    "warm_gradient": "soft_focus_frames",
+    "coastal_breeze": "soft_focus_frames",
+    "mono_signal": "poster_panels",
+    "botanical_noir": "soft_focus_frames",
+    "studio_pop": "poster_panels",
+}
+
+LAYOUT_MEDIA_DIRECTIONS: dict[str, str] = {
+    "immersive_layers": "cinematic_layers",
+    "masonry_showcase": "case_study_frames",
+    "editorial_casebook": "case_study_frames",
+    "story_panels": "cinematic_layers",
+    "pricing_first": "interface_mockups",
+    "feature_scroll": "interface_mockups",
+    "contrast_split": "interface_mockups",
+    "launch_countdown": "glow_grid",
+}
+
+TEMPLATE_SHELL_VARIANTS: dict[str, str] = {
+    "landing": "campaign_split",
+    "portfolio": "editorial_grid",
+    "product": "workflow_console",
+}
+
+LAYOUT_SHELL_VARIANTS: dict[str, str] = {
+    "split_hero": "campaign_split",
+    "staggered_bands": "story_bands",
+    "immersive_layers": "immersive_story",
+    "proof_first": "trust_stack",
+    "editorial_casebook": "editorial_grid",
+    "masonry_showcase": "gallery_wall",
+    "minimal_cv": "atelier_resume",
+    "story_panels": "narrative_panels",
+    "pricing_first": "comparison_console",
+    "feature_scroll": "workflow_console",
+    "contrast_split": "signal_split",
+    "launch_countdown": "launch_board",
+}
+
+TEMPLATE_NAVIGATION_STYLES: dict[str, str] = {
+    "landing": "floating_cta",
+    "portfolio": "index_nav",
+    "product": "product_tabs",
+}
+
 
 def _slot_schema(
     *,
@@ -514,6 +571,9 @@ class RenderPlan:
     confidence: float
     reasons: list[str]
     slot_schema: dict[str, Any]
+    media_direction: str = "editorial_collage"
+    shell_variant: str = "campaign_split"
+    navigation_style: str = "floating_cta"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -1022,6 +1082,24 @@ def _template_file_for(template_key: str, template_catalog: dict[str, dict[str, 
     return _coerce_str(template_config.get("template_file"), "generated/site_builder.html")
 
 
+def _media_direction_for(*, template_key: str, art_direction: str, layout_mode: str) -> str:
+    if layout_mode in LAYOUT_MEDIA_DIRECTIONS:
+        return LAYOUT_MEDIA_DIRECTIONS[layout_mode]
+    if template_key in TEMPLATE_MEDIA_DIRECTIONS:
+        return TEMPLATE_MEDIA_DIRECTIONS[template_key]
+    return ART_DIRECTION_MEDIA_DIRECTIONS.get(art_direction, "editorial_collage")
+
+
+def _shell_variant_for(*, template_key: str, layout_mode: str) -> str:
+    if layout_mode in LAYOUT_SHELL_VARIANTS:
+        return LAYOUT_SHELL_VARIANTS[layout_mode]
+    return TEMPLATE_SHELL_VARIANTS.get(template_key, "campaign_split")
+
+
+def _navigation_style_for(*, template_key: str) -> str:
+    return TEMPLATE_NAVIGATION_STYLES.get(template_key, "floating_cta")
+
+
 def _recipe_for(template_key: str, layout_mode: str) -> dict[str, Any]:
     recipes = LAYOUT_LIBRARY.get(template_key, {})
     if layout_mode in recipes:
@@ -1066,6 +1144,16 @@ def _make_plan(
         confidence=round(confidence, 3),
         reasons=reasons[:5],
         slot_schema=slot_schema,
+        media_direction=_media_direction_for(
+            template_key=template_key,
+            art_direction=art_direction,
+            layout_mode=layout_mode,
+        ),
+        shell_variant=_shell_variant_for(
+            template_key=template_key,
+            layout_mode=layout_mode,
+        ),
+        navigation_style=_navigation_style_for(template_key=template_key),
     )
 
 
@@ -1153,7 +1241,11 @@ def build_render_variants(
     if theme_catalog is None:
         theme_catalog = {"modern_editorial": {}}
     if template_catalog is None:
-        template_catalog = {"landing": {"template_file": "generated/site_builder.html", "slot_schema": {}}}
+        template_catalog = {
+            "landing": {"template_file": "generated/landing.html", "slot_schema": {}},
+            "portfolio": {"template_file": "generated/portfolio.html", "slot_schema": {}},
+            "product": {"template_file": "generated/product.html", "slot_schema": {}},
+        }
 
     brief_payload = brief.to_dict() if isinstance(brief, BriefInput) else (brief if isinstance(brief, dict) else {})
     brief_input = brief if isinstance(brief, BriefInput) else normalize_brief(user_prompt, brief)

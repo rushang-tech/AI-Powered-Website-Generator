@@ -1,122 +1,637 @@
-<article class="generated-site product-site">
-    <header class="product-hero" data-section="hero">
-        <p class="eyebrow {{ data.theme.accent_classes }}">Product launch</p>
-        <h2 class="hero-title {{ data.theme.text_classes }}">{{ data.content.hero_title }}</h2>
-        <p class="hero-subtitle {{ data.theme.muted_text_classes }}">{{ data.content.hero_subtitle }}</p>
-        <div class="hero-meta">
-            <span class="price-chip {{ data.theme.text_classes }}">{{ data.content.price_badge }}</span>
-            <button class="cta {{ data.theme.button_classes }}">{{ data.content.cta_text }}</button>
-        </div>
+{% set theme = selected_variant.theme or {} %}
+{% set plan = selected_variant.render_plan %}
+{% set preview_name = brief.name or selected_variant.content.hero_title or "VeloSite" %}
+{% set is_consumer = consumer_mode|default(false) %}
+{% set brand_assets = brief.brand_assets or [] %}
+{% set dashboard_asset = brand_assets[0] if brand_assets else none %}
+{% set feature_assets = brand_assets %}
+{% set feature_items = selected_variant.content.features or [] %}
+{% set offer_items = selected_variant.content.offers or [] %}
+{% set section_labels = {"hero": "Overview", "metrics": "Signals", "features": "Workflow", "pricing": "Plans", "proof": "Proof", "cta": "Launch"} %}
+<article
+    class="site-preview product-preview art-{{ plan.art_direction }} layout-{{ plan.layout_mode }} shell-{{ plan.shell_variant }} media-{{ plan.media_direction }} density-{{ plan.density }} motion-{{ plan.motion_level }}"
+    style="
+        --product-canvas: {{ theme.get('canvas_background', 'linear-gradient(180deg, #eff3f8 0%, #dde4ec 100%)') }};
+        --product-panel: {{ theme.get('panel_background', 'rgba(252, 254, 255, 0.84)') }};
+        --product-surface: {{ theme.get('surface', '#fbfdff') }};
+        --product-surface-alt: {{ theme.get('surface_alt', '#eef3f8') }};
+        --product-text: {{ theme.get('text', '#111827') }};
+        --product-muted: {{ theme.get('muted', '#586273') }};
+        --product-accent: {{ theme.get('accent', '#88d92f') }};
+        --product-accent-soft: {{ theme.get('accent_soft', 'rgba(136, 217, 47, 0.16)') }};
+        --product-border: {{ theme.get('border', 'rgba(17, 24, 39, 0.12)') }};
+        --product-button-bg: {{ theme.get('button_bg', '#111827') }};
+        --product-button-text: {{ theme.get('button_text', '#f7fafc') }};
+        --product-display-font: {{ theme.get('display_font', "'Cormorant Garamond', serif") }};
+        --product-body-font: {{ theme.get('body_font', "'Space Grotesk', sans-serif") }};
+    "
+>
+    {% if is_consumer %}
+    <header class="product-header">
+        <a class="product-brand" href="#section-hero">
+            <strong>{{ preview_name }}</strong>
+            <span>{{ brief.audience or "Product teams" }}</span>
+        </a>
+        <nav class="product-nav" aria-label="Primary">
+            {% for section in plan.section_order %}
+                {% if plan.section_visibility.get(section) and section != "hero" %}
+                <a href="#section-{{ section }}">{{ section_labels.get(section, section|replace("_", " ")|title) }}</a>
+                {% endif %}
+            {% endfor %}
+        </nav>
+        <a class="product-nav-cta" href="#section-cta">{{ selected_variant.content.cta_text }}</a>
     </header>
+    {% endif %}
 
-    <section class="benefit-grid" data-section="highlights">
-        {% for benefit in data.content.benefits %}
-        <article class="benefit-card {{ data.theme.card_classes }}">
-            <h3 class="{{ data.theme.text_classes }}">{{ benefit.title }}</h3>
-            <p class="{{ data.theme.muted_text_classes }}">{{ benefit.desc }}</p>
-        </article>
+    <div class="product-flow">
+        {% for section in plan.section_order %}
+            {% if plan.section_visibility.get(section) %}
+                {% if section == "hero" %}
+                <section
+                    id="section-hero"
+                    class="preview-section product-section product-hero"
+                    data-section="hero"
+                    data-node-id="section-hero"
+                    data-node-type="section"
+                    data-section-name="hero"
+                >
+                    <div class="product-hero-copy">
+                        <p class="product-kicker" data-node-id="hero-eyebrow" data-node-type="text" data-edit-path="hero_eyebrow" data-section="hero">{{ selected_variant.content.hero_eyebrow }}</p>
+                        <h2 class="product-title" data-node-id="hero-title" data-node-type="text" data-edit-path="hero_title" data-section="hero">{{ selected_variant.content.hero_title }}</h2>
+                        <p class="product-subtitle" data-node-id="hero-subtitle" data-node-type="text" data-edit-path="hero_subtitle" data-section="hero">{{ selected_variant.content.hero_subtitle }}</p>
+                        <div class="product-hero-actions">
+                            <button class="product-cta" type="button" data-node-id="hero-cta" data-node-type="button" data-edit-path="cta_text" data-section="hero">{{ selected_variant.content.cta_text }}</button>
+                            <span class="product-price-chip" data-node-id="hero-price-badge" data-node-type="text" data-edit-path="price_badge" data-section="hero">{{ selected_variant.content.price_badge }}</span>
+                        </div>
+                        <p class="product-hero-note" data-node-id="hero-cta-note" data-node-type="text" data-edit-path="cta_note" data-section="hero">{{ selected_variant.content.cta_note }}</p>
+                    </div>
+                    <div class="product-dashboard">
+                        <figure class="product-dashboard-main {% if dashboard_asset %}has-image{% else %}is-placeholder{% endif %}">
+                            {% if dashboard_asset %}
+                            <img src="{{ dashboard_asset.data_url }}" alt="{{ dashboard_asset.alt }}">
+                            {% endif %}
+                            <figcaption>{{ plan.shell_variant|replace("_", " ")|title }}</figcaption>
+                        </figure>
+                        <div class="product-dashboard-stack">
+                            <article class="product-dashboard-card">
+                                <span>Primary signal</span>
+                                <strong data-node-id="hero-stat-1-value" data-node-type="text" data-edit-path="stat_1_value" data-section="hero">{{ selected_variant.content.stat_1_value }}</strong>
+                                <p data-node-id="hero-stat-1-label" data-node-type="text" data-edit-path="stat_1_label" data-section="hero">{{ selected_variant.content.stat_1_label }}</p>
+                            </article>
+                            <article class="product-dashboard-card">
+                                <span>Speed</span>
+                                <strong data-node-id="hero-stat-2-value" data-node-type="text" data-edit-path="stat_2_value" data-section="hero">{{ selected_variant.content.stat_2_value }}</strong>
+                                <p data-node-id="hero-stat-2-label" data-node-type="text" data-edit-path="stat_2_label" data-section="hero">{{ selected_variant.content.stat_2_label }}</p>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+                {% elif section == "metrics" %}
+                <section
+                    id="section-metrics"
+                    class="preview-section product-section product-metrics"
+                    data-section="metrics"
+                    data-node-id="section-metrics"
+                    data-node-type="section"
+                    data-section-name="metrics"
+                >
+                    <div class="product-section-head">
+                        <p class="product-section-label">Signals</p>
+                        <h3 class="product-section-title" data-node-id="metrics-title" data-node-type="text" data-edit-path="metrics_title" data-section="metrics">{{ selected_variant.content.metrics_title }}</h3>
+                        <p class="product-section-copy" data-node-id="metrics-intro" data-node-type="text" data-edit-path="metrics_intro" data-section="metrics">{{ selected_variant.content.metrics_intro }}</p>
+                    </div>
+                    <div class="product-kpi-bar">
+                        <article class="product-kpi">
+                            <span>North star</span>
+                            <strong data-node-id="kpi-1-value" data-node-type="text" data-edit-path="stat_1_value" data-section="metrics">{{ selected_variant.content.stat_1_value }}</strong>
+                            <p data-node-id="kpi-1-label" data-node-type="text" data-edit-path="stat_1_label" data-section="metrics">{{ selected_variant.content.stat_1_label }}</p>
+                        </article>
+                        <article class="product-kpi">
+                            <span>Velocity</span>
+                            <strong data-node-id="kpi-2-value" data-node-type="text" data-edit-path="stat_2_value" data-section="metrics">{{ selected_variant.content.stat_2_value }}</strong>
+                            <p data-node-id="kpi-2-label" data-node-type="text" data-edit-path="stat_2_label" data-section="metrics">{{ selected_variant.content.stat_2_label }}</p>
+                        </article>
+                        <article class="product-kpi">
+                            <span>Consistency</span>
+                            <strong data-node-id="kpi-3-value" data-node-type="text" data-edit-path="stat_3_value" data-section="metrics">{{ selected_variant.content.stat_3_value }}</strong>
+                            <p data-node-id="kpi-3-label" data-node-type="text" data-edit-path="stat_3_label" data-section="metrics">{{ selected_variant.content.stat_3_label }}</p>
+                        </article>
+                    </div>
+                </section>
+                {% elif section == "features" %}
+                <section
+                    id="section-features"
+                    class="preview-section product-section product-features"
+                    data-section="features"
+                    data-node-id="section-features"
+                    data-node-type="section"
+                    data-section-name="features"
+                >
+                    <div class="product-section-head">
+                        <p class="product-section-label">Workflow</p>
+                        <h3 class="product-section-title" data-node-id="features-title" data-node-type="text" data-edit-path="features_title" data-section="features">{{ selected_variant.content.features_title }}</h3>
+                        <p class="product-section-copy" data-node-id="features-intro" data-node-type="text" data-edit-path="features_intro" data-section="features">{{ selected_variant.content.features_intro }}</p>
+                    </div>
+                    <div class="product-feature-list">
+                        {% for feature in feature_items %}
+                        {% set feature_asset = feature_assets[loop.index0 % (feature_assets|length)] if feature_assets else none %}
+                        <article
+                            class="product-feature-step"
+                            data-node-id="features-{{ loop.index0 }}"
+                            data-node-type="list-item"
+                            data-edit-path="features.{{ loop.index0 }}"
+                            data-list-key="features"
+                            data-item-index="{{ loop.index0 }}"
+                            data-edit-fields="title,desc"
+                            data-section="features"
+                        >
+                            <div class="product-feature-index">{{ "%02d"|format(loop.index) }}</div>
+                            <div class="product-feature-copy">
+                                <h4 data-node-id="features-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.title" data-item-field="title" data-section="features">{{ feature.title }}</h4>
+                                <p data-node-id="features-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="features.{{ loop.index0 }}.desc" data-item-field="desc" data-section="features">{{ feature.desc }}</p>
+                            </div>
+                            <figure class="product-feature-media {% if feature_asset %}has-image{% else %}is-placeholder{% endif %}">
+                                {% if feature_asset %}
+                                <img src="{{ feature_asset.data_url }}" alt="{{ feature_asset.alt }}">
+                                {% endif %}
+                                <figcaption>{{ plan.media_direction|replace("_", " ")|title }}</figcaption>
+                            </figure>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "pricing" %}
+                <section
+                    id="section-pricing"
+                    class="preview-section product-section product-pricing"
+                    data-section="pricing"
+                    data-node-id="section-pricing"
+                    data-node-type="section"
+                    data-section-name="pricing"
+                >
+                    <div class="product-section-head">
+                        <p class="product-section-label">Plans</p>
+                        <h3 class="product-section-title" data-node-id="pricing-title" data-node-type="text" data-edit-path="pricing_title" data-section="pricing">{{ selected_variant.content.pricing_title }}</h3>
+                        <p class="product-section-copy" data-node-id="pricing-intro" data-node-type="text" data-edit-path="pricing_intro" data-section="pricing">{{ selected_variant.content.pricing_intro }}</p>
+                    </div>
+                    <div class="product-pricing-grid">
+                        {% for offer in offer_items %}
+                        <article
+                            class="product-pricing-card {% if loop.index == 2 %}is-featured{% endif %}"
+                            data-node-id="offers-{{ loop.index0 }}"
+                            data-node-type="list-item"
+                            data-edit-path="offers.{{ loop.index0 }}"
+                            data-list-key="offers"
+                            data-item-index="{{ loop.index0 }}"
+                            data-edit-fields="meta,title,desc"
+                            data-section="pricing"
+                        >
+                            <span class="product-plan-meta" data-node-id="offers-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.meta" data-item-field="meta" data-section="pricing">{{ offer.meta }}</span>
+                            <h4 data-node-id="offers-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.title" data-item-field="title" data-section="pricing">{{ offer.title }}</h4>
+                            <p data-node-id="offers-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.desc" data-item-field="desc" data-section="pricing">{{ offer.desc }}</p>
+                            <button class="product-plan-cta" type="button">Choose</button>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% elif section == "proof" %}
+                <section
+                    id="section-proof"
+                    class="preview-section product-section product-proof"
+                    data-section="proof"
+                    data-node-id="section-proof"
+                    data-node-type="section"
+                    data-section-name="proof"
+                >
+                    <div>
+                        <p class="product-section-label">Proof</p>
+                        <blockquote class="product-proof-quote" data-node-id="proof-quote" data-node-type="text" data-edit-path="proof_quote" data-section="proof">"{{ selected_variant.content.proof_quote }}"</blockquote>
+                    </div>
+                    <div class="product-proof-meta">
+                        <strong data-node-id="proof-author" data-node-type="text" data-edit-path="proof_author" data-section="proof">{{ selected_variant.content.proof_author }}</strong>
+                        <span>{{ plan.navigation_style|replace("_", " ")|title }}</span>
+                    </div>
+                </section>
+                {% elif section == "cta" %}
+                <section
+                    id="section-cta"
+                    class="preview-section product-section product-cta-band"
+                    data-section="cta"
+                    data-node-id="section-cta"
+                    data-node-type="section"
+                    data-section-name="cta"
+                >
+                    <div>
+                        <p class="product-section-label">Launch</p>
+                        <h3 data-node-id="cta-title" data-node-type="text" data-edit-path="cta_text" data-section="cta">{{ selected_variant.content.cta_text }}</h3>
+                        <p data-node-id="cta-note" data-node-type="text" data-edit-path="cta_note" data-section="cta">{{ selected_variant.content.cta_note }}</p>
+                    </div>
+                    <button class="product-cta" type="button">{{ selected_variant.content.cta_text }}</button>
+                </section>
+                {% endif %}
+            {% endif %}
         {% endfor %}
-    </section>
-
-    <section class="social-proof" data-section="details">
-        <div class="quote-card {{ data.theme.card_classes }}">
-            <p class="quote {{ data.theme.text_classes }}">"The generated structure maps directly to a high-converting product launch funnel."</p>
-            <p class="quote-by {{ data.theme.muted_text_classes }}">Growth Team Review</p>
-        </div>
-    </section>
+    </div>
 </article>
 
 <style>
-    .generated-site {
-        max-width: 1060px;
-        margin: 0 auto;
+    .product-preview {
+        color: var(--product-text);
+        background:
+            radial-gradient(circle at 80% 10%, var(--product-accent-soft), transparent 24%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 18%),
+            var(--product-canvas);
+        padding: clamp(18px, 2.6vw, 30px);
+        border-radius: 30px;
+        border: 1px solid color-mix(in srgb, var(--product-border) 64%, transparent);
+        box-shadow: 0 28px 78px rgba(18, 32, 48, 0.12);
+        font-family: var(--product-body-font);
     }
-    .product-site {
+    .product-header,
+    .product-section,
+    .product-dashboard-card,
+    .product-kpi,
+    .product-feature-step,
+    .product-pricing-card,
+    .product-proof,
+    .product-cta-band {
+        backdrop-filter: blur(14px);
+    }
+    .product-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+        padding: 12px 14px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--product-panel) 82%, white 18%);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--product-border) 62%, transparent);
+    }
+    .product-brand,
+    .product-nav a,
+    .product-nav-cta {
+        color: inherit;
+        text-decoration: none;
+    }
+    .product-brand strong,
+    .product-title,
+    .product-section-title,
+    .product-proof-quote,
+    .product-cta-band h3 {
+        font-family: var(--product-display-font);
+    }
+    .product-brand strong {
+        display: block;
+        font-size: 1.02rem;
+        letter-spacing: -0.03em;
+    }
+    .product-brand span {
+        color: var(--product-muted);
+        font-size: 0.78rem;
+    }
+    .product-nav,
+    .product-nav a {
+        display: inline-flex;
+        align-items: center;
+    }
+    .product-nav {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .product-nav a,
+    .product-nav-cta,
+    .product-kicker,
+    .product-section-label,
+    .product-price-chip,
+    .product-plan-meta,
+    .product-feature-index,
+    .product-dashboard-card span,
+    .product-kpi span,
+    .product-proof-meta span,
+    .product-feature-media figcaption {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 0.72rem;
+    }
+    .product-nav a,
+    .product-price-chip,
+    .product-proof-meta span {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--product-surface) 72%, white 28%);
+        color: var(--product-muted);
+        border: 1px solid color-mix(in srgb, var(--product-border) 56%, transparent);
+    }
+    .product-nav-cta,
+    .product-cta,
+    .product-plan-cta {
+        border-radius: 16px;
+        background: var(--product-button-bg);
+        color: var(--product-button-text);
+    }
+    .product-nav-cta {
+        min-height: 42px;
+        padding: 0 18px;
+        display: inline-flex;
+        align-items: center;
+    }
+    .product-flow {
         display: grid;
-        gap: 22px;
+        gap: 18px;
+    }
+    .product-section {
+        border-radius: 28px;
+        background: color-mix(in srgb, var(--product-panel) 84%, white 16%);
+        box-shadow:
+            inset 0 0 0 1px color-mix(in srgb, var(--product-border) 62%, transparent),
+            0 18px 40px color-mix(in srgb, var(--product-accent-soft) 16%, transparent);
     }
     .product-hero {
-        border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
-        border-radius: 16px;
-        padding: clamp(20px, 3.2vw, 34px);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(340px, 0.96fr);
+        gap: 22px;
+        padding: clamp(24px, 3vw, 36px);
+        align-items: stretch;
         background:
-            linear-gradient(130deg, color-mix(in srgb, currentColor 8%, transparent), transparent 50%),
-            transparent;
+            linear-gradient(180deg, color-mix(in srgb, var(--product-surface) 82%, white 18%), color-mix(in srgb, var(--product-surface-alt) 76%, transparent));
     }
-    .eyebrow {
+    .product-kicker,
+    .product-section-label,
+    .product-dashboard-card span {
         margin: 0;
-        font-size: 0.78rem;
-        text-transform: uppercase;
-        letter-spacing: 0.15em;
+        color: var(--product-accent);
+        font-weight: 700;
     }
-    .hero-title {
-        margin: 12px 0 10px;
-        font-family: "Source Serif 4", serif;
-        font-size: clamp(2.15rem, 4.8vw, 4.2rem);
-        line-height: 1.03;
-        max-width: 920px;
-    }
-    .hero-subtitle {
+    .product-title {
         margin: 0;
-        max-width: 760px;
-        line-height: 1.65;
-        font-size: clamp(1rem, 1.7vw, 1.18rem);
+        font-size: clamp(3rem, 6.8vw, 5.8rem);
+        line-height: 0.92;
+        letter-spacing: -0.05em;
+        max-width: 8ch;
     }
-    .hero-meta {
-        margin-top: 18px;
+    .product-subtitle,
+    .product-section-copy,
+    .product-hero-note,
+    .product-dashboard-card p,
+    .product-kpi p,
+    .product-feature-copy p,
+    .product-pricing-card p,
+    .product-cta-band p {
+        margin: 0;
+        color: var(--product-muted);
+        line-height: 1.7;
+    }
+    .product-hero-copy,
+    .product-dashboard,
+    .product-dashboard-stack,
+    .product-feature-copy {
+        display: grid;
+        gap: 14px;
+    }
+    .product-hero-actions {
         display: flex;
         flex-wrap: wrap;
+        gap: 10px;
         align-items: center;
-        gap: 12px;
+        margin-top: 8px;
     }
-    .price-chip {
-        display: inline-block;
-        border-radius: 999px;
-        border: 1px solid currentColor;
-        padding: 8px 13px;
-        font-size: 0.88rem;
-    }
-    .cta {
+    .product-cta,
+    .product-plan-cta {
+        appearance: none;
         border: 0;
-        padding: 12px 20px;
+        padding: 14px 18px;
         font: inherit;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
     }
-    .benefit-grid {
+    .product-dashboard {
+        grid-template-columns: minmax(0, 1fr);
+        align-content: start;
+    }
+    .product-dashboard-main,
+    .product-feature-media {
+        position: relative;
+        overflow: hidden;
+        border-radius: 22px;
+        min-height: 240px;
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 22%),
+            linear-gradient(180deg, color-mix(in srgb, var(--product-surface-alt) 88%, #09121b 12%), color-mix(in srgb, var(--product-surface) 72%, #040b12 28%));
+    }
+    .product-dashboard-main img,
+    .product-feature-media img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .product-dashboard-main::after,
+    .product-feature-media::after {
+        content: "";
+        position: absolute;
+        inset: 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        pointer-events: none;
+    }
+    .product-dashboard-main figcaption,
+    .product-feature-media figcaption {
+        position: absolute;
+        left: 16px;
+        bottom: 16px;
+        margin: 0;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(8, 18, 31, 0.64);
+        color: rgba(255, 255, 255, 0.88);
+    }
+    .product-dashboard-stack {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .product-dashboard-card,
+    .product-kpi,
+    .product-feature-step,
+    .product-pricing-card,
+    .product-proof,
+    .product-cta-band {
+        background: linear-gradient(180deg, color-mix(in srgb, var(--product-surface) 82%, white 18%), color-mix(in srgb, var(--product-surface-alt) 70%, transparent));
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--product-border) 58%, transparent);
+    }
+    .product-dashboard-card {
+        padding: 16px;
+        border-radius: 20px;
+    }
+    .product-dashboard-card strong,
+    .product-kpi strong {
+        display: block;
+        margin-top: 8px;
+        font-size: clamp(1.8rem, 3vw, 2.7rem);
+        line-height: 1;
+        letter-spacing: -0.05em;
+    }
+    .product-section-head {
         display: grid;
-        gap: 12px;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+        max-width: 42rem;
+        padding: 22px 22px 0;
     }
-    .benefit-card {
-        border-radius: 14px;
-        padding: 16px;
-    }
-    .benefit-card h3 {
-        margin: 0 0 8px;
-        font-size: 1.04rem;
-    }
-    .benefit-card p {
+    .product-section-title,
+    .product-cta-band h3 {
         margin: 0;
-        line-height: 1.58;
-        font-size: 0.93rem;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
     }
-    .social-proof {
-        padding-bottom: 4px;
+    .product-kpi-bar {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        padding: 20px 22px 22px;
     }
-    .quote-card {
-        border-radius: 14px;
+    .product-kpi {
+        padding: 18px;
+        border-radius: 18px;
+    }
+    .product-features {
+        padding-bottom: 22px;
+    }
+    .product-feature-list {
+        display: grid;
+        gap: 14px;
+        padding: 20px 22px 0;
+    }
+    .product-feature-step {
+        display: grid;
+        grid-template-columns: 60px minmax(0, 1fr) minmax(220px, 0.7fr);
+        gap: 16px;
+        align-items: stretch;
         padding: 16px;
+        border-radius: 22px;
     }
-    .quote {
+    .product-feature-index {
+        display: inline-grid;
+        place-items: start;
+        color: var(--product-accent);
+        font-weight: 700;
+        padding-top: 8px;
+    }
+    .product-feature-copy h4,
+    .product-pricing-card h4 {
         margin: 0;
+        font-size: 1.22rem;
+        letter-spacing: -0.03em;
+    }
+    .product-pricing {
+        padding-bottom: 22px;
+    }
+    .product-pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        padding: 20px 22px 0;
+    }
+    .product-pricing-card {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+        padding: 18px;
+        border-radius: 22px;
+    }
+    .product-pricing-card.is-featured {
+        transform: translateY(-8px);
+        background:
+            radial-gradient(circle at 84% 14%, var(--product-accent-soft), transparent 24%),
+            linear-gradient(180deg, color-mix(in srgb, var(--product-surface) 82%, white 18%), color-mix(in srgb, var(--product-surface-alt) 70%, transparent));
+    }
+    .product-proof {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 22px;
+    }
+    .product-proof-quote {
+        margin: 0;
+        max-width: 14ch;
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        line-height: 0.96;
+        letter-spacing: -0.04em;
+    }
+    .product-proof-meta {
+        display: grid;
+        gap: 8px;
+        justify-items: end;
+        text-align: right;
+    }
+    .product-proof-meta strong {
         font-size: 1rem;
-        line-height: 1.58;
+        letter-spacing: -0.02em;
     }
-    .quote-by {
-        margin: 10px 0 0;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
+    .product-cta-band {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 22px;
+        background:
+            radial-gradient(circle at 82% 18%, var(--product-accent-soft), transparent 24%),
+            linear-gradient(180deg, color-mix(in srgb, var(--product-surface) 82%, white 18%), color-mix(in srgb, var(--product-surface-alt) 72%, transparent));
+    }
+    .shell-comparison_console .product-pricing-card.is-featured {
+        transform: translateY(-12px) scale(1.01);
+    }
+    .shell-launch_board .product-dashboard-main,
+    .shell-launch_board .product-feature-media {
+        min-height: 220px;
+    }
+    .motion-energetic .product-feature-step:hover,
+    .motion-energetic .product-pricing-card:hover {
+        transform: translateY(-3px);
+        transition: transform 180ms ease;
+    }
+    @media (max-width: 980px) {
+        .product-hero,
+        .product-feature-step,
+        .product-proof,
+        .product-cta-band {
+            grid-template-columns: 1fr;
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .product-header {
+            flex-direction: column;
+            align-items: stretch;
+            border-radius: 24px;
+        }
+        .product-nav,
+        .product-proof-meta {
+            justify-content: flex-start;
+            text-align: left;
+        }
+        .product-kpi-bar,
+        .product-pricing-grid,
+        .product-dashboard-stack {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 720px) {
+        .product-preview {
+            padding: 14px;
+            border-radius: 22px;
+        }
+        .product-title {
+            font-size: clamp(2.6rem, 15vw, 4.6rem);
+        }
+        .product-kpi-bar,
+        .product-pricing-grid,
+        .product-dashboard-stack,
+        .product-feature-step {
+            grid-template-columns: 1fr;
+        }
+        .product-pricing-card.is-featured {
+            transform: none;
+        }
     }
 </style>

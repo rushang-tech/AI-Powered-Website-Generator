@@ -19,6 +19,7 @@
             data-selected-variant="{{ selected_variant_id }}"
             data-frame-url="{{ frame_url }}"
         >
+            <!-- ── Compact Toolbar Header ── -->
             <header class="studio-header">
                 <div class="studio-header-main">
                     <button class="workspace-stage-toggle studio-nav-toggle" type="button" data-nav-toggle aria-label="Open navigation">
@@ -29,70 +30,67 @@
                     <div class="studio-header-copy">
                         <p class="studio-header-kicker">Studio</p>
                         <strong>{{ conversation.title }}</strong>
-                        <span class="studio-header-subcopy">Deep editing workspace for inline canvas changes, structure controls, and styling refinements.</span>
                     </div>
                 </div>
 
+                <!-- Compact Variant Strip (replaces the hero section) -->
+                <nav class="studio-variant-strip" aria-label="Design variants">
+                    {% for variant in variants %}
+                    <button
+                        class="variant-pill {% if variant.variant_id == selected_variant_id %}is-selected{% endif %}"
+                        type="button"
+                        data-variant-id="{{ variant.variant_id }}"
+                        aria-pressed="{{ 'true' if variant.variant_id == selected_variant_id else 'false' }}"
+                        title="{{ variant.summary }}"
+                    >
+                        <span class="variant-pill-dot"></span>
+                        <span class="variant-pill-label">{{ variant.label }}</span>
+                    </button>
+                    {% endfor %}
+                </nav>
+
                 <div class="studio-header-actions">
-                    <a class="btn studio-back-link" href="{{ preview_url }}">Back to Preview</a>
+                    <a class="studio-back-link" href="{{ preview_url }}" title="Back to Preview">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </a>
                     <div class="studio-action-group">
                         <button class="canvas-icon-btn" id="nav-publish-btn" type="button" title="Share link" aria-label="Share link">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
                         </button>
                         <button class="canvas-icon-btn" id="nav-export-btn" type="button" title="Export ZIP" aria-label="Export ZIP">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                         </button>
                         <button class="canvas-icon-btn" id="fullscreen-btn" type="button" title="Fullscreen" aria-label="Fullscreen">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                         </button>
                     </div>
 
                     <div class="device-switch studio-device-switch" role="tablist" aria-label="Device preview">
                         <button class="device-btn is-active" type="button" data-device="desktop" title="Desktop view" aria-label="Desktop view">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
                         </button>
                         <button class="device-btn" type="button" data-device="tablet" title="Tablet view" aria-label="Tablet view">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
                         </button>
                         <button class="device-btn" type="button" data-device="mobile" title="Mobile view" aria-label="Mobile view">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
                         </button>
                     </div>
                 </div>
             </header>
 
-            <section class="studio-hero">
-                <div class="studio-hero-copy">
-                    <p class="panel-kicker">Editing Studio</p>
-                    <div class="studio-hero-heading">
-                        <h1 id="canvas-variant-title">{{ selected_variant.label }}</h1>
-                        <p class="muted-copy" id="canvas-variant-summary">{{ selected_variant.summary }}</p>
-                    </div>
-                    <p class="studio-hero-helper">Choose a direction, keep the live canvas in view, and iterate through chat or the inspector without losing your place.</p>
-                </div>
-
-                <div class="variant-list studio-direction-strip" aria-label="Generated directions">
-                    {% for variant in variants %}
-                    <button
-                        class="variant-card {% if variant.variant_id == selected_variant_id %}is-selected{% endif %}"
-                        type="button"
-                        data-variant-id="{{ variant.variant_id }}"
-                        aria-pressed="{{ 'true' if variant.variant_id == selected_variant_id else 'false' }}"
-                    >
-                        <span class="variant-title">{{ variant.label }}</span>
-                        <span class="variant-meta">{{ variant.render_plan.art_direction|replace("_", " ")|title }} / {{ variant.render_plan.layout_mode|replace("_", " ")|title }}</span>
-                        <span class="variant-copy">{{ variant.summary }}</span>
-                    </button>
-                    {% endfor %}
-                </div>
-            </section>
-
+            <!-- ── Three-Pane Workspace ── -->
             <section class="studio-workspace">
-                <aside class="studio-rail studio-chat-rail">
+
+                <!-- Left Rail: Chat -->
+                <aside class="studio-rail studio-chat-rail" id="studio-chat-rail">
                     <div class="studio-rail-head">
-                        <p class="panel-kicker">Conversation</p>
-                        <h2>Refine with chat</h2>
-                        <p class="muted-copy">Keep the preview open while you steer copy, tone, sections, and structure.</p>
+                        <div class="rail-head-row">
+                            <h2>Chat</h2>
+                            <button class="rail-collapse-btn" type="button" data-collapse="chat" title="Collapse panel" aria-label="Collapse chat panel">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19l-7-7 7-7"/><path d="M18 19l-7-7 7-7"/></svg>
+                            </button>
+                        </div>
                     </div>
 
                     <div id="conversation-messages" class="conversation-messages">
@@ -106,40 +104,40 @@
 
                     <form id="conversation-form" class="conversation-form studio-chat-form">
                         <label class="field studio-chat-field">
-                            <span>Follow-up</span>
-                            <textarea id="conversation-input" rows="3" placeholder="Refine the hero, tighten spacing, soften the tone..."></textarea>
+                            <textarea id="conversation-input" rows="2" placeholder="Refine the hero, tighten spacing..."></textarea>
                         </label>
                         <button id="send-message-btn" class="btn btn-primary studio-chat-send" type="submit">Send</button>
                     </form>
                 </aside>
 
+                <!-- Center: Canvas -->
                 <section class="studio-preview-column">
-                    <div class="preview-stage">
-                        <div class="preview-stage-header">
-                            <div>
-                                <p class="panel-kicker">Editorial Stage</p>
-                                <h2>Live canvas</h2>
-                                <p class="muted-copy">Hover any section to edit in place. Device switching and publish actions stay pinned in the header.</p>
-                            </div>
-                            <span class="preview-stage-pill">Interactive iframe</span>
-                        </div>
-
-                        <div class="canvas-shell device-desktop" id="canvas-shell">
-                            <iframe
-                                id="preview-frame"
-                                class="preview-frame"
-                                src="{{ frame_url }}?studio=1"
-                                title="VeloSite preview"
-                                sandbox="allow-same-origin allow-scripts"
-                            ></iframe>
-                        </div>
+                    <div class="canvas-shell device-desktop" id="canvas-shell">
+                        <iframe
+                            id="preview-frame"
+                            class="preview-frame"
+                            src="{{ frame_url }}?studio=1"
+                            title="VeloSite preview"
+                            sandbox="allow-same-origin allow-scripts"
+                        ></iframe>
                     </div>
+                    <p id="override-status" class="studio-status-bar">Hover the canvas to edit in place.</p>
                 </section>
 
-                <aside class="studio-rail studio-inspector">
-                    <section class="panel-block inspector-card inspector-summary-card">
-                        <p class="panel-kicker">Selected Direction</p>
-                        <h2 id="inspector-variant-title">{{ selected_variant.label }}</h2>
+                <!-- Right Rail: Inspector -->
+                <aside class="studio-rail studio-inspector" id="studio-inspector">
+                    <div class="studio-rail-head">
+                        <div class="rail-head-row">
+                            <h2>Inspector</h2>
+                            <button class="rail-collapse-btn" type="button" data-collapse="inspector" title="Collapse panel" aria-label="Collapse inspector panel">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 19l7-7-7-7"/><path d="M6 19l7-7-7-7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Variant Info — compact -->
+                    <section class="inspector-card inspector-summary-card">
+                        <h3 id="inspector-variant-title">{{ selected_variant.label }}</h3>
                         <p id="inspector-variant-summary" class="muted-copy">{{ selected_variant.summary }}</p>
                         <p id="inspector-variant-meta" class="inspector-meta">{{ selected_variant.render_plan.art_direction|replace("_", " ")|title }} / {{ selected_variant.render_plan.layout_mode|replace("_", " ")|title }} / {{ selected_variant.render_plan.motion_level|capitalize }}</p>
                         <div class="brief-facts">
@@ -165,16 +163,12 @@
                                 {% endif %}
                             </ul>
                         </div>
-                        <p id="override-status" class="status">Hover the canvas to edit in place.</p>
                     </section>
 
-                    <section class="panel-block inspector-card">
+                    <!-- Sections / Layers -->
+                    <section class="inspector-card">
                         <div class="section-heading-row">
-                            <div>
-                                <p class="panel-kicker">Sections</p>
-                                <h2>Page structure</h2>
-                            </div>
-                            <p class="compact-copy muted-copy">Toggle or regenerate one section at a time.</p>
+                            <h3>Sections</h3>
                         </div>
                         <div class="layer-list" id="layer-list">
                             {% for section in selected_variant.render_plan.section_order %}
@@ -190,12 +184,10 @@
                         </div>
                     </section>
 
-                    <details class="panel-block advanced-panel inspector-card" id="advanced-panel">
+                    <!-- Layout & Style Controls -->
+                    <details class="inspector-card advanced-panel" id="advanced-panel">
                         <summary>
-                            <span>
-                                <span class="panel-kicker">Controls</span>
-                                <strong>Layout & style</strong>
-                            </span>
+                            <strong>Layout & style</strong>
                         </summary>
                         <div class="advanced-body">
                             <div class="control-grid">
@@ -268,12 +260,12 @@
                         </div>
                     </details>
 
-                    <section class="panel-block inspector-card studio-actions-card">
-                        <p class="panel-kicker">Actions</p>
+                    <!-- Actions -->
+                    <section class="inspector-card studio-actions-card">
                         <div class="overflow-menu-wrap" id="overflow-menu-wrap">
                             <button class="overflow-menu-btn" type="button" id="overflow-toggle">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                                More actions
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                                Actions
                             </button>
                             <div class="overflow-menu" id="overflow-menu">
                                 <button id="regen-all-btn" type="button">Regenerate All</button>
@@ -283,26 +275,22 @@
                         </div>
                     </section>
 
-                    <details class="panel-block advanced-panel inspector-card">
+                    <!-- Remix Previews -->
+                    <details class="inspector-card advanced-panel">
                         <summary>
-                            <span>
-                                <p class="panel-kicker">Remixes</p>
-                                <strong>Style remix previews</strong>
-                            </span>
+                            <strong>Remix previews</strong>
                         </summary>
                         <div class="advanced-body">
                             <div id="remix-grid" class="remix-grid">
-                                <p class="muted-copy">Click "Style Remix ×3" from actions to generate.</p>
+                                <p class="muted-copy">Click "Style Remix ×3" to generate.</p>
                             </div>
                         </div>
                     </details>
 
-                    <details class="panel-block advanced-panel inspector-card">
+                    <!-- Pipeline Status -->
+                    <details class="inspector-card advanced-panel">
                         <summary>
-                            <span>
-                                <span class="panel-kicker">Pipeline</span>
-                                <strong>Generation states</strong>
-                            </span>
+                            <strong>Pipeline</strong>
                         </summary>
                         <div class="advanced-body">
                             <div class="status-stack">
@@ -320,6 +308,10 @@
         </section>
     </div>
 </section>
+
+<!-- Hidden elements for JS compatibility -->
+<span id="canvas-variant-title" class="sr-only">{{ selected_variant.label }}</span>
+<span id="canvas-variant-summary" class="sr-only">{{ selected_variant.summary }}</span>
 
 <script id="studio-config" type="application/json">
 {{ {
@@ -339,4 +331,26 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/workspace_nav.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/studio.js') }}" defer></script>
+<script>
+/* ── Panel collapse/expand toggle ── */
+document.addEventListener('DOMContentLoaded', () => {
+    const workspace = document.querySelector('.studio-workspace');
+    if (!workspace) return;
+
+    document.querySelectorAll('[data-collapse]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.getAttribute('data-collapse');
+            const panel = target === 'chat'
+                ? document.getElementById('studio-chat-rail')
+                : document.getElementById('studio-inspector');
+            if (!panel) return;
+
+            const isCollapsed = panel.classList.toggle('is-collapsed');
+            btn.classList.toggle('is-flipped', isCollapsed);
+            btn.setAttribute('aria-label', isCollapsed ? `Expand ${target} panel` : `Collapse ${target} panel`);
+            btn.setAttribute('title', isCollapsed ? `Expand panel` : `Collapse panel`);
+        });
+    });
+});
+</script>
 {% endblock %}

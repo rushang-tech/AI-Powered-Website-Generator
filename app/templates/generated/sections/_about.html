@@ -1,6 +1,8 @@
 {% set is_consumer = consumer_mode|default(false) %}
+{% set plan = selected_variant.render_plan %}
 {% set about_title = selected_variant.content.about_title or ("About this work" if is_consumer else "A practice with enough shape to feel personal.") %}
 {% set about_intro = selected_variant.content.about_intro or ("A short note about the perspective behind the work." if is_consumer else "The supporting narrative should add authorship and perspective, not just restate the hero.") %}
+
 <section
     id="section-about"
     class="preview-section section-about"
@@ -11,14 +13,39 @@
 >
     <div class="section-pad">
         <div class="about-shell">
-            <div class="section-header-copy">
-                <p class="section-overline">About</p>
-                <h3 class="section-title" data-node-id="about-title" data-node-type="text" data-edit-path="about_title" data-section="about">{{ about_title }}</h3>
-                <p class="section-copy" data-node-id="about-intro" data-node-type="text" data-edit-path="about_intro" data-section="about">{{ about_intro }}</p>
+            {% set about_asset = brand_assets[0] if brand_assets else none %}
+            <div class="about-copy-stack">
+                <div class="section-header-copy">
+                    <p class="section-overline">About</p>
+                    <h3 class="section-title" data-node-id="about-title" data-node-type="text" data-edit-path="about_title" data-section="about">{{ about_title }}</h3>
+                    <p class="section-copy" data-node-id="about-intro" data-node-type="text" data-edit-path="about_intro" data-section="about">{{ about_intro }}</p>
+                </div>
+                <div class="signal-card">
+                    <p class="body-copy" data-node-id="about-text" data-node-type="text" data-edit-path="about_text" data-section="about">{{ selected_variant.content.about_text }}</p>
+                </div>
             </div>
-            <div class="signal-card">
-                <p class="body-copy" data-node-id="about-text" data-node-type="text" data-edit-path="about_text" data-section="about">{{ selected_variant.content.about_text }}</p>
-            </div>
+            <figure class="about-visual visual-panel {% if about_asset %}has-image{% else %}is-placeholder{% endif %}">
+                {% if about_asset %}
+                <img src="{{ about_asset.data_url }}" alt="{{ about_asset.alt }}">
+                {% endif %}
+                <div class="visual-overlay">
+                    <div class="visual-chip-row">
+                        <span class="visual-chip">{{ brief.name or "Brand profile" }}</span>
+                        {% if not is_consumer %}
+                        <span class="visual-chip">{{ plan.art_direction|replace("_", " ")|title }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="visual-copy">
+                        {% if is_consumer %}
+                        <strong>{{ brief.name or "Our story" }}</strong>
+                        {% else %}
+                        <span class="visual-kicker">Portrait space</span>
+                        <strong>{{ brief.audience or "Studio presence" }}</strong>
+                        <p>{{ plan.media_direction|replace("_", " ")|title }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </figure>
         </div>
     </div>
 </section>

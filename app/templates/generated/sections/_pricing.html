@@ -1,6 +1,10 @@
 {% set is_consumer = consumer_mode|default(false) %}
+{% set plan = selected_variant.render_plan %}
 {% set pricing_title = selected_variant.content.pricing_title or ("Plans that fit your needs" if is_consumer else "Pricing should feel framed, not dropped in at the end.") %}
 {% set pricing_intro = selected_variant.content.pricing_intro or ("Clear tiers and one obvious next step." if is_consumer else "Use clear tiers, one highlighted recommendation, and enough contrast that the best next step reads instantly.") %}
+{% set offer_items = selected_variant.content.offers or [] %}
+{% set recommended_index = (offer_items|length // 2) if offer_items|length > 1 else 0 %}
+
 <section
     id="section-pricing"
     class="preview-section section-pricing"
@@ -12,18 +16,18 @@
     <div class="section-pad">
         <div class="section-header">
             <div class="section-header-copy">
-                <p class="section-overline">Offers</p>
+                <p class="section-overline">{{ "Pricing" if is_consumer else "Offers" }}</p>
                 <h3 class="section-title" data-node-id="pricing-title" data-node-type="text" data-edit-path="pricing_title" data-section="pricing">{{ pricing_title }}</h3>
                 <p class="section-copy" data-node-id="pricing-intro" data-node-type="text" data-edit-path="pricing_intro" data-section="pricing">{{ pricing_intro }}</p>
             </div>
             {% if not is_consumer %}
-            <span class="section-chip">{{ selected_variant.render_plan.motion_level|capitalize }} motion</span>
+            <span class="section-chip">{{ plan.motion_level|capitalize }} motion</span>
             {% endif %}
         </div>
         <div class="pricing-grid">
-            {% for offer in selected_variant.content.offers %}
+            {% for offer in offer_items %}
             <article
-                class="pricing-card"
+                class="pricing-card {% if loop.index0 == recommended_index %}pricing-card-featured{% endif %}"
                 data-node-id="offers-{{ loop.index0 }}"
                 data-node-type="list-item"
                 data-edit-path="offers.{{ loop.index0 }}"
@@ -32,6 +36,9 @@
                 data-edit-fields="meta,title,desc"
                 data-section="pricing"
             >
+                {% if loop.index0 == recommended_index and is_consumer %}
+                <span class="pricing-badge">Most popular</span>
+                {% endif %}
                 <div class="pricing-card-head">
                     <span class="price-meta" data-node-id="offers-{{ loop.index0 }}-meta" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.meta" data-item-field="meta" data-section="pricing">{{ offer.meta }}</span>
                     <span class="section-index">{{ "%02d"|format(loop.index) }}</span>
@@ -39,10 +46,12 @@
                 <h3 data-node-id="offers-{{ loop.index0 }}-title" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.title" data-item-field="title" data-section="pricing">{{ offer.title }}</h3>
                 <p class="price-copy" data-node-id="offers-{{ loop.index0 }}-desc" data-node-type="text" data-edit-path="offers.{{ loop.index0 }}.desc" data-item-field="desc" data-section="pricing">{{ offer.desc }}</p>
                 <div class="pricing-footer">
-                    {% if not is_consumer %}
+                    {% if is_consumer %}
+                    <button class="cta-btn {% if loop.index0 != recommended_index %}ghost{% endif %}" type="button">{{ selected_variant.content.cta_text or "Get Started" }}</button>
+                    {% else %}
                     <span class="meta-note">Recommended for {{ brief.audience or "growing teams" }}</span>
-                    {% endif %}
                     <button class="cta-btn ghost" type="button">Choose</button>
+                    {% endif %}
                 </div>
             </article>
             {% endfor %}

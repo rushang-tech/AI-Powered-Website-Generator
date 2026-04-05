@@ -503,7 +503,7 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(studio_response.status_code, 200)
         studio_body = studio_response.get_data(as_text=True)
         self.assertIn("Back to Preview", studio_body)
-        self.assertIn("Deep editing workspace", studio_body)
+        self.assertIn("Hover the canvas to edit in place.", studio_body)
         self.assertIn('id="layer-list"', studio_body)
         self.assertIn('id="advanced-panel"', studio_body)
         self.assertIn('src="/preview/preview-123/frame?studio=1"', studio_body)

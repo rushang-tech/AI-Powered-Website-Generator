@@ -99,25 +99,37 @@ body.menu-is-open {
 
 .m-nav-center {
     display: flex;
-    gap: 4px;
+    gap: 2px;
 }
 
 .m-nav-link {
     color: var(--muted);
     font-size: 0.87rem;
     font-weight: 500;
-    padding: 7px 16px;
-    border-radius: var(--radius-full);
-    transition: color var(--duration-fast) ease, background var(--duration-fast) ease;
-}
-
-.m-nav-link:hover,
-.m-nav-link.is-active {
-    color: var(--ink);
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    position: relative;
+    transition: color var(--duration-fast) ease;
 }
 
 .m-nav-link:hover {
-    background: var(--surface-hover);
+    color: var(--ink);
+}
+
+.m-nav-link.is-active {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.m-nav-link.is-active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 14px;
+    right: 14px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--accent);
 }
 
 .m-nav-right {
@@ -717,15 +729,13 @@ body.menu-is-open {
 }
 
 .m-section-how-it-works .m-card:hover {
-    transform: translateY(-8px) scale(1.01);
     border-color: rgba(138,43,226,0.35);
-    box-shadow: 0 20px 34px rgba(69,28,126,0.18);
+    box-shadow: 0 16px 30px rgba(69,28,126,0.14);
 }
 
 .m-section-how-it-works .m-card:hover .m-step-icon {
     background: var(--accent-hover);
     color: #fff;
-    transform: translateY(-1px) scale(1.06);
 }
 
 .m-section-how-it-works .m-card:hover::after {
@@ -856,7 +866,6 @@ body.menu-is-open {
     position: relative;
     overflow: hidden;
     transition: border-color var(--duration-normal) ease,
-                transform var(--duration-normal) var(--ease-out),
                 box-shadow var(--duration-normal) ease;
 }
 
@@ -874,7 +883,6 @@ body.menu-is-open {
 
 .m-card:hover {
     border-color: var(--accent-muted);
-    transform: translateY(-4px);
     box-shadow: var(--panel-shadow);
 }
 
@@ -1093,15 +1101,18 @@ body.menu-is-open {
 .m-cta-banner {
     text-align: center;
     padding: var(--space-3xl) clamp(20px, 5vw, 48px);
-    max-width: 720px;
+    max-width: 100%;
     margin: 0 auto;
+    position: relative;
 }
 
 .m-cta-banner-home {
-    min-height: clamp(460px, 58vh, 620px);
+    min-height: clamp(420px, 52vh, 560px);
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
+    background: linear-gradient(180deg, transparent 0%, rgba(138,43,226,0.04) 30%, rgba(138,43,226,0.07) 70%, transparent 100%);
 }
 
 .m-cta-banner .m-kicker {
@@ -1140,12 +1151,14 @@ body.menu-is-open {
     font-weight: 500;
     letter-spacing: -0.02em;
     margin-bottom: var(--space-sm);
+    max-width: 620px;
 }
 
 .m-cta-banner > p {
     color: var(--muted);
     line-height: 1.6;
     margin-bottom: var(--space-lg);
+    max-width: 480px;
 }
 
 .m-cta-banner .m-hero-actions {
@@ -1363,10 +1376,6 @@ body.menu-is-open {
     box-shadow: 0 8px 22px rgba(138,43,226,0.22);
 }
 
-.m-pricing-card-v2:hover .m-pricing-plan-icon {
-    transform: scale(1.08);
-}
-
 .m-pricing-plan-icon svg {
     width: 20px;
     height: 20px;
@@ -1433,9 +1442,6 @@ body.menu-is-open {
     color: var(--accent);
 }
 
-.m-plan-points-v2 li:hover .m-plan-check {
-    transform: scale(1.1);
-}
 
 .m-plan-check svg {
     width: 14px;
@@ -1497,13 +1503,18 @@ body.menu-is-open {
     justify-content: center;
 }
 
+.m-plan-compare-table .m-compare-them {
+    font-size: 0.84rem;
+    color: var(--faint);
+}
+
 .m-plan-yes {
     font-weight: 700;
     font-size: 0.88rem;
 }
 
 .m-plan-yes.is-accent {
-    color: var(--accent);
+    color: #fff;
 }
 
 
@@ -1655,7 +1666,7 @@ body.menu-is-open {
 }
 
 
-/* ── FAQ V2 (icon-enriched) ── */
+/* ── FAQ V2 (icon-enriched, purple-led) ── */
 
 .m-faq-section {
     max-width: 1140px;
@@ -1676,33 +1687,34 @@ body.menu-is-open {
 }
 
 .m-faq-icon {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     border-radius: var(--radius-sm);
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--accent);
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: transform var(--duration-fast) ease;
+    box-shadow: 0 4px 12px rgba(138,43,226,0.18);
+    transition: background var(--duration-fast) ease;
 }
 
 .m-faq-item-v2[open] .m-faq-icon {
-    transform: scale(1.1);
+    background: var(--accent-hover);
 }
 
 .m-faq-icon svg {
     width: 14px;
     height: 14px;
     stroke: currentColor;
-    stroke-width: 2;
+    stroke-width: 2.2;
     stroke-linecap: round;
     stroke-linejoin: round;
 }
 
 .m-faq-item-v2 .m-faq-answer {
-    padding-left: 60px;
+    padding-left: 62px;
 }
 
 
@@ -1712,18 +1724,20 @@ body.menu-is-open {
     max-width: 720px;
     margin: 0 auto;
     display: grid;
-    gap: 8px;
+    gap: 6px;
 }
 
 .m-faq-item {
-    border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
-    background: var(--bg-secondary);
-    transition: border-color var(--duration-fast) ease;
+    border: 1px solid rgba(138,43,226,0.12);
+    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, rgba(138,43,226,0.03), var(--bg-secondary));
+    transition: border-color var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease;
 }
 
 .m-faq-item[open] {
-    border-color: var(--line-medium);
+    border-color: rgba(138,43,226,0.22);
+    box-shadow: 0 4px 18px rgba(138,43,226,0.08);
 }
 
 .m-faq-item summary {
@@ -1742,19 +1756,34 @@ body.menu-is-open {
 }
 
 .m-faq-item summary::after {
-    content: '+';
-    font-size: 1.2rem;
-    font-weight: 300;
-    color: var(--faint);
-    transition: transform var(--duration-normal) var(--ease-out);
+    content: '';
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-full);
+    background: var(--accent-soft);
+    flex-shrink: 0;
+    position: relative;
+    transition: transform var(--duration-normal) var(--ease-out),
+                background var(--duration-fast) ease;
+}
+
+/* Plus icon via pseudo-elements */
+.m-faq-item summary::after {
+    background-image:
+        linear-gradient(var(--accent), var(--accent)),
+        linear-gradient(var(--accent), var(--accent));
+    background-size: 10px 1.5px, 1.5px 10px;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 .m-faq-item[open] summary::after {
     transform: rotate(45deg);
+    background-color: rgba(138,43,226,0.14);
 }
 
 .m-faq-answer {
-    padding: 0 20px 16px;
+    padding: 0 20px 18px;
     color: var(--muted);
     font-size: 0.88rem;
     line-height: 1.65;
@@ -1881,35 +1910,31 @@ body.menu-is-open {
 }
 
 .m-cap-card {
-    padding-top: 52px;
+    padding-top: 28px;
     position: relative;
 }
 
 .m-cap-icon {
-    position: absolute;
-    top: -22px;
-    left: 24px;
-    width: 46px;
-    height: 46px;
-    border-radius: var(--radius-full);
-    background: var(--accent);
-    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    color: var(--accent);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 22px rgba(138,43,226,0.22);
-    transition: transform var(--duration-fast) ease,
-                background var(--duration-fast) ease;
+    margin-bottom: 14px;
+    transition: background var(--duration-fast) ease;
 }
 
 .m-cap-card:hover .m-cap-icon {
-    transform: translateY(-2px) scale(1.08);
-    background: var(--accent-hover);
+    background: var(--accent);
+    color: #fff;
 }
 
 .m-cap-icon svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     stroke: currentColor;
     stroke-width: 2;
     stroke-linecap: round;
@@ -1932,6 +1957,49 @@ body.menu-is-open {
     padding: 32px 28px;
 }
 
+/* Output card — light purple accent treatment */
+.m-io-card.m-io-card-output {
+    background: linear-gradient(160deg, rgba(138,43,226,0.05) 0%, rgba(168,85,247,0.08) 100%);
+    border-color: rgba(138,43,226,0.20);
+    box-shadow: 0 8px 28px rgba(138,43,226,0.08);
+}
+
+.m-io-card.m-io-card-output::before {
+    opacity: 1;
+    background: linear-gradient(90deg, #8A2BE2, hsl(292, 70%, 55%));
+}
+
+.m-io-card.m-io-card-output .m-io-header {
+    border-bottom-color: rgba(138,43,226,0.12);
+}
+
+.m-io-card.m-io-card-output .m-kicker {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.m-io-card.m-io-card-output .m-io-header strong {
+    color: var(--ink);
+}
+
+.m-io-card.m-io-card-output .m-io-icon {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(138,43,226,0.22);
+}
+
+.m-io-card.m-io-card-output .m-io-list li {
+    color: var(--ink);
+    font-weight: 500;
+    border-bottom-color: rgba(138,43,226,0.08);
+}
+
+.m-io-card.m-io-card-output .m-io-li-icon {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(138,43,226,0.16);
+}
+
 .m-io-header {
     display: flex;
     align-items: center;
@@ -1952,16 +2020,10 @@ body.menu-is-open {
     justify-content: center;
     flex-shrink: 0;
     box-shadow: 0 0 0 3px var(--accent-soft);
-    transition: transform var(--duration-fast) ease,
-                background var(--duration-fast) ease;
 }
 
 .m-io-icon.is-out {
     background: linear-gradient(135deg, rgba(138,43,226,0.15), rgba(168,85,247,0.10));
-}
-
-.m-io-card:hover .m-io-icon {
-    transform: scale(1.06);
 }
 
 .m-io-icon svg {
@@ -2013,11 +2075,6 @@ body.menu-is-open {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: transform var(--duration-fast) ease;
-}
-
-.m-io-list li:hover .m-io-li-icon {
-    transform: scale(1.1);
 }
 
 .m-io-li-icon svg {
@@ -2053,11 +2110,6 @@ body.menu-is-open {
     justify-content: center;
     margin-bottom: var(--space-md);
     box-shadow: 0 10px 24px rgba(138,43,226,0.28);
-    transition: transform var(--duration-fast) ease;
-}
-
-.m-persona-card:hover .m-persona-icon {
-    transform: translateY(-3px) scale(1.08);
 }
 
 .m-persona-icon svg {
@@ -2365,7 +2417,7 @@ body.menu-is-open {
 }
 
 
-/* ── Comparison Table ── */
+/* ── Comparison Table (Premium) ── */
 
 .m-section-compare {
     max-width: 1140px;
@@ -2375,24 +2427,24 @@ body.menu-is-open {
     max-width: 840px;
     margin: 0 auto;
     border: 1px solid var(--line);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     overflow: hidden;
     background: var(--bg-secondary);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.06);
 }
 
 .m-compare-row {
     display: grid;
     grid-template-columns: 1.4fr 1fr 1fr;
     border-bottom: 1px solid var(--line);
-    transition: background var(--duration-fast) ease;
 }
 
 .m-compare-row:last-child {
     border-bottom: 0;
 }
 
-.m-compare-row:not(.m-compare-header):hover {
-    background: var(--surface-hover);
+.m-compare-row:nth-child(even):not(.m-compare-header) {
+    background: rgba(0,0,0,0.015);
 }
 
 .m-compare-header {
@@ -2401,7 +2453,7 @@ body.menu-is-open {
 }
 
 .m-compare-cell {
-    padding: 14px 20px;
+    padding: 15px 20px;
     font-size: 0.88rem;
     display: flex;
     align-items: center;
@@ -2424,23 +2476,31 @@ body.menu-is-open {
     color: var(--faint);
 }
 
-.m-compare-header .m-compare-them,
-.m-compare-header .m-compare-us {
+.m-compare-header .m-compare-them {
     font-weight: 600;
+    font-size: 0.82rem;
+    color: var(--faint);
+}
+
+.m-compare-header .m-compare-us {
+    font-weight: 700;
     font-size: 0.85rem;
-    color: var(--ink);
+    color: var(--accent);
+    background: rgba(138,43,226,0.06);
 }
 
 .m-compare-them {
     color: var(--faint);
     border-left: 1px solid var(--line);
+    font-size: 0.84rem;
 }
 
 .m-compare-us {
     color: var(--accent);
-    font-weight: 500;
-    border-left: 1px solid var(--line);
-    background: rgba(138,43,226,0.03);
+    font-weight: 600;
+    font-size: 0.86rem;
+    border-left: 1px solid rgba(138,43,226,0.10);
+    background: rgba(138,43,226,0.04);
 }
 
 .m-compare-icon {
@@ -2486,6 +2546,13 @@ body.menu-is-open {
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
+}
+
+/* ── Pricing Comparison Table Overrides ── */
+
+.m-plan-compare-table .m-plan-yes.is-accent {
+    color: var(--accent);
+    font-weight: 700;
 }
 
 
@@ -2555,7 +2622,7 @@ body.menu-is-open {
     }
 
     .m-cta-banner-home {
-        min-height: clamp(360px, 50vh, 460px);
+        min-height: clamp(320px, 46vh, 420px);
     }
 
     .m-timeline {
@@ -2602,6 +2669,10 @@ body.menu-is-open {
     .m-compare-us {
         border-left: 0;
         padding-left: 42px;
+    }
+
+    .m-compare-us {
+        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
     }
 
     .m-compare-them::before {
