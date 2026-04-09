@@ -24,22 +24,23 @@ if (form) {
     const toneInput = document.getElementById("tone-input");
     const densityInput = document.getElementById("density-input");
     const motionInput = document.getElementById("motion-input");
+    const paletteMoodInput = document.getElementById("palette-mood-input");
+    const typographyVibeInput = document.getElementById("typography-vibe-input");
     const nameInput = document.getElementById("name-input");
     const notesInput = document.getElementById("notes-input");
     const brandAssetsInput = document.getElementById("brand-assets-input");
     const brandAssetsPreview = document.getElementById("brand-assets-preview");
+    const tasteKeywordsInput = document.getElementById("taste-keywords-input");
     const iconStyleInput = document.getElementById("icon-style-input");
     const demoBrief = config.demoBrief || {};
 
-    /* ── Details toggle (progressive disclosure) ── */
+    /* ── Details toggle (progressive disclosure, inside prompt box) ── */
     const detailsToggle = document.getElementById("details-toggle");
     const detailsPanel = document.getElementById("details-panel");
-    let hasVisitedDetailsStep = !detailsPanel;
+    let detailsRevealed = false;
 
     function setDetailsOpen(isOpen) {
-        if (!detailsPanel) {
-            return;
-        }
+        if (!detailsPanel) return;
         detailsPanel.classList.toggle("is-open", isOpen);
         if (detailsToggle) {
             detailsToggle.classList.toggle("is-open", isOpen);
@@ -48,14 +49,22 @@ if (form) {
     }
 
     function revealDetailsStep({ focusField = false } = {}) {
-        if (!detailsPanel) {
-            return;
-        }
+        if (!detailsPanel) return;
         setDetailsOpen(true);
-        hasVisitedDetailsStep = true;
+        detailsRevealed = true;
         detailsPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
         if (focusField && audienceInput) {
             audienceInput.focus();
+        }
+    }
+
+    /** Fill default values into empty detail fields */
+    function fillDefaults() {
+        if (audienceInput && !audienceInput.value.trim()) {
+            audienceInput.value = "General audience";
+        }
+        if (toneInput && !toneInput.value.trim()) {
+            toneInput.value = "Clear and modern";
         }
     }
 
@@ -65,7 +74,7 @@ if (form) {
             const isOpen = !detailsPanel.classList.contains("is-open");
             setDetailsOpen(isOpen);
             if (isOpen) {
-                hasVisitedDetailsStep = true;
+                detailsRevealed = true;
             }
         });
     }
@@ -190,6 +199,27 @@ if (form) {
             reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
             reader.readAsDataURL(file);
         });
+    }
+
+    function parseTasteKeywords(value) {
+        const rawItems = String(value || "").split(/[,|\n]+/);
+        const output = [];
+        const seen = new Set();
+        rawItems.forEach((item) => {
+            const normalized = item
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]+/g, " ")
+                .replace(/[\s_]+/g, "-")
+                .replace(/-+/g, "-")
+                .replace(/^-|-$/g, "");
+            if (!normalized || seen.has(normalized)) {
+                return;
+            }
+            seen.add(normalized);
+            output.push(normalized);
+        });
+        return output.slice(0, 8);
     }
 
     function inferredMimeType(file) {
@@ -319,12 +349,7 @@ if (form) {
         chip.addEventListener("click", () => {
             goalInput.value = chip.getAttribute("data-sample");
             revealDetailsStep();
-            if (audienceInput && !audienceInput.value) {
-                audienceInput.value = "People ready to buy quickly";
-            }
-            if (toneInput && !toneInput.value) {
-                toneInput.value = "Bold, polished, intentional";
-            }
+            fillDefaults();
             goalInput.focus();
         });
     });
@@ -340,9 +365,12 @@ if (form) {
             const motionSelect = motionInput ? motionInput.closest("[data-brief-select]") : null;
             if (densitySelect) setSelectValue(densitySelect, demoBrief.content_density || "balanced");
             if (motionSelect) setSelectValue(motionSelect, demoBrief.motion_level || "moderate");
+            if (paletteMoodInput) paletteMoodInput.value = demoBrief.palette_mood || paletteMoodInput.value;
+            if (typographyVibeInput) typographyVibeInput.value = demoBrief.typography_vibe || typographyVibeInput.value;
             if (nameInput) nameInput.value = demoBrief.name || nameInput.value;
+            if (tasteKeywordsInput) tasteKeywordsInput.value = demoBrief.taste_keywords || tasteKeywordsInput.value;
             if (notesInput) notesInput.value = demoBrief.notes || notesInput.value;
-            setBusy(false, "Demo prompt loaded. Hit → to generate.");
+            setBusy(false, "Demo prompt loaded. Hit Run to generate.");
             goalInput.focus();
         });
     }
@@ -394,11 +422,16 @@ if (form) {
             return;
         }
 
-        if (!hasVisitedDetailsStep) {
-            revealDetailsStep({ focusField: true });
-            setBusy(false, "Details opened. Add anything you want, then generate again.");
+        /* On first submit: expand details with defaults, let user review */
+        if (!detailsRevealed) {
+            fillDefaults();
+            revealDetailsStep();
+            setBusy(false, "Review details below, then hit Run again to generate.");
             return;
         }
+
+        /* Fill any remaining empty defaults before generating */
+        fillDefaults();
 
         let brandAssets = [];
         try {
@@ -413,6 +446,9 @@ if (form) {
             brand_tone: toneInput ? toneInput.value.trim() : "",
             content_density: densityInput ? densityInput.value : "balanced",
             motion_level: motionInput ? motionInput.value : "moderate",
+            palette_mood: paletteMoodInput ? paletteMoodInput.value : "",
+            typography_vibe: typographyVibeInput ? typographyVibeInput.value : "",
+            taste_keywords: parseTasteKeywords(tasteKeywordsInput ? tasteKeywordsInput.value : ""),
             name: nameInput ? nameInput.value.trim() : "",
             notes: notesInput ? notesInput.value.trim() : "",
             brand_assets: brandAssets,

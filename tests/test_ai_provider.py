@@ -16,16 +16,21 @@ class _FakeResponse:
         self.text = text
 
 
-class _FakeModel:
-    def __init__(self, model_name: str, responses: dict[str, object]) -> None:
-        self._model_name = model_name
+class _FakeModelsAPI:
+    def __init__(self, responses: dict[str, object]) -> None:
         self._responses = responses
 
-    def generate_content(self, prompt: str):
-        result = self._responses[self._model_name]
+    def generate_content(self, *, model: str, contents: str):
+        _ = contents
+        result = self._responses[model]
         if isinstance(result, Exception):
             raise result
         return _FakeResponse(str(result))
+
+
+class _FakeClient:
+    def __init__(self, responses: dict[str, object]) -> None:
+        self.models = _FakeModelsAPI(responses)
 
 
 class _FakeKeyProvider:
@@ -48,7 +53,7 @@ class AIProviderTests(unittest.TestCase):
             "gemini-3-flash-preview": RuntimeError("429 quota exceeded"),
             "gemini-2.5-flash-lite": '{"hero_title":"Kid-powered coding"}',
         }
-        mocked_genai.GenerativeModel.side_effect = lambda name: _FakeModel(name, responses)
+        mocked_genai.Client.return_value = _FakeClient(responses)
 
         provider = GeminiAIProvider(
             "test-key",
@@ -59,7 +64,7 @@ class AIProviderTests(unittest.TestCase):
         result = provider.generate_text("Return JSON only.")
 
         self.assertEqual(result, '{"hero_title":"Kid-powered coding"}')
-        self.assertEqual(mocked_genai.GenerativeModel.call_count, 2)
+        mocked_genai.Client.assert_called_once_with(api_key="test-key")
         self.assertEqual(provider._model_names[0], "gemini-2.5-flash-lite")
 
     @patch("app.services.ai_provider.genai")
@@ -68,7 +73,7 @@ class AIProviderTests(unittest.TestCase):
             "gemini-3-flash-preview": RuntimeError("ResourceExhausted: quota exceeded"),
             "gemini-2.5-flash-lite": '{"hero_title":"Kid-powered coding"}',
         }
-        mocked_genai.GenerativeModel.side_effect = lambda name: _FakeModel(name, responses)
+        mocked_genai.Client.return_value = _FakeClient(responses)
 
         provider = GeminiAIProvider(
             "test-key",
@@ -79,7 +84,7 @@ class AIProviderTests(unittest.TestCase):
         result = provider.generate_text("Return JSON only.", stop_on_quota_error=True)
 
         self.assertEqual(result, '{"hero_title":"Kid-powered coding"}')
-        self.assertEqual(mocked_genai.GenerativeModel.call_count, 2)
+        mocked_genai.Client.assert_called_once_with(api_key="test-key")
 
     @patch("app.services.ai_provider.genai")
     def test_provider_raises_helpful_error_when_all_models_fail(self, mocked_genai):
@@ -87,7 +92,7 @@ class AIProviderTests(unittest.TestCase):
             "gemini-2.5-flash-lite": RuntimeError("429 quota exceeded"),
             "gemini-2.5-flash": RuntimeError("429 quota exceeded"),
         }
-        mocked_genai.GenerativeModel.side_effect = lambda name: _FakeModel(name, responses)
+        mocked_genai.Client.return_value = _FakeClient(responses)
 
         provider = GeminiAIProvider(
             "test-key",

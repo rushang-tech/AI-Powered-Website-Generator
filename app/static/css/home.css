@@ -1,4 +1,4 @@
-/* ─── VeloSite Home — Premium Dashboard ─── */
+/* ─── VeloSite Home — Premium Dashboard (AI Studio Style) ─── */
 
 .home-layout {
     display: flex;
@@ -22,10 +22,10 @@
 
 .home-hero-text h1 {
     font-family: var(--font-display);
-    font-size: clamp(1.6rem, 3.5vw, 2.5rem);
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
     font-weight: 600;
     letter-spacing: -0.03em;
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-xs);
     background: linear-gradient(135deg, var(--ink) 0%, var(--accent) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -34,245 +34,341 @@
 
 .home-hero-text p {
     color: var(--muted);
-    font-size: 0.94rem;
-    max-width: 440px;
+    font-size: 0.88rem;
+    max-width: 420px;
     margin: 0 auto;
-    line-height: 1.65;
+    line-height: 1.6;
 }
 
 
 /* ── Brief shell ── */
 
 .brief-shell {
-    width: min(660px, 100%);
+    width: min(600px, 100%);
 }
 
-.brief-input-wrap {
-    position: relative;
+
+/* ══════════════════════════════════════════════
+   UNIFIED PROMPT CONTAINER 
+   (Google AI Studio-inspired)
+   ══════════════════════════════════════════════ */
+
+.prompt-container {
+    border: 1.5px solid var(--line-medium);
+    border-radius: 20px;
+    background: var(--bg-glass);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04), 0 0 0 1px rgba(138,43,226,0.03);
+    transition: border-color 300ms ease,
+                box-shadow 300ms ease;
+    overflow: hidden;
     margin-bottom: var(--space-md);
 }
 
-.brief-input-wrap textarea {
+.prompt-container:focus-within {
+    border-color: var(--accent-muted);
+    box-shadow: 0 4px 24px rgba(138,43,226,0.08), 0 0 0 2px var(--accent-soft);
+}
+
+
+/* ── Textarea ── */
+
+.prompt-textarea-wrap {
+    position: relative;
+}
+
+.prompt-textarea-wrap textarea {
     width: 100%;
-    min-height: 64px;
+    min-height: 60px;
     max-height: 200px;
-    padding: 18px 60px 18px 22px;
-    border: 1px solid var(--line-medium);
-    border-radius: var(--radius-md);
-    background: var(--bg-glass);
+    padding: 14px 20px 8px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
     color: var(--ink);
-    font-size: 0.95rem;
-    line-height: 1.5;
+    font-size: 0.92rem;
+    line-height: 1.55;
     resize: none;
     outline: 0;
     font-family: var(--font-body);
-    box-shadow: var(--shadow-sm);
-    transition: border-color var(--duration-normal) ease,
-                box-shadow var(--duration-normal) ease,
-                transform var(--duration-normal) var(--ease-out);
 }
 
-.brief-input-wrap textarea::placeholder {
+.prompt-textarea-wrap textarea::placeholder {
     color: var(--faint);
 }
 
-.brief-input-wrap textarea:focus {
-    border-color: var(--accent-muted);
-    box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-glow);
-    transform: translateY(-1px);
-}
 
-.brief-input-actions {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    gap: 6px;
-}
+/* ══════════════════════════════════════════════
+   DETAILS PANEL – expands within prompt box 
+   ══════════════════════════════════════════════ */
 
-.brief-submit-btn {
-    width: 38px;
-    height: 38px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    border-radius: var(--radius-full);
-    background: var(--gradient-accent);
-    color: #fff;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(138,43,226,0.22);
-    transition: all var(--duration-normal) var(--ease-out);
-}
-
-.brief-submit-btn svg {
-    width: 18px;
-    height: 18px;
-    stroke: currentColor;
-    stroke-width: 2.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
-
-.brief-submit-btn:hover {
-    box-shadow: var(--shadow-glow);
-    transform: scale(1.08) translateY(-1px);
-}
-
-.brief-submit-btn:disabled {
-    opacity: 0.4;
-    pointer-events: none;
-}
-
-@keyframes subtlePulse {
-    0%, 100% { box-shadow: 0 4px 14px rgba(138,43,226,0.22); }
-    50%      { box-shadow: 0 4px 22px rgba(138,43,226,0.36); }
-}
-
-.brief-submit-btn:not(:disabled) {
-    animation: subtlePulse 2.8s ease-in-out infinite;
-}
-
-.brief-submit-btn:hover {
-    animation: none;
-}
-
-
-/* ── Details toggle ── */
-
-.brief-details-toggle {
-    appearance: none;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-full);
-    background: transparent;
-    color: var(--muted);
-    padding: 7px 16px;
-    font-size: 0.82rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--duration-normal) var(--ease-out);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.brief-details-toggle:hover {
-    border-color: var(--accent-muted);
-    color: var(--accent);
-    background: var(--accent-soft);
-    transform: translateY(-1px);
-}
-
-.brief-details-toggle .toggle-icon {
-    width: 14px;
-    height: 14px;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: transform var(--duration-normal) var(--ease-out);
-}
-
-.brief-details-toggle.is-open .toggle-icon {
-    transform: rotate(90deg);
-}
-
-
-/* ── Expanded brief details ── */
-
-.brief-details-panel {
+.prompt-details-panel {
     max-height: 0;
-    overflow: clip;
-    transition: max-height 500ms var(--ease-out),
-                opacity var(--duration-normal) ease;
+    overflow: hidden;
+    transition: max-height 500ms cubic-bezier(0.22, 0.61, 0.36, 1),
+                opacity 300ms ease;
     opacity: 0;
+    border-top: 1px solid transparent;
 }
 
-.brief-details-panel.is-open {
-    max-height: 2000px;
+.prompt-details-panel.is-open {
+    max-height: 1200px;
     opacity: 1;
     overflow: visible;
+    border-top-color: var(--line);
 }
 
-.brief-details-inner {
-    padding: var(--space-lg) 0;
+.prompt-details-inner {
+    padding: 20px 24px;
 }
 
-.brief-details-card {
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    background: var(--bg-glass);
-    padding: 24px;
-    box-shadow: var(--shadow-sm);
-}
-
-.brief-details-grid {
+.prompt-details-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
+    gap: 16px;
 }
 
 
-/* ── Brief field labels with icons ── */
+/* ── Prompt field ── */
 
-.brief-field-label {
+.prompt-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.prompt-field-full {
+    grid-column: 1 / -1;
+}
+
+.prompt-field-label {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--muted);
-    margin-bottom: 6px;
+    margin-bottom: 5px;
 }
 
-.brief-field-label svg {
-    width: 14px;
-    height: 14px;
+.prompt-field-label svg {
+    width: 13px;
+    height: 13px;
     stroke: var(--accent);
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
     flex-shrink: 0;
-    opacity: 0.8;
+    opacity: 0.7;
 }
 
-.brief-field input[type="text"],
-.brief-field textarea {
+.prompt-field input[type="text"],
+.prompt-field select,
+.prompt-field textarea {
     width: 100%;
-    padding: 10px 14px;
+    padding: 9px 12px;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     background: var(--bg);
     color: var(--ink);
-    font-size: 0.88rem;
+    font-size: 0.84rem;
     font-family: var(--font-body);
     outline: 0;
     transition: border-color var(--duration-fast) ease,
                 box-shadow var(--duration-fast) ease;
 }
 
-.brief-field input[type="text"]:focus,
-.brief-field textarea:focus {
+.prompt-field input[type="text"]:focus,
+.prompt-field select:focus,
+.prompt-field textarea:focus {
     border-color: var(--accent-muted);
     box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
-.brief-field input[type="text"]::placeholder,
-.brief-field textarea::placeholder {
+.prompt-field input[type="text"]::placeholder,
+.prompt-field textarea::placeholder {
     color: var(--faint);
 }
 
-.brief-field textarea {
-    min-height: 80px;
+.prompt-field select {
+    appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+        linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position:
+        calc(100% - 18px) calc(50% - 2px),
+        calc(100% - 12px) calc(50% - 2px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 34px;
+}
+
+.prompt-field textarea {
+    min-height: 72px;
     resize: vertical;
     line-height: 1.5;
 }
 
 
-/* ── Custom select ── */
+/* ══════════════════════════════════════════════
+   TOOLBAR (inside prompt box, bottom)
+   ══════════════════════════════════════════════ */
+
+.prompt-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+}
+
+.prompt-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.prompt-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+/* ── Tool buttons (Details, Demo) ── */
+
+.prompt-tool-btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--muted);
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease-out);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.prompt-tool-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+    transition: transform 200ms ease;
+}
+
+.prompt-tool-btn:hover {
+    border-color: var(--accent-muted);
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.prompt-tool-btn.is-open {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.prompt-tool-btn.is-open svg {
+    transform: rotate(90deg);
+}
+
+
+/* Demo button highlight */
+.prompt-tool-demo {
+    border-color: var(--accent-muted);
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.prompt-tool-demo svg {
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+    stroke: none;
+}
+
+.prompt-tool-demo:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.prompt-tool-demo:hover svg {
+    fill: #fff;
+}
+
+
+/* ── Submit button (Run ↵) ── */
+
+.prompt-submit-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    appearance: none;
+    border: none;
+    border-radius: var(--radius-full);
+    background: var(--gradient-accent);
+    color: #fff;
+    padding: 8px 20px 8px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: var(--font-body);
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(138,43,226,0.25);
+    transition: all var(--duration-normal) var(--ease-out);
+}
+
+.prompt-submit-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.prompt-submit-btn:hover {
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-1px);
+}
+
+.prompt-submit-btn:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+    animation: none;
+}
+
+@keyframes submitGlow {
+    0%, 100% { box-shadow: 0 3px 12px rgba(138,43,226,0.25); }
+    50%      { box-shadow: 0 4px 20px rgba(138,43,226,0.40); }
+}
+
+.prompt-submit-btn:not(:disabled) {
+    animation: submitGlow 3s ease-in-out infinite;
+}
+
+.prompt-submit-btn:hover {
+    animation: none;
+}
+
+.prompt-submit-label {
+    letter-spacing: 0.02em;
+}
+
+
+/* ══════════════════════════════════════════════
+   CUSTOM SELECT (inside details)
+   ══════════════════════════════════════════════ */
 
 .brief-select {
     position: relative;
@@ -285,8 +381,8 @@
     border-radius: var(--radius-sm);
     background: var(--bg);
     color: var(--ink);
-    padding: 10px 14px;
-    font-size: 0.88rem;
+    padding: 9px 12px;
+    font-size: 0.84rem;
     font-family: var(--font-body);
     cursor: pointer;
     display: flex;
@@ -307,8 +403,8 @@
 }
 
 .brief-select-trigger svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     stroke: var(--muted);
     stroke-width: 2;
     stroke-linecap: round;
@@ -350,8 +446,8 @@
     border: 0;
     background: transparent;
     color: var(--ink);
-    padding: 8px 12px;
-    font-size: 0.86rem;
+    padding: 7px 10px;
+    font-size: 0.82rem;
     font-family: var(--font-body);
     cursor: pointer;
     display: flex;
@@ -371,8 +467,8 @@
 }
 
 .brief-select-check {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     stroke: var(--accent);
     stroke-width: 2.5;
     stroke-linecap: round;
@@ -386,15 +482,17 @@
 }
 
 
-/* ── Upload zone ── */
+/* ══════════════════════════════════════════════
+   UPLOAD ZONE
+   ══════════════════════════════════════════════ */
 
 .brief-upload-zone {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 24px 16px;
+    gap: 6px;
+    padding: 18px 14px;
     border: 2px dashed var(--line);
     border-radius: var(--radius-sm);
     background: var(--surface);
@@ -417,17 +515,17 @@
 }
 
 .brief-upload-icon {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     stroke: var(--accent);
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
-    opacity: 0.6;
+    opacity: 0.5;
 }
 
 .brief-upload-text {
-    font-size: 0.84rem;
+    font-size: 0.8rem;
     color: var(--muted);
 }
 
@@ -437,19 +535,21 @@
 }
 
 .brief-upload-hint {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--faint);
 }
 
 
-/* ── Quick-start chips ── */
+/* ══════════════════════════════════════════════
+   QUICK-START CHIPS 
+   ══════════════════════════════════════════════ */
 
 .quick-start-row {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     justify-content: center;
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-sm);
 }
 
 .chip {
@@ -458,8 +558,8 @@
     border-radius: var(--radius-full);
     background: transparent;
     color: var(--muted);
-    padding: 7px 16px;
-    font-size: 0.8rem;
+    padding: 6px 14px;
+    font-size: 0.76rem;
     font-weight: 500;
     cursor: pointer;
     transition: all var(--duration-normal) var(--ease-out);
@@ -473,36 +573,10 @@
     box-shadow: 0 4px 12px rgba(138,43,226,0.10);
 }
 
-.demo-chip {
-    appearance: none;
-    border: 1px solid var(--accent-muted);
-    border-radius: var(--radius-full);
-    background: var(--accent-soft);
-    color: var(--accent);
-    padding: 7px 16px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--duration-normal) var(--ease-out);
-    position: relative;
-}
 
-.demo-chip::before {
-    content: '✦';
-    margin-right: 4px;
-    font-size: 0.7rem;
-}
-
-.demo-chip:hover {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-glow);
-}
-
-
-/* ── Generation overlay ── */
+/* ══════════════════════════════════════════════
+   GENERATION OVERLAY 
+   ══════════════════════════════════════════════ */
 
 .gen-overlay {
     position: fixed;
@@ -788,11 +862,11 @@
 
 .status-text {
     color: var(--accent);
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     font-weight: 500;
     min-height: 1.4em;
     text-align: center;
-    margin-top: var(--space-sm);
+    margin-top: var(--space-xs);
 }
 
 
@@ -800,50 +874,70 @@
 
 .asset-preview-grid {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
-    margin-top: 12px;
+    margin-top: 10px;
 }
 
 .asset-preview-card {
-    width: 72px;
+    width: 64px;
     text-align: center;
 }
 
 .asset-preview-card img {
-    width: 72px;
-    height: 72px;
+    width: 64px;
+    height: 64px;
     object-fit: cover;
     border-radius: var(--radius-sm);
     border: 1px solid var(--line);
 }
 
 .asset-preview-card figcaption {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     color: var(--faint);
-    margin-top: 4px;
+    margin-top: 3px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 
-/* ── Responsive ── */
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════ */
 
 @media (max-width: 640px) {
     .home-layout {
         padding: var(--space-2xl) var(--space-md);
     }
 
-    .brief-details-grid {
+    .prompt-details-grid {
         grid-template-columns: 1fr;
     }
 
     .home-hero-text h1 {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
 
-    .brief-details-card {
-        padding: 16px;
+    .prompt-details-inner {
+        padding: 14px 16px;
+    }
+
+    .prompt-textarea-wrap textarea {
+        padding: 14px 18px 8px;
+        min-height: 60px;
+    }
+
+    .prompt-toolbar {
+        padding: 8px 12px;
+    }
+
+    .prompt-submit-label {
+        display: none;
+    }
+
+    .prompt-submit-btn {
+        padding: 8px 14px;
+        gap: 0;
     }
 }

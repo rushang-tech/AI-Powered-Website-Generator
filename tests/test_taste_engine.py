@@ -180,11 +180,54 @@ class TasteEngineTests(unittest.TestCase):
                     }
                 ],
                 "icon_style": "Rounded interface icons",
+                "palette_mood": "electric",
+                "typography_vibe": "tech",
+                "taste_keywords": "signal-rich, interface-first, product-led, signal-rich",
             },
         )
         self.assertEqual(brief.icon_style, "Rounded interface icons")
+        self.assertEqual(brief.palette_mood, "electric")
+        self.assertEqual(brief.typography_vibe, "tech")
+        self.assertEqual(brief.taste_keywords, ["signal-rich", "interface-first", "product-led"])
         self.assertEqual(len(brief.brand_assets), 1)
         self.assertEqual(brief.brand_assets[0]["name"], "logo.svg")
+
+    def test_explicit_palette_and_typography_bias_primary_variant(self):
+        plan = build_render_plan(
+            "Create a launch page for an AI workflow product",
+            brief={
+                "goal": "Create a launch page for an AI workflow product",
+                "audience": "Operations leaders",
+                "brand_tone": "Clear and modern",
+                "content_density": "balanced",
+                "motion_level": "moderate",
+                "palette_mood": "electric",
+                "typography_vibe": "tech",
+                "taste_keywords": ["interface-first", "signal-rich"],
+            },
+            model=None,
+            theme_catalog=THEME_MAP,
+            template_catalog=TEMPLATE_CATALOG,
+        )
+        self.assertEqual(plan.palette_mood, "electric")
+        self.assertEqual(plan.typography_vibe, "tech")
+        self.assertIn(plan.art_direction, {"cyber_signal", "mono_signal", "modern_editorial"})
+        self.assertEqual(plan.keywords[:2], ["interface-first", "signal-rich"])
+
+    def test_missing_structured_taste_fields_default_cleanly(self):
+        brief = normalize_brief(
+            "Create a landing page",
+            {
+                "goal": "Create a landing page",
+                "audience": "Founders",
+                "brand_tone": "Clear and modern",
+                "content_density": "balanced",
+                "motion_level": "moderate",
+            },
+        )
+        self.assertEqual(brief.palette_mood, "")
+        self.assertEqual(brief.typography_vibe, "")
+        self.assertEqual(brief.taste_keywords, [])
 
 
 if __name__ == "__main__":

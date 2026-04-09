@@ -31,56 +31,40 @@
             </div>
 
             <form id="generate-form" class="brief-shell" aria-label="Generate website brief">
-                <div class="brief-input-wrap">
-                    <textarea
-                        id="goal-input"
-                        name="goal"
-                        placeholder="Launch a product landing page for founders..."
-                        rows="2"
-                        required
-                    ></textarea>
-                    <div class="brief-input-actions">
-                        <button id="generate-btn" class="brief-submit-btn" type="submit" aria-label="Generate">
-                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                        </button>
+                <!-- ── Unified Prompt Box ── -->
+                <div class="prompt-container" id="prompt-container">
+                    <!-- Textarea area -->
+                    <div class="prompt-textarea-wrap">
+                        <textarea
+                            id="goal-input"
+                            name="goal"
+                            placeholder="Describe what you want to build..."
+                            rows="2"
+                            required
+                        ></textarea>
                     </div>
-                </div>
 
-                <div class="quick-start-row">
-                    <button class="demo-chip" id="demo-brief-btn" type="button">Try demo</button>
-                    {% for sample in examples %}
-                    <button class="chip" type="button" data-sample="{{ sample }}">{{ sample }}</button>
-                    {% endfor %}
-                </div>
-
-                <div style="display: flex; justify-content: center; margin-bottom: var(--space-md);">
-                    <button class="brief-details-toggle" type="button" id="details-toggle">
-                        <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
-                        <span>Details</span>
-                    </button>
-                </div>
-
-                <div class="brief-details-panel" id="details-panel">
-                    <div class="brief-details-inner">
-                        <div class="brief-details-card">
-                            <div class="brief-details-grid">
-                                <label class="field brief-field">
-                                    <span class="brief-field-label">
+                    <!-- Details panel - extends within prompt box -->
+                    <div class="prompt-details-panel" id="details-panel">
+                        <div class="prompt-details-inner">
+                            <div class="prompt-details-grid">
+                                <label class="prompt-field">
+                                    <span class="prompt-field-label">
                                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                                         Audience
                                     </span>
                                     <input id="audience-input" name="audience" type="text" placeholder="Seed-stage founders">
                                 </label>
-                                <label class="field brief-field">
-                                    <span class="brief-field-label">
+                                <label class="prompt-field">
+                                    <span class="prompt-field-label">
                                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.59 7.59"/><circle cx="11" cy="11" r="2"/></svg>
                                         Brand tone
                                     </span>
                                     <input id="tone-input" name="brand_tone" type="text" placeholder="Confident, warm, premium" value="{{ user_defaults.brand_tone }}">
                                 </label>
 
-                                <div class="field brief-field">
-                                    <span class="brief-field-label">
+                                <div class="prompt-field">
+                                    <span class="prompt-field-label">
                                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
                                         Content density
                                     </span>
@@ -101,8 +85,8 @@
                                     </div>
                                 </div>
 
-                                <div class="field brief-field">
-                                    <span class="brief-field-label">
+                                <div class="prompt-field">
+                                    <span class="prompt-field-label">
                                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                                         Motion level
                                     </span>
@@ -123,31 +107,65 @@
                                     </div>
                                 </div>
 
-                                <label class="field brief-field">
-                                    <span class="brief-field-label">
+                                <label class="prompt-field">
+                                    <span class="prompt-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v18"/><path d="M3 12h18"/><circle cx="12" cy="12" r="9"/></svg>
+                                        Palette mood
+                                    </span>
+                                    <select id="palette-mood-input" name="palette_mood">
+                                        <option value="">Auto</option>
+                                        {% for option in palette_mood_options %}
+                                        <option value="{{ option }}" {% if option == user_defaults.palette_mood %}selected{% endif %}>{{ option|replace("_", " ")|title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+
+                                <label class="prompt-field">
+                                    <span class="prompt-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16"/><path d="M7 4v16"/><path d="M13 10h7"/><path d="M13 14h5"/></svg>
+                                        Typography vibe
+                                    </span>
+                                    <select id="typography-vibe-input" name="typography_vibe">
+                                        <option value="">Auto</option>
+                                        {% for option in typography_vibe_options %}
+                                        <option value="{{ option }}" {% if option == user_defaults.typography_vibe %}selected{% endif %}>{{ option|replace("_", " ")|title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+
+                                <label class="prompt-field">
+                                    <span class="prompt-field-label">
                                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
                                         Project name
                                     </span>
                                     <input id="name-input" name="name" type="text" placeholder="Northstar AI">
                                 </label>
-                                <label class="field brief-field">
-                                    <span class="brief-field-label">
+                                <label class="prompt-field">
+                                    <span class="prompt-field-label">
                                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
                                         Icon style
                                     </span>
                                     <input id="icon-style-input" name="icon_style" type="text" placeholder="Rounded line icons..." value="{{ user_defaults.icon_style }}">
                                 </label>
 
-                                <label class="field field-large brief-field">
-                                    <span class="brief-field-label">
+                                <label class="prompt-field prompt-field-full">
+                                    <span class="prompt-field-label">
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h16"/><path d="M4 6h10"/><path d="M4 18h13"/></svg>
+                                        Taste keywords
+                                    </span>
+                                    <input id="taste-keywords-input" name="taste_keywords" type="text" placeholder="editorial, tactile, signal-rich, premium" value="{{ user_defaults.taste_keywords }}">
+                                </label>
+
+                                <label class="prompt-field prompt-field-full">
+                                    <span class="prompt-field-label">
                                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
                                         Extra notes
                                     </span>
                                     <textarea id="notes-input" name="notes" placeholder="Pricing context, proof angle, visual references, constraints..."></textarea>
                                 </label>
 
-                                <div class="field field-large brief-field">
-                                    <span class="brief-field-label">
+                                <div class="prompt-field prompt-field-full">
+                                    <span class="prompt-field-label">
                                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
                                         Brand images
                                     </span>
@@ -164,6 +182,38 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Toolbar row - inside prompt box -->
+                    <div class="prompt-toolbar">
+                        <div class="prompt-toolbar-left">
+                            <!-- Details toggle (like Google AI Studio's Tools button) -->
+                            <button class="prompt-tool-btn" type="button" id="details-toggle" aria-expanded="false">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+                                <span>Details</span>
+                            </button>
+
+                            <!-- Demo button -->
+                            <button class="prompt-tool-btn prompt-tool-demo" id="demo-brief-btn" type="button">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                <span>Try demo</span>
+                            </button>
+                        </div>
+
+                        <div class="prompt-toolbar-right">
+                            <!-- Submit button -->
+                            <button id="generate-btn" class="prompt-submit-btn" type="submit" aria-label="Generate website">
+                                <span class="prompt-submit-label">Run</span>
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick-start chips - outside the box -->
+                <div class="quick-start-row">
+                    {% for sample in examples %}
+                    <button class="chip" type="button" data-sample="{{ sample }}">{{ sample }}</button>
+                    {% endfor %}
                 </div>
 
                 <p id="status-text" class="status-text"></p>

@@ -89,6 +89,28 @@
                         {% endfor %}
                     </div>
                 </div>
+                <label class="field">
+                    <span>Default palette mood</span>
+                    <select name="default_palette_mood">
+                        <option value="">Auto</option>
+                        {% for option in palette_mood_options %}
+                        <option value="{{ option }}" {% if option == user_defaults.palette_mood %}selected{% endif %}>{{ option|replace("_", " ")|title }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Default typography vibe</span>
+                    <select name="default_typography_vibe">
+                        <option value="">Auto</option>
+                        {% for option in typography_vibe_options %}
+                        <option value="{{ option }}" {% if option == user_defaults.typography_vibe %}selected{% endif %}>{{ option|replace("_", " ")|title }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field field-large">
+                    <span>Default taste keywords</span>
+                    <textarea name="default_taste_keywords">{{ user_defaults.taste_keywords }}</textarea>
+                </label>
                 <label class="field field-large">
                     <span>Default icon style notes</span>
                     <textarea name="default_icon_style">{{ current_user.default_icon_style }}</textarea>

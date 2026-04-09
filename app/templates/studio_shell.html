@@ -33,7 +33,7 @@
                     </div>
                 </div>
 
-                <!-- Compact Variant Strip (replaces the hero section) -->
+                <!-- Compact Variant Strip -->
                 <nav class="studio-variant-strip" aria-label="Design variants">
                     {% for variant in variants %}
                     <button
@@ -79,38 +79,242 @@
                 </div>
             </header>
 
-            <!-- ── Three-Pane Workspace ── -->
+            <!-- ── Two-Pane Workspace ── -->
             <section class="studio-workspace">
 
-                <!-- Left Rail: Chat -->
-                <aside class="studio-rail studio-chat-rail" id="studio-chat-rail">
-                    <div class="studio-rail-head">
-                        <div class="rail-head-row">
-                            <h2>Chat</h2>
-                            <button class="rail-collapse-btn" type="button" data-collapse="chat" title="Collapse panel" aria-label="Collapse chat panel">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 19l-7-7 7-7"/><path d="M18 19l-7-7 7-7"/></svg>
+                <!-- Left Panel: Chat + Editor (tabbed) -->
+                <aside class="studio-panel" id="studio-panel">
+                    <!-- Tab switch header -->
+                    <div class="panel-head">
+                        <div class="panel-tabs" role="tablist">
+                            <button class="panel-tab is-active" type="button" data-panel-tab="chat" role="tab" aria-selected="true" aria-controls="panel-chat-content">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                Chat
+                            </button>
+                            <button class="panel-tab" type="button" data-panel-tab="editor" role="tab" aria-selected="false" aria-controls="panel-editor-content">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                Editor
                             </button>
                         </div>
                     </div>
 
-                    <div id="conversation-messages" class="conversation-messages">
-                        {% for message in conversation_messages %}
-                        <article class="message-card message-{{ message.role }}">
-                            <span class="message-role">{{ message.role|title }}</span>
-                            <p>{{ message.body }}</p>
-                        </article>
-                        {% endfor %}
+                    <!-- Chat Tab Content -->
+                    <div class="panel-tab-content is-active" id="panel-chat-content" data-panel-content="chat" role="tabpanel">
+                        <div id="conversation-messages" class="conversation-messages">
+                            {% for message in conversation_messages %}
+                            <article class="message-card message-{{ message.role }}">
+                                <span class="message-role">{{ message.role|title }}</span>
+                                <p>{{ message.body }}</p>
+                            </article>
+                            {% endfor %}
+                        </div>
+
+                        <form id="conversation-form" class="conversation-form studio-chat-form">
+                            <label class="field studio-chat-field">
+                                <textarea id="conversation-input" rows="2" placeholder="Refine the hero, tighten spacing..."></textarea>
+                            </label>
+                            <button id="send-message-btn" class="btn btn-primary studio-chat-send" type="submit">Send</button>
+                        </form>
                     </div>
 
-                    <form id="conversation-form" class="conversation-form studio-chat-form">
-                        <label class="field studio-chat-field">
-                            <textarea id="conversation-input" rows="2" placeholder="Refine the hero, tighten spacing..."></textarea>
-                        </label>
-                        <button id="send-message-btn" class="btn btn-primary studio-chat-send" type="submit">Send</button>
-                    </form>
+                    <!-- Editor Tab Content -->
+                    <div class="panel-tab-content" id="panel-editor-content" data-panel-content="editor" role="tabpanel">
+                        <div class="panel-editor-scroll">
+                            <!-- Variant Info -->
+                            <section class="inspector-card inspector-summary-card">
+                                <h3 id="inspector-variant-title">{{ selected_variant.label }}</h3>
+                                <p id="inspector-variant-summary" class="muted-copy">{{ selected_variant.summary }}</p>
+                                <p id="inspector-variant-meta" class="inspector-meta">{{ selected_variant.render_plan.art_direction|replace("_", " ")|title }} / {{ selected_variant.render_plan.layout_mode|replace("_", " ")|title }} / {{ selected_variant.render_plan.motion_level|capitalize }}</p>
+                                <div class="brief-facts">
+                                    <span>{{ brief.audience or "General audience" }}</span>
+                                    <span>{{ brief.brand_tone or "Clear and modern" }}</span>
+                                    <span>{{ brief.content_density or "balanced" }}</span>
+                                </div>
+                                <div
+                                    id="generation-warning"
+                                    class="generation-warning{% if not selected_variant.validation.fallback_used %} is-hidden{% endif %}"
+                                >
+                                    <strong>AI output partially fell back to defaults.</strong>
+                                    <p id="generation-warning-copy">
+                                        {% if selected_variant.validation.fallback_used %}
+                                        Some copy blocks were filled with backup text.
+                                        {% endif %}
+                                    </p>
+                                    <ul id="generation-warning-list">
+                                        {% if selected_variant.validation.fallback_used %}
+                                        {% for warning in selected_variant.validation.warnings %}
+                                        <li>{{ warning }}</li>
+                                        {% endfor %}
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </section>
+
+                            <!-- Sections / Layers -->
+                            <section class="inspector-card">
+                                <div class="section-heading-row">
+                                    <h3>Sections</h3>
+                                </div>
+                                <div class="layer-list" id="layer-list">
+                                    {% for section in selected_variant.render_plan.section_order %}
+                                    <div class="layer-row">
+                                        <span class="layer-order">{{ "%02d"|format(loop.index) }}</span>
+                                        <span class="layer-name">{{ section|replace("_", " ")|title }}</span>
+                                        <span class="layer-actions">
+                                            <button class="layer-regen" type="button" data-regenerate-section="{{ section }}">Regen</button>
+                                            <input type="checkbox" data-layer-section="{{ section }}" {% if selected_variant.render_plan.section_visibility[section] %}checked{% endif %}>
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </section>
+
+                            <!-- Layout & Style Controls -->
+                            <details class="inspector-card advanced-panel" id="advanced-panel">
+                                <summary>
+                                    <strong>Layout & style</strong>
+                                </summary>
+                                <div class="advanced-body">
+                                    <div class="control-grid">
+                                        <label>
+                                            Template intent
+                                            <select id="template-select">
+                                                {% for key in template_keys %}
+                                                <option value="{{ key }}" {% if key == selected_variant.render_plan.template_key %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </label>
+                                        <label>
+                                            Art direction
+                                            <select id="art-direction-select">
+                                                {% for key in art_direction_keys %}
+                                                <option value="{{ key }}" {% if key == selected_variant.render_plan.art_direction %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </label>
+                                        <label>
+                                            Layout mode
+                                            <select id="layout-mode-select">
+                                                {% for key in layout_modes %}
+                                                <option value="{{ key }}" {% if key == selected_variant.render_plan.layout_mode %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </label>
+                                        <label>
+                                            Density
+                                            <select id="density-select">
+                                                {% for option in density_options %}
+                                                <option value="{{ option }}" {% if option == selected_variant.render_plan.density %}selected{% endif %}>{{ option|capitalize }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </label>
+                                        <label>
+                                            Motion
+                                            <select id="motion-select">
+                                                {% for option in motion_options %}
+                                                <option value="{{ option }}" {% if option == selected_variant.render_plan.motion_level %}selected{% endif %}>{{ option|capitalize }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </label>
+                                        <label>
+                                            Palette mood
+                                            <select id="palette-mood-select">
+                                                <option value="">Auto</option>
+                                                {% for option in palette_mood_options %}
+                                                <option value="{{ option }}" {% if option == selected_variant.render_plan.palette_mood %}selected{% endif %}>{{ option|replace("_", " ")|title }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </label>
+                                        <label>
+                                            Typography vibe
+                                            <select id="typography-vibe-select">
+                                                <option value="">Auto</option>
+                                                {% for option in typography_vibe_options %}
+                                                <option value="{{ option }}" {% if option == selected_variant.render_plan.typography_vibe %}selected{% endif %}>{{ option|replace("_", " ")|title }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </label>
+                                        <label>
+                                            Brand images
+                                            <input
+                                                id="brand-assets-input"
+                                                type="file"
+                                                accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                                                multiple
+                                            >
+                                        </label>
+                                        <div id="brand-assets-preview" class="asset-preview-grid">
+                                            {% for asset in brief.brand_assets %}
+                                            <figure class="asset-preview-card">
+                                                <img src="{{ asset.data_url }}" alt="{{ asset.alt }}">
+                                                <figcaption>{{ asset.name }}</figcaption>
+                                            </figure>
+                                            {% endfor %}
+                                        </div>
+                                        <label>
+                                            Icon style
+                                            <textarea id="icon-style-input" rows="2" placeholder="Rounded line icons, sharp geometric...">{{ brief.icon_style }}</textarea>
+                                        </label>
+                                        <label>
+                                            Taste keywords
+                                            <textarea id="taste-keywords-input" rows="2" placeholder="editorial, tactile, signal-rich, premium">{{ brief.taste_keywords|join(', ') }}</textarea>
+                                        </label>
+                                    </div>
+                                    <div class="button-stack">
+                                        <button id="apply-style-btn" class="btn btn-primary" type="button">Apply Changes</button>
+                                        <button id="apply-branding-btn" class="btn" type="button">Apply Branding</button>
+                                    </div>
+                                </div>
+                            </details>
+
+                            <!-- Actions -->
+                            <section class="inspector-card studio-actions-card">
+                                <div class="overflow-menu-wrap" id="overflow-menu-wrap">
+                                    <button class="overflow-menu-btn" type="button" id="overflow-toggle">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                                        Actions
+                                    </button>
+                                    <div class="overflow-menu" id="overflow-menu">
+                                        <button id="regen-all-btn" type="button">Regenerate All</button>
+                                        <button id="regen-copy-btn" type="button">Regenerate Copy</button>
+                                        <button id="style-remix-btn" type="button">Style Remix ×3</button>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Remix Previews -->
+                            <details class="inspector-card advanced-panel">
+                                <summary>
+                                    <strong>Remix previews</strong>
+                                </summary>
+                                <div class="advanced-body">
+                                    <div id="remix-grid" class="remix-grid">
+                                        <p class="muted-copy">Click "Style Remix ×3" to generate.</p>
+                                    </div>
+                                </div>
+                            </details>
+
+                            <!-- Pipeline Status -->
+                            <details class="inspector-card advanced-panel">
+                                <summary>
+                                    <strong>Pipeline</strong>
+                                </summary>
+                                <div class="advanced-body">
+                                    <div class="status-stack">
+                                        {% for stage in statuses %}
+                                        <article class="status-card status-{{ stage.state }}" data-stage-key="{{ stage.key }}">
+                                            <strong>{{ stage.label }}</strong>
+                                            <span>{{ stage.detail }}</span>
+                                        </article>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
                 </aside>
 
-                <!-- Center: Canvas -->
+                <!-- Center: Canvas (fills remaining space) -->
                 <section class="studio-preview-column">
                     <div class="canvas-shell device-desktop" id="canvas-shell">
                         <iframe
@@ -123,187 +327,6 @@
                     </div>
                     <p id="override-status" class="studio-status-bar">Hover the canvas to edit in place.</p>
                 </section>
-
-                <!-- Right Rail: Inspector -->
-                <aside class="studio-rail studio-inspector" id="studio-inspector">
-                    <div class="studio-rail-head">
-                        <div class="rail-head-row">
-                            <h2>Inspector</h2>
-                            <button class="rail-collapse-btn" type="button" data-collapse="inspector" title="Collapse panel" aria-label="Collapse inspector panel">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 19l7-7-7-7"/><path d="M6 19l7-7-7-7"/></svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Variant Info — compact -->
-                    <section class="inspector-card inspector-summary-card">
-                        <h3 id="inspector-variant-title">{{ selected_variant.label }}</h3>
-                        <p id="inspector-variant-summary" class="muted-copy">{{ selected_variant.summary }}</p>
-                        <p id="inspector-variant-meta" class="inspector-meta">{{ selected_variant.render_plan.art_direction|replace("_", " ")|title }} / {{ selected_variant.render_plan.layout_mode|replace("_", " ")|title }} / {{ selected_variant.render_plan.motion_level|capitalize }}</p>
-                        <div class="brief-facts">
-                            <span>{{ brief.audience or "General audience" }}</span>
-                            <span>{{ brief.brand_tone or "Clear and modern" }}</span>
-                            <span>{{ brief.content_density or "balanced" }}</span>
-                        </div>
-                        <div
-                            id="generation-warning"
-                            class="generation-warning{% if not selected_variant.validation.fallback_used %} is-hidden{% endif %}"
-                        >
-                            <strong>AI output partially fell back to defaults.</strong>
-                            <p id="generation-warning-copy">
-                                {% if selected_variant.validation.fallback_used %}
-                                Some copy blocks were filled with backup text.
-                                {% endif %}
-                            </p>
-                            <ul id="generation-warning-list">
-                                {% if selected_variant.validation.fallback_used %}
-                                {% for warning in selected_variant.validation.warnings %}
-                                <li>{{ warning }}</li>
-                                {% endfor %}
-                                {% endif %}
-                            </ul>
-                        </div>
-                    </section>
-
-                    <!-- Sections / Layers -->
-                    <section class="inspector-card">
-                        <div class="section-heading-row">
-                            <h3>Sections</h3>
-                        </div>
-                        <div class="layer-list" id="layer-list">
-                            {% for section in selected_variant.render_plan.section_order %}
-                            <div class="layer-row">
-                                <span class="layer-order">{{ "%02d"|format(loop.index) }}</span>
-                                <span class="layer-name">{{ section|replace("_", " ")|title }}</span>
-                                <span class="layer-actions">
-                                    <button class="layer-regen" type="button" data-regenerate-section="{{ section }}">Regen</button>
-                                    <input type="checkbox" data-layer-section="{{ section }}" {% if selected_variant.render_plan.section_visibility[section] %}checked{% endif %}>
-                                </span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </section>
-
-                    <!-- Layout & Style Controls -->
-                    <details class="inspector-card advanced-panel" id="advanced-panel">
-                        <summary>
-                            <strong>Layout & style</strong>
-                        </summary>
-                        <div class="advanced-body">
-                            <div class="control-grid">
-                                <label>
-                                    Template intent
-                                    <select id="template-select">
-                                        {% for key in template_keys %}
-                                        <option value="{{ key }}" {% if key == selected_variant.render_plan.template_key %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </label>
-                                <label>
-                                    Art direction
-                                    <select id="art-direction-select">
-                                        {% for key in art_direction_keys %}
-                                        <option value="{{ key }}" {% if key == selected_variant.render_plan.art_direction %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </label>
-                                <label>
-                                    Layout mode
-                                    <select id="layout-mode-select">
-                                        {% for key in layout_modes %}
-                                        <option value="{{ key }}" {% if key == selected_variant.render_plan.layout_mode %}selected{% endif %}>{{ key|replace("_", " ")|title }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </label>
-                                <label>
-                                    Density
-                                    <select id="density-select">
-                                        {% for option in density_options %}
-                                        <option value="{{ option }}" {% if option == selected_variant.render_plan.density %}selected{% endif %}>{{ option|capitalize }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </label>
-                                <label>
-                                    Motion
-                                    <select id="motion-select">
-                                        {% for option in motion_options %}
-                                        <option value="{{ option }}" {% if option == selected_variant.render_plan.motion_level %}selected{% endif %}>{{ option|capitalize }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </label>
-                                <label>
-                                    Brand images
-                                    <input
-                                        id="brand-assets-input"
-                                        type="file"
-                                        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
-                                        multiple
-                                    >
-                                </label>
-                                <div id="brand-assets-preview" class="asset-preview-grid">
-                                    {% for asset in brief.brand_assets %}
-                                    <figure class="asset-preview-card">
-                                        <img src="{{ asset.data_url }}" alt="{{ asset.alt }}">
-                                        <figcaption>{{ asset.name }}</figcaption>
-                                    </figure>
-                                    {% endfor %}
-                                </div>
-                                <label>
-                                    Icon style
-                                    <textarea id="icon-style-input" rows="2" placeholder="Rounded line icons, sharp geometric...">{{ brief.icon_style }}</textarea>
-                                </label>
-                            </div>
-                            <div class="button-stack">
-                                <button id="apply-style-btn" class="btn btn-primary" type="button">Apply Changes</button>
-                                <button id="apply-branding-btn" class="btn" type="button">Apply Branding</button>
-                            </div>
-                        </div>
-                    </details>
-
-                    <!-- Actions -->
-                    <section class="inspector-card studio-actions-card">
-                        <div class="overflow-menu-wrap" id="overflow-menu-wrap">
-                            <button class="overflow-menu-btn" type="button" id="overflow-toggle">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                                Actions
-                            </button>
-                            <div class="overflow-menu" id="overflow-menu">
-                                <button id="regen-all-btn" type="button">Regenerate All</button>
-                                <button id="regen-copy-btn" type="button">Regenerate Copy</button>
-                                <button id="style-remix-btn" type="button">Style Remix ×3</button>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Remix Previews -->
-                    <details class="inspector-card advanced-panel">
-                        <summary>
-                            <strong>Remix previews</strong>
-                        </summary>
-                        <div class="advanced-body">
-                            <div id="remix-grid" class="remix-grid">
-                                <p class="muted-copy">Click "Style Remix ×3" to generate.</p>
-                            </div>
-                        </div>
-                    </details>
-
-                    <!-- Pipeline Status -->
-                    <details class="inspector-card advanced-panel">
-                        <summary>
-                            <strong>Pipeline</strong>
-                        </summary>
-                        <div class="advanced-body">
-                            <div class="status-stack">
-                                {% for stage in statuses %}
-                                <article class="status-card status-{{ stage.state }}" data-stage-key="{{ stage.key }}">
-                                    <strong>{{ stage.label }}</strong>
-                                    <span>{{ stage.detail }}</span>
-                                </article>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </details>
-                </aside>
             </section>
         </section>
     </div>
@@ -332,23 +355,25 @@
 <script src="{{ url_for('static', filename='js/workspace_nav.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/studio.js') }}" defer></script>
 <script>
-/* ── Panel collapse/expand toggle ── */
+/* ── Panel tab switch ── */
 document.addEventListener('DOMContentLoaded', () => {
-    const workspace = document.querySelector('.studio-workspace');
-    if (!workspace) return;
+    const tabs = document.querySelectorAll('[data-panel-tab]');
+    const contents = document.querySelectorAll('[data-panel-content]');
 
-    document.querySelectorAll('[data-collapse]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.getAttribute('data-collapse');
-            const panel = target === 'chat'
-                ? document.getElementById('studio-chat-rail')
-                : document.getElementById('studio-inspector');
-            if (!panel) return;
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.getAttribute('data-panel-tab');
 
-            const isCollapsed = panel.classList.toggle('is-collapsed');
-            btn.classList.toggle('is-flipped', isCollapsed);
-            btn.setAttribute('aria-label', isCollapsed ? `Expand ${target} panel` : `Collapse ${target} panel`);
-            btn.setAttribute('title', isCollapsed ? `Expand panel` : `Collapse panel`);
+            /* Switch active tab */
+            tabs.forEach(t => {
+                t.classList.toggle('is-active', t === tab);
+                t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+            });
+
+            /* Switch active content */
+            contents.forEach(c => {
+                c.classList.toggle('is-active', c.getAttribute('data-panel-content') === target);
+            });
         });
     });
 });

@@ -28,6 +28,8 @@ if (shell) {
     const layoutModeSelect = document.getElementById("layout-mode-select");
     const densitySelect = document.getElementById("density-select");
     const motionSelect = document.getElementById("motion-select");
+    const paletteMoodSelect = document.getElementById("palette-mood-select");
+    const typographyVibeSelect = document.getElementById("typography-vibe-select");
     const applyStyleBtn = document.getElementById("apply-style-btn");
     const styleRemixBtn = document.getElementById("style-remix-btn");
     const statusEl = document.getElementById("override-status");
@@ -55,6 +57,7 @@ if (shell) {
     const brandAssetsInput = document.getElementById("brand-assets-input");
     const brandAssetsPreview = document.getElementById("brand-assets-preview");
     const iconStyleInput = document.getElementById("icon-style-input");
+    const tasteKeywordsInput = document.getElementById("taste-keywords-input");
     const applyBrandingBtn = document.getElementById("apply-branding-btn");
     const recentConversationList = document.getElementById("workspace-conversation-list");
     const conversationMessagesEl = document.getElementById("conversation-messages");
@@ -107,6 +110,27 @@ if (shell) {
             reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
             reader.readAsDataURL(file);
         });
+    }
+
+    function parseTasteKeywords(value) {
+        const rawItems = Array.isArray(value) ? value : String(value || "").split(/[,|\n]+/);
+        const output = [];
+        const seen = new Set();
+        rawItems.forEach((item) => {
+            const normalized = String(item || "")
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]+/g, " ")
+                .replace(/[\s_]+/g, "-")
+                .replace(/-+/g, "-")
+                .replace(/^-|-$/g, "");
+            if (!normalized || seen.has(normalized)) {
+                return;
+            }
+            seen.add(normalized);
+            output.push(normalized);
+        });
+        return output.slice(0, 8);
     }
 
     function inferredMimeType(file) {
@@ -295,7 +319,7 @@ if (shell) {
 
     function buildVariantMeta(variant) {
         const plan = variant && variant.render_plan ? variant.render_plan : {};
-        return [plan.art_direction, plan.layout_mode, plan.motion_level]
+        return [plan.art_direction, plan.layout_mode, plan.palette_mood, plan.typography_vibe]
             .filter(Boolean)
             .map((value) => formatLabel(value))
             .join(" / ");
@@ -386,6 +410,12 @@ if (shell) {
         if (motionSelect) {
             motionSelect.value = plan.motion_level || motionSelect.value;
         }
+        if (paletteMoodSelect) {
+            paletteMoodSelect.value = plan.palette_mood || "";
+        }
+        if (typographyVibeSelect) {
+            typographyVibeSelect.value = plan.typography_vibe || "";
+        }
     }
 
     function syncVariantSelection() {
@@ -472,26 +502,39 @@ if (shell) {
             return;
         }
         setBusy(true, "Saving branding...");
-        setStatus("Applying brand assets...");
+        setStatus("Applying branding and taste controls...");
         try {
             const brandAssets = await serializeBrandAssets(brandAssetsInput ? brandAssetsInput.files : []);
             const data = await postJson(`/preview/${previewId}/branding`, {
                 brief: {
                     brand_assets: brandAssets,
                     icon_style: iconStyleInput ? iconStyleInput.value.trim() : "",
+                    palette_mood: paletteMoodSelect ? paletteMoodSelect.value : "",
+                    typography_vibe: typographyVibeSelect ? typographyVibeSelect.value : "",
+                    taste_keywords: parseTasteKeywords(tasteKeywordsInput ? tasteKeywordsInput.value : ""),
                 },
             });
             currentBrief = data.brief || currentBrief;
             currentBrandAssets = Array.isArray(currentBrief.brand_assets) ? currentBrief.brand_assets : brandAssets;
+            if (iconStyleInput) {
+                iconStyleInput.value = currentBrief.icon_style || "";
+            }
+            if (paletteMoodSelect) {
+                paletteMoodSelect.value = currentBrief.palette_mood || "";
+            }
+            if (typographyVibeSelect) {
+                typographyVibeSelect.value = currentBrief.typography_vibe || "";
+            }
+            if (tasteKeywordsInput) {
+                tasteKeywordsInput.value = parseTasteKeywords(currentBrief.taste_keywords).join(", ");
+            }
             renderAssetPreview(currentBrandAssets);
-            refreshStudioFrame();
-            setStatus("Branding updated in the preview.");
+            applyStudioResponse(data, "Branding updated in the preview.");
             if (brandAssetsInput) {
                 brandAssetsInput.value = "";
             }
         } catch (error) {
             setStatus(error.message || "Failed to update branding.");
-        } finally {
             setBusy(false);
         }
     }
@@ -879,6 +922,18 @@ if (shell) {
     syncControlsFromVariant(selectedVariant);
     syncVariantSelection();
     renderAssetPreview(currentBrandAssets);
+    if (iconStyleInput) {
+        iconStyleInput.value = currentBrief.icon_style || "";
+    }
+    if (paletteMoodSelect) {
+        paletteMoodSelect.value = currentBrief.palette_mood || paletteMoodSelect.value || "";
+    }
+    if (typographyVibeSelect) {
+        typographyVibeSelect.value = currentBrief.typography_vibe || typographyVibeSelect.value || "";
+    }
+    if (tasteKeywordsInput) {
+        tasteKeywordsInput.value = parseTasteKeywords(currentBrief.taste_keywords).join(", ");
+    }
     renderConversationMessages(conversationMessages);
     renderRecentConversations(recentConversations);
 }

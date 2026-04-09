@@ -5,6 +5,70 @@ import re
 from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 
+PALETTE_MOOD_CHOICES: tuple[str, ...] = (
+    "neutral",
+    "warm",
+    "earthy",
+    "coastal",
+    "luxury",
+    "electric",
+    "mono",
+    "playful",
+)
+
+TYPOGRAPHY_VIBE_CHOICES: tuple[str, ...] = (
+    "editorial",
+    "geometric",
+    "friendly",
+    "classic",
+    "tech",
+)
+
+PALETTE_MOOD_ART_DIRECTION_BIASES: dict[str, tuple[str, ...]] = {
+    "neutral": ("modern_editorial", "mono_signal", "luxury_serif"),
+    "warm": ("warm_gradient", "luxury_serif", "botanical_noir"),
+    "earthy": ("botanical_noir", "luxury_serif", "warm_gradient"),
+    "coastal": ("coastal_breeze", "modern_editorial", "warm_gradient"),
+    "luxury": ("luxury_serif", "botanical_noir", "modern_editorial"),
+    "electric": ("cyber_signal", "studio_pop", "brutalist_poster"),
+    "mono": ("mono_signal", "modern_editorial", "cyber_signal"),
+    "playful": ("playful_blocks", "warm_gradient", "studio_pop"),
+}
+
+TYPOGRAPHY_VIBE_ART_DIRECTION_BIASES: dict[str, tuple[str, ...]] = {
+    "editorial": ("modern_editorial", "luxury_serif", "studio_pop"),
+    "geometric": ("mono_signal", "cyber_signal", "brutalist_poster"),
+    "friendly": ("playful_blocks", "warm_gradient", "coastal_breeze"),
+    "classic": ("luxury_serif", "botanical_noir", "coastal_breeze"),
+    "tech": ("cyber_signal", "mono_signal", "modern_editorial"),
+}
+
+ART_DIRECTION_DEFAULT_PALETTE_MOODS: dict[str, str] = {
+    "modern_editorial": "neutral",
+    "luxury_serif": "luxury",
+    "playful_blocks": "playful",
+    "cyber_signal": "electric",
+    "brutalist_poster": "electric",
+    "warm_gradient": "warm",
+    "coastal_breeze": "coastal",
+    "mono_signal": "mono",
+    "botanical_noir": "earthy",
+    "studio_pop": "electric",
+}
+
+ART_DIRECTION_DEFAULT_TYPOGRAPHY_VIBES: dict[str, str] = {
+    "modern_editorial": "editorial",
+    "luxury_serif": "classic",
+    "playful_blocks": "friendly",
+    "cyber_signal": "tech",
+    "brutalist_poster": "geometric",
+    "warm_gradient": "editorial",
+    "coastal_breeze": "classic",
+    "mono_signal": "geometric",
+    "botanical_noir": "classic",
+    "studio_pop": "editorial",
+}
+
 
 DEFAULT_TEMPLATE_SIGNALS: dict[str, dict[str, tuple[str, ...]]] = {
     "landing": {
@@ -534,6 +598,9 @@ class BriefInput:
     name: str
     notes: str
     prompt: str
+    palette_mood: str = ""
+    typography_vibe: str = ""
+    taste_keywords: list[str] = field(default_factory=list)
     brand_assets: list[dict[str, str]] = field(default_factory=list)
     icon_style: str = ""
 
@@ -547,6 +614,9 @@ class BriefInput:
             self.brand_tone,
             self.name,
             self.notes,
+            f"palette mood {self.palette_mood}" if self.palette_mood else "",
+            f"typography vibe {self.typography_vibe}" if self.typography_vibe else "",
+            "taste keywords " + ", ".join(self.taste_keywords) if self.taste_keywords else "",
             self.icon_style,
             self.prompt,
         ]
@@ -571,6 +641,8 @@ class RenderPlan:
     confidence: float
     reasons: list[str]
     slot_schema: dict[str, Any]
+    palette_mood: str = ""
+    typography_vibe: str = ""
     media_direction: str = "editorial_collage"
     shell_variant: str = "campaign_split"
     navigation_style: str = "floating_cta"
@@ -595,6 +667,16 @@ def _coerce_str(value: Any, default: str = "") -> str:
     return default
 
 
+def normalize_palette_mood(value: Any, *, default: str = "") -> str:
+    normalized = _coerce_str(value, default).lower()
+    return normalized if normalized in PALETTE_MOOD_CHOICES else default
+
+
+def normalize_typography_vibe(value: Any, *, default: str = "") -> str:
+    normalized = _coerce_str(value, default).lower()
+    return normalized if normalized in TYPOGRAPHY_VIBE_CHOICES else default
+
+
 def _coerce_list_of_str(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
@@ -608,6 +690,31 @@ def _coerce_list_of_str(value: Any) -> list[str]:
             continue
         seen.add(normalized)
         output.append(normalized)
+    return output
+
+
+def normalize_taste_keywords(value: Any, *, limit: int = 8) -> list[str]:
+    if isinstance(value, list):
+        raw_items = value
+    elif isinstance(value, str):
+        raw_items = re.split(r"[,|\n]+", value)
+    else:
+        return []
+
+    output: list[str] = []
+    seen: set[str] = set()
+    for item in raw_items:
+        if not isinstance(item, str):
+            continue
+        normalized = re.sub(r"[^a-z0-9\s\-]+", " ", item.lower())
+        normalized = re.sub(r"[\s_]+", "-", normalized).strip("-")
+        normalized = re.sub(r"-{2,}", "-", normalized)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        output.append(normalized[:36])
+        if len(output) >= limit:
+            break
     return output
 
 
@@ -790,6 +897,45 @@ def _normalize_motion(value: str) -> str:
     return value if value in {"calm", "moderate", "energetic"} else "moderate"
 
 
+def _resolved_palette_mood(explicit: str, art_direction: str) -> str:
+    normalized = normalize_palette_mood(explicit, default="")
+    if normalized:
+        return normalized
+    return ART_DIRECTION_DEFAULT_PALETTE_MOODS.get(art_direction, "neutral")
+
+
+def _resolved_typography_vibe(explicit: str, art_direction: str) -> str:
+    normalized = normalize_typography_vibe(explicit, default="")
+    if normalized:
+        return normalized
+    return ART_DIRECTION_DEFAULT_TYPOGRAPHY_VIBES.get(art_direction, "editorial")
+
+
+def _merge_keywords(
+    explicit_keywords: list[str],
+    derived_keywords: list[str],
+    *,
+    extras: list[str] | None = None,
+    limit: int = 8,
+) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for raw_item in [*explicit_keywords, *derived_keywords, *(extras or [])]:
+        if not isinstance(raw_item, str):
+            continue
+        normalized = normalize_taste_keywords([raw_item], limit=1)
+        if not normalized:
+            continue
+        value = normalized[0]
+        if value in seen:
+            continue
+        seen.add(value)
+        merged.append(value)
+        if len(merged) >= limit:
+            break
+    return merged
+
+
 def normalize_brief(raw_prompt: str = "", raw_brief: dict[str, Any] | None = None) -> BriefInput:
     raw_brief = raw_brief or {}
     goal = _coerce_str(raw_brief.get("goal"), raw_prompt)
@@ -800,6 +946,9 @@ def normalize_brief(raw_prompt: str = "", raw_brief: dict[str, Any] | None = Non
     name = _coerce_str(raw_brief.get("name"))
     notes = _coerce_str(raw_brief.get("notes"), raw_prompt if raw_prompt and raw_prompt != goal else "")
     prompt = _coerce_str(raw_prompt)
+    palette_mood = normalize_palette_mood(raw_brief.get("palette_mood"), default="")
+    typography_vibe = normalize_typography_vibe(raw_brief.get("typography_vibe"), default="")
+    taste_keywords = normalize_taste_keywords(raw_brief.get("taste_keywords"))
     brand_assets = _coerce_brand_assets(raw_brief.get("brand_assets"))
     icon_style = _coerce_str(raw_brief.get("icon_style"))[:220]
     return BriefInput(
@@ -811,6 +960,9 @@ def normalize_brief(raw_prompt: str = "", raw_brief: dict[str, Any] | None = Non
         name=name,
         notes=notes,
         prompt=prompt,
+        palette_mood=palette_mood,
+        typography_vibe=typography_vibe,
+        taste_keywords=taste_keywords,
         brand_assets=brand_assets,
         icon_style=icon_style,
     )
@@ -1069,6 +1221,32 @@ def _apply_contextual_art_biases(
     ]
 
 
+def _apply_structured_taste_biases(
+    art_scores: dict[str, float],
+    art_hits: dict[str, int],
+    *,
+    palette_mood: str,
+    typography_vibe: str,
+) -> list[str]:
+    reasons: list[str] = []
+
+    if palette_mood:
+        for index, art_direction in enumerate(PALETTE_MOOD_ART_DIRECTION_BIASES.get(palette_mood, ())):
+            weight = (1.7, 1.0, 0.6)[index]
+            art_scores[art_direction] = art_scores.get(art_direction, 0.0) + weight
+            art_hits[art_direction] = art_hits.get(art_direction, 0) + 1
+        reasons.append(f"Palette mood '{palette_mood}' biased the art direction.")
+
+    if typography_vibe:
+        for index, art_direction in enumerate(TYPOGRAPHY_VIBE_ART_DIRECTION_BIASES.get(typography_vibe, ())):
+            weight = (1.4, 0.8, 0.5)[index]
+            art_scores[art_direction] = art_scores.get(art_direction, 0.0) + weight
+            art_hits[art_direction] = art_hits.get(art_direction, 0) + 1
+        reasons.append(f"Typography vibe '{typography_vibe}' biased the art direction.")
+
+    return reasons[:2]
+
+
 def _section_visibility(section_order: list[str], overrides: dict[str, bool] | None = None) -> dict[str, bool]:
     visibility = {section: True for section in section_order}
     for key, value in (overrides or {}).items():
@@ -1122,6 +1300,8 @@ def _make_plan(
     confidence: float,
     reasons: list[str],
     template_catalog: dict[str, dict[str, Any]],
+    palette_mood: str,
+    typography_vibe: str,
     section_visibility: dict[str, bool] | None = None,
 ) -> RenderPlan:
     recipe = _recipe_for(template_key, layout_mode)
@@ -1144,6 +1324,8 @@ def _make_plan(
         confidence=round(confidence, 3),
         reasons=reasons[:5],
         slot_schema=slot_schema,
+        palette_mood=palette_mood,
+        typography_vibe=typography_vibe,
         media_direction=_media_direction_for(
             template_key=template_key,
             art_direction=art_direction,
@@ -1278,13 +1460,25 @@ def build_render_variants(
     motion_level = brief_input.motion_level or _infer_category(prompt, token_set, MOTION_KEYWORDS, "moderate")
     industry = _infer_category(prompt, token_set, INDUSTRY_KEYWORDS, "general")
     vibe = _infer_category(prompt, token_set, VIBE_KEYWORDS, "clean")
-    keywords = _extract_keywords(prompt)
+    explicit_palette_mood = brief_input.palette_mood
+    explicit_typography_vibe = brief_input.typography_vibe
+    explicit_taste_keywords = brief_input.taste_keywords[:8]
+    derived_keywords = _extract_keywords(prompt)
+    keywords = _merge_keywords(explicit_taste_keywords, derived_keywords)
     reasons = _apply_intent_boosts(
         token_set=token_set,
         template_scores=template_scores,
         template_hits=template_hits,
         art_scores=art_scores,
         art_hits=art_hits,
+    )
+    reasons.extend(
+        _apply_structured_taste_biases(
+            art_scores,
+            art_hits,
+            palette_mood=explicit_palette_mood,
+            typography_vibe=explicit_typography_vibe,
+        )
     )
 
     ranked_template_scores = {key: template_scores.get(key, 0.0) for key in template_keys}
@@ -1346,14 +1540,18 @@ def build_render_variants(
                 industry = llm_result["industry"] or industry
                 vibe = llm_result["vibe"] or vibe
                 if llm_result["keywords"]:
-                    keywords = llm_result["keywords"]
+                    keywords = _merge_keywords(explicit_taste_keywords, llm_result["keywords"])
                 confidence = max(confidence, llm_result["confidence"])
                 reasons.append(f"LLM routing used: {llm_result['reason']}.")
         except Exception:
             reasons.append("LLM routing failed; kept rule routing.")
 
     if not keywords:
-        keywords = [industry, vibe, best_template, best_art]
+        keywords = _merge_keywords(
+            explicit_taste_keywords,
+            [],
+            extras=[industry, vibe, best_template, best_art],
+        )
 
     if confidence < 0.55:
         best_template = _safe_default_key(set(template_keys), "landing")
@@ -1386,6 +1584,19 @@ def build_render_variants(
         best_layout = _resolve_choice(layout_override, allowed=layout_choices, default=best_layout)
         density = _normalize_density(_coerce_str(density_override, density).lower())
         motion_level = _normalize_motion(_coerce_str(motion_override, motion_level).lower())
+        if "palette_mood" in overrides:
+            explicit_palette_mood = normalize_palette_mood(overrides.get("palette_mood"), default="")
+        if "typography_vibe" in overrides:
+            explicit_typography_vibe = normalize_typography_vibe(overrides.get("typography_vibe"), default="")
+        if "taste_keywords" in overrides or "keywords" in overrides:
+            explicit_taste_keywords = normalize_taste_keywords(
+                overrides.get("taste_keywords") if "taste_keywords" in overrides else overrides.get("keywords")
+            )
+        keywords = _merge_keywords(
+            explicit_taste_keywords,
+            derived_keywords,
+            extras=[industry, vibe, best_template, best_art],
+        )
 
     layout_ranking = _rank_layouts(
         best_template,
@@ -1475,6 +1686,8 @@ def build_render_variants(
                 confidence=variant_confidence,
                 reasons=variant_reasons,
                 template_catalog=template_catalog,
+                palette_mood=_resolved_palette_mood(explicit_palette_mood, art_direction),
+                typography_vibe=_resolved_typography_vibe(explicit_typography_vibe, art_direction),
                 section_visibility=section_override if isinstance(section_override, dict) else None,
             )
         )
@@ -1493,6 +1706,8 @@ def build_render_variants(
                 confidence=confidence,
                 reasons=reasons,
                 template_catalog=template_catalog,
+                palette_mood=_resolved_palette_mood(explicit_palette_mood, best_art),
+                typography_vibe=_resolved_typography_vibe(explicit_typography_vibe, best_art),
             )
         )
 
@@ -1545,6 +1760,29 @@ def remix_render_plan(
     layout_mode = _resolve_choice(overrides.get("layout_mode"), allowed=layout_choices, default=plan.layout_mode)
     density = _normalize_density(_coerce_str(overrides.get("density"), plan.density).lower())
     motion_level = _normalize_motion(_coerce_str(overrides.get("motion_level"), plan.motion_level).lower())
+    if "palette_mood" in overrides:
+        palette_mood = _resolved_palette_mood(overrides.get("palette_mood"), art_direction)
+    elif plan.palette_mood == _resolved_palette_mood("", plan.art_direction):
+        palette_mood = _resolved_palette_mood("", art_direction)
+    else:
+        palette_mood = plan.palette_mood
+
+    if "typography_vibe" in overrides:
+        typography_vibe = _resolved_typography_vibe(overrides.get("typography_vibe"), art_direction)
+    elif plan.typography_vibe == _resolved_typography_vibe("", plan.art_direction):
+        typography_vibe = _resolved_typography_vibe("", art_direction)
+    else:
+        typography_vibe = plan.typography_vibe
+
+    if "taste_keywords" in overrides or "keywords" in overrides:
+        keywords = _merge_keywords(
+            normalize_taste_keywords(
+                overrides.get("taste_keywords") if "taste_keywords" in overrides else overrides.get("keywords")
+            ),
+            plan.keywords,
+        )
+    else:
+        keywords = plan.keywords
     section_visibility = plan.section_visibility.copy()
     raw_visibility = overrides.get("section_visibility")
     if isinstance(raw_visibility, dict):
@@ -1560,10 +1798,12 @@ def remix_render_plan(
         motion_level=motion_level,
         industry=plan.industry,
         vibe=plan.vibe,
-        keywords=plan.keywords,
+        keywords=keywords,
         confidence=max(plan.confidence, 0.7),
         reasons=plan.reasons + ["Studio override applied."],
         template_catalog=template_catalog,
+        palette_mood=palette_mood,
+        typography_vibe=typography_vibe,
         section_visibility=section_visibility,
     )
-    return replace(remixed, keywords=plan.keywords[:8])
+    return replace(remixed, keywords=keywords[:8], palette_mood=palette_mood, typography_vibe=typography_vibe)

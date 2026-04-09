@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from app.services.taste_engine import BriefInput, RenderPlan
+from app.services.taste_engine import BriefInput, RenderPlan, normalize_brief
 
 
 @dataclass(frozen=True)
@@ -89,7 +89,7 @@ class ProjectManifest:
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> "ProjectManifest":
         brief_payload = payload.get("brief") if isinstance(payload.get("brief"), dict) else {}
-        brief = BriefInput(**brief_payload)
+        brief = normalize_brief(str(payload.get("prompt", "")).strip(), brief_payload)
         variants: list[VariantPayload] = []
         for raw_variant in payload.get("variants", []):
             if not isinstance(raw_variant, dict):
@@ -102,6 +102,11 @@ class ProjectManifest:
                 fallback_used=bool(validation_payload.get("fallback_used", False)),
             )
             render_plan_payload = raw_variant.get("render_plan") if isinstance(raw_variant.get("render_plan"), dict) else {}
+            render_plan_payload = {
+                **render_plan_payload,
+                "palette_mood": str(render_plan_payload.get("palette_mood", "")).strip(),
+                "typography_vibe": str(render_plan_payload.get("typography_vibe", "")).strip(),
+            }
             variants.append(
                 VariantPayload(
                     variant_id=str(raw_variant.get("variant_id", "")).strip() or "variant-1",

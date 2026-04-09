@@ -112,6 +112,12 @@ def _ensure_user_auth_columns() -> None:
     if "email_verified" not in columns:
         default_bool = "0" if db.engine.dialect.name == "sqlite" else "FALSE"
         statements.append(f"ALTER TABLE users ADD COLUMN email_verified BOOLEAN NOT NULL DEFAULT {default_bool}")
+    if "default_palette_mood" not in columns:
+        statements.append("ALTER TABLE users ADD COLUMN default_palette_mood VARCHAR(24) NOT NULL DEFAULT ''")
+    if "default_typography_vibe" not in columns:
+        statements.append("ALTER TABLE users ADD COLUMN default_typography_vibe VARCHAR(24) NOT NULL DEFAULT ''")
+    if "default_taste_keywords" not in columns:
+        statements.append("ALTER TABLE users ADD COLUMN default_taste_keywords VARCHAR(320) NOT NULL DEFAULT ''")
 
     with db.engine.begin() as connection:
         for statement in statements:

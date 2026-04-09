@@ -18,6 +18,7 @@ from app.services.contracts import (
 from app.services.taste_engine import (
     BriefInput,
     RenderPlan,
+    build_render_plan,
     build_render_variants,
     normalize_brief,
     remix_render_plan,
@@ -316,6 +317,192 @@ THEME_MAP: dict[str, dict[str, str]] = {
     },
 }
 
+PALETTE_MOOD_OVERRIDES: dict[str, dict[str, str]] = {
+    "neutral": {
+        "canvas_background": "linear-gradient(180deg, #eef3f8 0%, #dde5ee 100%)",
+        "panel_background": "rgba(251, 253, 255, 0.9)",
+        "surface": "#fbfdff",
+        "surface_alt": "#edf2f7",
+        "text": "#111827",
+        "muted": "#5c6678",
+        "accent": "#82cf2d",
+        "accent_soft": "rgba(130, 207, 45, 0.16)",
+        "border": "rgba(17, 24, 39, 0.12)",
+        "button_bg": "#111827",
+        "button_text": "#f8fbff",
+        "frame_background": "linear-gradient(180deg, rgba(242, 247, 252, 0.98) 0%, rgba(224, 232, 241, 0.98) 100%)",
+        "frame_border": "rgba(17, 24, 39, 0.1)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(255, 255, 255, 0.3), rgba(130, 207, 45, 0.06))",
+        "spotlight": "radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.8), transparent 34%)",
+        "card_fill": "rgba(255, 255, 255, 0.9)",
+        "card_stroke": "rgba(17, 24, 39, 0.08)",
+        "pill_background": "rgba(248, 252, 255, 0.82)",
+    },
+    "warm": {
+        "canvas_background": "radial-gradient(circle at top left, rgba(255, 188, 131, 0.3), transparent 30%), linear-gradient(180deg, #fff0db 0%, #ffd9cc 52%, #ffe7e1 100%)",
+        "panel_background": "rgba(255, 247, 239, 0.9)",
+        "surface": "#fff8f2",
+        "surface_alt": "#ffe0d1",
+        "text": "#3b241f",
+        "muted": "#8d6054",
+        "accent": "#f16b44",
+        "accent_soft": "rgba(241, 107, 68, 0.16)",
+        "border": "rgba(59, 36, 31, 0.12)",
+        "button_bg": "#f16b44",
+        "button_text": "#fff7f2",
+        "frame_background": "linear-gradient(180deg, rgba(255, 240, 219, 0.98) 0%, rgba(255, 217, 204, 0.98) 100%)",
+        "frame_border": "rgba(145, 85, 63, 0.12)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(255, 255, 255, 0.28), rgba(241, 107, 68, 0.08))",
+        "spotlight": "radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.8), transparent 30%)",
+        "card_fill": "rgba(255, 251, 246, 0.9)",
+        "card_stroke": "rgba(141, 96, 84, 0.1)",
+        "pill_background": "rgba(255, 244, 236, 0.84)",
+    },
+    "earthy": {
+        "canvas_background": "radial-gradient(circle at top left, rgba(151, 188, 126, 0.22), transparent 30%), linear-gradient(180deg, #f4f1e8 0%, #e7e1d2 100%)",
+        "panel_background": "rgba(248, 245, 237, 0.88)",
+        "surface": "#f9f6ef",
+        "surface_alt": "#ebe5d6",
+        "text": "#213126",
+        "muted": "#647265",
+        "accent": "#789a54",
+        "accent_soft": "rgba(120, 154, 84, 0.16)",
+        "border": "rgba(33, 49, 38, 0.12)",
+        "button_bg": "#22342a",
+        "button_text": "#f7f5ef",
+        "frame_background": "linear-gradient(180deg, rgba(245, 242, 233, 0.98) 0%, rgba(232, 226, 210, 0.98) 100%)",
+        "frame_border": "rgba(33, 49, 38, 0.1)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(120, 154, 84, 0.08))",
+        "spotlight": "radial-gradient(circle at 18% 10%, rgba(255, 255, 255, 0.72), transparent 28%)",
+        "card_fill": "rgba(250, 247, 240, 0.88)",
+        "card_stroke": "rgba(33, 49, 38, 0.08)",
+        "pill_background": "rgba(248, 245, 239, 0.8)",
+    },
+    "coastal": {
+        "canvas_background": "radial-gradient(circle at top right, rgba(114, 210, 226, 0.24), transparent 30%), linear-gradient(180deg, #f2fbff 0%, #e6f5f4 55%, #f4f0e8 100%)",
+        "panel_background": "rgba(246, 252, 253, 0.86)",
+        "surface": "#f7fdff",
+        "surface_alt": "#e2f2f1",
+        "text": "#11374b",
+        "muted": "#557686",
+        "accent": "#0ea4b6",
+        "accent_soft": "rgba(14, 164, 182, 0.14)",
+        "border": "rgba(17, 55, 75, 0.12)",
+        "button_bg": "#11374b",
+        "button_text": "#eefcff",
+        "frame_background": "linear-gradient(180deg, rgba(242, 251, 255, 0.98) 0%, rgba(231, 246, 245, 0.98) 100%)",
+        "frame_border": "rgba(17, 55, 75, 0.1)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(255, 255, 255, 0.3), rgba(14, 164, 182, 0.06))",
+        "spotlight": "radial-gradient(circle at 84% 10%, rgba(255, 255, 255, 0.76), transparent 28%)",
+        "card_fill": "rgba(248, 253, 254, 0.84)",
+        "card_stroke": "rgba(17, 55, 75, 0.08)",
+        "pill_background": "rgba(255, 255, 255, 0.74)",
+    },
+    "luxury": {
+        "canvas_background": "radial-gradient(circle at top, rgba(225, 190, 126, 0.18), transparent 34%), linear-gradient(180deg, #161110 0%, #2a1c16 100%)",
+        "panel_background": "rgba(30, 22, 18, 0.8)",
+        "surface": "#1d1512",
+        "surface_alt": "#2f211b",
+        "text": "#f5e8d7",
+        "muted": "#c2ab92",
+        "accent": "#dcb069",
+        "accent_soft": "rgba(220, 176, 105, 0.18)",
+        "border": "rgba(220, 176, 105, 0.16)",
+        "button_bg": "#dcb069",
+        "button_text": "#17110d",
+        "frame_background": "linear-gradient(180deg, rgba(24, 17, 15, 0.98) 0%, rgba(42, 30, 24, 0.98) 100%)",
+        "frame_border": "rgba(220, 176, 105, 0.14)",
+        "backdrop_overlay": "linear-gradient(160deg, rgba(255, 245, 230, 0.06), rgba(220, 176, 105, 0.12))",
+        "spotlight": "radial-gradient(circle at 78% 4%, rgba(255, 235, 205, 0.16), transparent 28%)",
+        "card_fill": "rgba(31, 23, 18, 0.86)",
+        "card_stroke": "rgba(220, 176, 105, 0.12)",
+        "pill_background": "rgba(40, 29, 23, 0.9)",
+    },
+    "electric": {
+        "canvas_background": "radial-gradient(circle at top right, rgba(64, 231, 255, 0.22), transparent 30%), linear-gradient(180deg, #08121f 0%, #040913 100%)",
+        "panel_background": "rgba(7, 18, 32, 0.82)",
+        "surface": "#0a1625",
+        "surface_alt": "#102338",
+        "text": "#ddfbff",
+        "muted": "#8eb7cb",
+        "accent": "#33e7e0",
+        "accent_soft": "rgba(51, 231, 224, 0.16)",
+        "border": "rgba(51, 231, 224, 0.18)",
+        "button_bg": "#2af0d0",
+        "button_text": "#041017",
+        "frame_background": "linear-gradient(180deg, rgba(8, 18, 31, 0.98) 0%, rgba(4, 9, 19, 0.98) 100%)",
+        "frame_border": "rgba(51, 231, 224, 0.16)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(8, 18, 31, 0.1), rgba(51, 231, 224, 0.08))",
+        "spotlight": "radial-gradient(circle at 84% 14%, rgba(51, 231, 224, 0.2), transparent 24%)",
+        "card_fill": "rgba(10, 22, 37, 0.8)",
+        "card_stroke": "rgba(51, 231, 224, 0.12)",
+        "pill_background": "rgba(7, 18, 32, 0.66)",
+    },
+    "mono": {
+        "canvas_background": "linear-gradient(180deg, #f2f2ee 0%, #e7e7e1 100%)",
+        "panel_background": "rgba(252, 252, 248, 0.88)",
+        "surface": "#fbfbf8",
+        "surface_alt": "#edede7",
+        "text": "#0d0f0d",
+        "muted": "#51554d",
+        "accent": "#98e23d",
+        "accent_soft": "rgba(152, 226, 61, 0.16)",
+        "border": "rgba(13, 15, 13, 0.14)",
+        "button_bg": "#0d0f0d",
+        "button_text": "#f5f7ef",
+        "frame_background": "linear-gradient(180deg, rgba(242, 242, 238, 0.98) 0%, rgba(231, 231, 225, 0.98) 100%)",
+        "frame_border": "rgba(13, 15, 13, 0.12)",
+        "backdrop_overlay": "linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(152, 226, 61, 0.04))",
+        "spotlight": "radial-gradient(circle at 18% 10%, rgba(255, 255, 255, 0.62), transparent 28%)",
+        "card_fill": "rgba(252, 252, 248, 0.86)",
+        "card_stroke": "rgba(13, 15, 13, 0.1)",
+        "pill_background": "rgba(247, 248, 242, 0.76)",
+    },
+    "playful": {
+        "canvas_background": "linear-gradient(135deg, #fff4bc 0%, #ffd2cb 46%, #c9f3ff 100%)",
+        "panel_background": "rgba(255, 250, 241, 0.92)",
+        "surface": "#fffdf8",
+        "surface_alt": "#ffe79d",
+        "text": "#182a58",
+        "muted": "#3c5e93",
+        "accent": "#ff5a38",
+        "accent_soft": "rgba(255, 90, 56, 0.18)",
+        "border": "rgba(24, 42, 88, 0.18)",
+        "button_bg": "#2550d6",
+        "button_text": "#fff8dc",
+        "frame_background": "linear-gradient(135deg, rgba(255, 247, 220, 0.98) 0%, rgba(255, 210, 203, 0.98) 56%, rgba(201, 243, 255, 0.98) 100%)",
+        "frame_border": "rgba(24, 42, 88, 0.14)",
+        "backdrop_overlay": "linear-gradient(145deg, rgba(255, 255, 255, 0.24), rgba(37, 80, 214, 0.08))",
+        "spotlight": "radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.82), transparent 26%)",
+        "card_fill": "rgba(255, 254, 248, 0.92)",
+        "card_stroke": "rgba(24, 42, 88, 0.14)",
+        "pill_background": "rgba(255, 255, 255, 0.72)",
+    },
+}
+
+TYPOGRAPHY_VIBE_OVERRIDES: dict[str, dict[str, str]] = {
+    "editorial": {
+        "display_font": "'Cormorant Garamond', serif",
+        "body_font": "'Space Grotesk', sans-serif",
+    },
+    "geometric": {
+        "display_font": "'Bricolage Grotesque', sans-serif",
+        "body_font": "'Space Grotesk', sans-serif",
+    },
+    "friendly": {
+        "display_font": "'Bricolage Grotesque', sans-serif",
+        "body_font": "'Manrope', sans-serif",
+    },
+    "classic": {
+        "display_font": "'Fraunces', serif",
+        "body_font": "'Manrope', sans-serif",
+    },
+    "tech": {
+        "display_font": "'Space Grotesk', sans-serif",
+        "body_font": "'Manrope', sans-serif",
+    },
+}
+
 TEMPLATE_CATALOG: dict[str, dict[str, str]] = {
     "landing": {"template_file": "generated/landing.html"},
     "portfolio": {"template_file": "generated/portfolio.html"},
@@ -396,6 +583,15 @@ MEDIA_DIRECTION_COPY_GUIDES: dict[str, str] = {
     "glow_grid": "Assume the design includes glowing interface plates, dashboards, or neon visual tiles. Favor crisp, specific phrasing over abstract mood words.",
     "cinematic_layers": "Assume large immersive visuals and layered scenes drive the pacing. Make each section feel like a distinct scroll moment.",
 }
+
+
+def _theme_for_render_plan(render_plan: RenderPlan) -> dict[str, str]:
+    theme = deepcopy(THEME_MAP.get(render_plan.art_direction, THEME_MAP["modern_editorial"]))
+    theme.update(PALETTE_MOOD_OVERRIDES.get(render_plan.palette_mood, {}))
+    theme.update(TYPOGRAPHY_VIBE_OVERRIDES.get(render_plan.typography_vibe, {}))
+    theme["palette_mood"] = render_plan.palette_mood
+    theme["typography_vibe"] = render_plan.typography_vibe
+    return theme
 
 
 def _taste_model(provider: AIProvider | None) -> object | None:
@@ -530,8 +726,16 @@ def _default_list_items(list_name: str, *, render_plan: RenderPlan) -> list[dict
 
 def _brand_asset_prompt_block(brief: BriefInput) -> str:
     assets = brief.brand_assets or []
-    if not assets and not brief.icon_style:
-        return "- uploaded brand assets: none provided\n- icon direction: none provided"
+    if not assets and not brief.icon_style and not brief.palette_mood and not brief.typography_vibe and not brief.taste_keywords:
+        return "\n".join(
+            [
+                "- uploaded brand assets: none provided",
+                "- icon direction: none provided",
+                "- palette mood: auto",
+                "- typography vibe: auto",
+                "- taste keywords: none provided",
+            ]
+        )
 
     asset_lines: list[str] = []
     for asset in assets[:4]:
@@ -543,6 +747,9 @@ def _brand_asset_prompt_block(brief: BriefInput) -> str:
         "- uploaded brand assets:",
         *(asset_lines or ["  - none provided"]),
         f"- icon direction: {brief.icon_style or 'none provided'}",
+        f"- palette mood: {brief.palette_mood or 'auto'}",
+        f"- typography vibe: {brief.typography_vibe or 'auto'}",
+        f"- taste keywords: {', '.join(brief.taste_keywords) if brief.taste_keywords else 'none provided'}",
         "- Treat uploaded assets as implementation references in the final site. If their visual details are not explicitly described, do not invent exact colors or shapes.",
         "- When useful, make feature or capability titles compact enough to work as badge or icon labels.",
     ]
@@ -578,6 +785,8 @@ Context:
 - art direction: {render_plan.art_direction}
 - density: {render_plan.density}
 - motion level: {render_plan.motion_level}
+- palette mood: {render_plan.palette_mood or "auto"}
+- typography vibe: {render_plan.typography_vibe or "auto"}
 - media direction: {render_plan.media_direction}
 - shell variant: {render_plan.shell_variant}
 - navigation style: {render_plan.navigation_style}
@@ -585,6 +794,7 @@ Context:
 - industry: {render_plan.industry}
 - vibe: {render_plan.vibe}
 - keywords: {keywords}
+- explicit taste keywords: {", ".join(brief.taste_keywords) if brief.taste_keywords else "none"}
 - visual theme: {theme_name}
 - narrative goal: {template_guide}
 - art direction writing guide: {art_guide}
@@ -606,6 +816,7 @@ Writing rules:
 - Match the shell: portfolio routes should feel authored and curated, landing routes should feel conversion-aware and persuasive, and product routes should feel like real software or launch experiences.
 - Avoid empty phrases such as "innovative solutions", "cutting-edge", "seamless experience", "world-class", or "next-generation".
 - Let the art direction influence the language: editorial should feel composed, brutalist should feel decisive, cyber should feel electric, warm should feel human.
+- Let palette mood and typography vibe subtly shape the rhythm, naming, and texture so the copy feels visually aligned with the design direction.
 - Write section titles and intros like real page copy, not placeholder labels. Avoid default headings like "Features", "Pricing", "Projects", or "About Us" unless the brief clearly calls for plain language.
 - Every section title slot must feel like a strong web headline with a distinct job to do: frame proof, introduce benefits, reduce friction, or tee up the next action.
 - Section titles should usually be 2 to 7 words, concrete, and easy to scan in a navigation-style website layout.
@@ -615,6 +826,7 @@ Writing rules:
 - Keep hero titles punchy, memorable, and under 10 words when possible.
 - Keep CTA text short and active, usually 2 to 4 words.
 - Use concrete nouns, outcomes, and imagery instead of vague claims.
+- Treat taste keywords as real creative direction. If they imply a tactile, editorial, technical, playful, or premium system, reflect that in section naming and microcopy.
 - If uploaded brand assets or icon notes exist, keep the naming system compatible with a cohesive branded icon treatment.
 
 Return only JSON matching this schema shape:
@@ -706,7 +918,7 @@ def _generate_content(
     prompt = _build_content_prompt(
         brief=brief,
         render_plan=render_plan,
-        theme_name=THEME_MAP[render_plan.art_direction]["name"],
+        theme_name=_theme_for_render_plan(render_plan)["name"],
     )
     try:
         parsed = provider.generate_json(prompt)
@@ -792,7 +1004,7 @@ def _variant_payload(
         summary=_variant_summary(render_plan),
         render_plan=render_plan,
         content=content,
-        theme=deepcopy(THEME_MAP.get(render_plan.art_direction, THEME_MAP["modern_editorial"])),
+        theme=_theme_for_render_plan(render_plan),
         content_overrides=deepcopy(content_overrides or {}),
         layout_overrides=deepcopy(layout_overrides or {}),
         edited_nodes=list(edited_nodes or []),
@@ -965,6 +1177,7 @@ def _resolved_variant_payload(
     payload["render_plan"] = effective_plan.to_dict()
     payload["content"] = effective_content.data
     payload["validation"] = effective_content.validation.to_dict()
+    payload["theme"] = _theme_for_render_plan(effective_plan)
     payload["label"] = remix_label or variant.label
     payload["summary"] = _variant_summary(effective_plan)
     return payload
@@ -1342,9 +1555,30 @@ def apply_variant_override_to_manifest(
 
     provider = provider if provider is not None else get_default_provider()
     try:
-        remixed_plan = remix_render_plan(
-            target_variant.render_plan,
-            overrides=overrides,
+        locked_overrides: dict[str, object] = {
+            "template_key": overrides.get("template_key", target_variant.render_plan.template_key),
+            "art_direction": overrides.get("art_direction", target_variant.render_plan.art_direction),
+            "layout_mode": overrides.get("layout_mode", target_variant.render_plan.layout_mode),
+            "density": overrides.get("density", target_variant.render_plan.density),
+            "motion_level": overrides.get("motion_level", target_variant.render_plan.motion_level),
+        }
+        if "palette_mood" in overrides:
+            locked_overrides["palette_mood"] = overrides.get("palette_mood")
+        if "typography_vibe" in overrides:
+            locked_overrides["typography_vibe"] = overrides.get("typography_vibe")
+        if "taste_keywords" in overrides:
+            locked_overrides["taste_keywords"] = overrides.get("taste_keywords")
+        if "keywords" in overrides:
+            locked_overrides["keywords"] = overrides.get("keywords")
+        raw_visibility = overrides.get("section_visibility")
+        if isinstance(raw_visibility, dict):
+            locked_overrides["section_visibility"] = raw_visibility
+
+        remixed_plan = build_render_plan(
+            manifest.prompt,
+            brief=manifest.brief,
+            model=None,
+            overrides=locked_overrides,
             theme_catalog=THEME_MAP,
             template_catalog=TEMPLATE_CATALOG,
         )

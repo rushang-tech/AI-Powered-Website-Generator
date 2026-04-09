@@ -39,6 +39,8 @@ def _variant(variant_id: str, template_key: str = "landing", art_direction: str 
             "layout_mode": layout_mode,
             "density": "balanced",
             "motion_level": "moderate",
+            "palette_mood": "neutral",
+            "typography_vibe": "editorial",
             "section_order": ["hero", "features", "proof", "cta"] if template_key != "portfolio" else ["hero", "projects", "about", "cta"],
             "section_visibility": {"hero": True, "features": True, "proof": True, "cta": True, "projects": True, "about": True},
             "hero_variant": "split",
@@ -105,6 +107,9 @@ def _payload(preview_id: str):
             "brand_tone": "Clear and modern",
             "content_density": "balanced",
             "motion_level": "moderate",
+            "palette_mood": "",
+            "typography_vibe": "",
+            "taste_keywords": [],
             "name": "Northstar",
             "notes": "Lead with proof.",
             "prompt": "A startup landing page",
@@ -558,7 +563,7 @@ class RouteTests(unittest.TestCase):
         self.assertIn("data-workspace-nav", studio_response.get_data(as_text=True))
 
     @patch("app.routes.generate_project_manifest")
-    def test_generate_forwards_brand_assets_and_icon_style(self, mocked_generate):
+    def test_generate_forwards_brand_and_taste_controls(self, mocked_generate):
         self._signup_and_login()
         mocked_generate.return_value = ProjectManifest.from_dict(_payload("preview-branding"))
         brand_asset = _brand_asset()
@@ -573,6 +578,9 @@ class RouteTests(unittest.TestCase):
                     "brand_tone": "Clear and modern",
                     "content_density": "balanced",
                     "motion_level": "moderate",
+                    "palette_mood": "electric",
+                    "typography_vibe": "tech",
+                    "taste_keywords": ["signal-rich", "interface-first"],
                     "brand_assets": [brand_asset],
                     "icon_style": "Rounded product icons",
                 },
@@ -582,6 +590,9 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         forwarded_brief = mocked_generate.call_args.kwargs["brief"]
         self.assertEqual(forwarded_brief["icon_style"], "Rounded product icons")
+        self.assertEqual(forwarded_brief["palette_mood"], "electric")
+        self.assertEqual(forwarded_brief["typography_vibe"], "tech")
+        self.assertEqual(forwarded_brief["taste_keywords"], ["signal-rich", "interface-first"])
         self.assertEqual(len(forwarded_brief["brand_assets"]), 1)
         self.assertEqual(forwarded_brief["brand_assets"][0]["data_url"], brand_asset["data_url"])
 
@@ -648,6 +659,9 @@ class RouteTests(unittest.TestCase):
                 "default_brand_tone": "Bold and clear",
                 "default_content_density": "dense",
                 "default_motion_level": "energetic",
+                "default_palette_mood": "luxury",
+                "default_typography_vibe": "classic",
+                "default_taste_keywords": "editorial, premium, tactile",
                 "default_icon_style": "Sharp monochrome symbols",
             },
             follow_redirects=True,
@@ -659,6 +673,9 @@ class RouteTests(unittest.TestCase):
             user = User.query.filter_by(email=email).first()
             self.assertEqual(user.default_content_density, "dense")
             self.assertEqual(user.default_motion_level, "energetic")
+            self.assertEqual(user.default_palette_mood, "luxury")
+            self.assertEqual(user.default_typography_vibe, "classic")
+            self.assertEqual(user.default_taste_keywords, "editorial, premium, tactile")
 
         password_response = self.client.post(
             "/settings",
@@ -769,6 +786,9 @@ class RouteTests(unittest.TestCase):
         body = response.get_data(as_text=True)
         self.assertIn('name="default_content_density"', body)
         self.assertIn('name="default_motion_level"', body)
+        self.assertIn('name="default_palette_mood"', body)
+        self.assertIn('name="default_typography_vibe"', body)
+        self.assertIn('name="default_taste_keywords"', body)
         self.assertIn("More whitespace with room to breathe.", body)
         self.assertIn("Subtle transitions with minimal movement.", body)
         self.assertNotIn('<select name="default_content_density">', body)
@@ -864,7 +884,15 @@ class RouteTests(unittest.TestCase):
 
         branding_response = self.client.post(
             "/preview/preview-branding/branding",
-            json={"brief": {"brand_assets": [_brand_asset()], "icon_style": "Rounded interface icons"}},
+            json={
+                "brief": {
+                    "brand_assets": [_brand_asset()],
+                    "icon_style": "Rounded interface icons",
+                    "palette_mood": "playful",
+                    "typography_vibe": "friendly",
+                    "taste_keywords": ["joyful", "kid-friendly"],
+                }
+            },
         )
         self.assertEqual(branding_response.status_code, 200)
         branding_data = branding_response.get_json()
@@ -872,6 +900,9 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(branding_data["studio_url"], "/preview/preview-branding/studio")
         self.assertEqual(branding_data["frame_url"], "/preview/preview-branding/frame")
         self.assertEqual(branding_data["selected_variant"]["variant_id"], "variant-1")
+        self.assertEqual(branding_data["brief"]["palette_mood"], "playful")
+        self.assertEqual(branding_data["brief"]["typography_vibe"], "friendly")
+        self.assertEqual(branding_data["brief"]["taste_keywords"], ["joyful", "kid-friendly"])
 
         command_response = self.client.post(
             "/preview/preview-branding/command",
@@ -894,6 +925,9 @@ class RouteTests(unittest.TestCase):
             conversation = Conversation.query.filter_by(preview_id="preview-branding").first()
             manifest = manifest_from_conversation(conversation)
             self.assertEqual(manifest.brief.icon_style, "Rounded interface icons")
+            self.assertEqual(manifest.brief.palette_mood, "playful")
+            self.assertEqual(manifest.brief.typography_vibe, "friendly")
+            self.assertEqual(manifest.brief.taste_keywords, ["joyful", "kid-friendly"])
             self.assertEqual(manifest.variants[0].content_overrides["hero_title"], "A sharper hero headline")
             self.assertEqual(Message.query.filter_by(conversation_id=conversation.id, role="system").count(), 2)
 

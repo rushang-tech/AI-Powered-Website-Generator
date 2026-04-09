@@ -67,7 +67,15 @@ from app.services.google_oauth import (
     verify_google_id_token,
 )
 from app.services.published_site_service import PUBLISHED_SITE_SERVICE
-from app.services.taste_engine import LAYOUT_LIBRARY, normalize_brief
+from app.services.taste_engine import (
+    LAYOUT_LIBRARY,
+    PALETTE_MOOD_CHOICES,
+    TYPOGRAPHY_VIBE_CHOICES,
+    normalize_brief,
+    normalize_palette_mood,
+    normalize_taste_keywords,
+    normalize_typography_vibe,
+)
 
 main = Blueprint("main", __name__)
 
@@ -81,6 +89,8 @@ _MARKETING_NAV_ITEMS: tuple[dict[str, str], ...] = (
 )
 _DENSITY_CHOICES: tuple[str, ...] = ("airy", "balanced", "dense")
 _MOTION_CHOICES: tuple[str, ...] = ("calm", "moderate", "energetic")
+_PALETTE_MOOD_CHOICES: tuple[str, ...] = PALETTE_MOOD_CHOICES
+_TYPOGRAPHY_VIBE_CHOICES: tuple[str, ...] = TYPOGRAPHY_VIBE_CHOICES
 _DENSITY_OPTION_CARDS: tuple[dict[str, str], ...] = (
     {
         "value": "airy",
@@ -246,6 +256,9 @@ def _demo_brief() -> dict[str, str]:
         "brand_tone": "Bold, clear, confident",
         "content_density": "balanced",
         "motion_level": "moderate",
+        "palette_mood": "electric",
+        "typography_vibe": "tech",
+        "taste_keywords": "product-led, interface-first, signal-rich",
         "name": "Northstar Copilot",
         "notes": "Lead with proof and include a strong pricing narrative.",
     }
@@ -286,7 +299,16 @@ def inject_public_nav_defaults() -> dict[str, object]:
 
 def _collect_overrides(body: dict[str, object]) -> dict[str, object]:
     overrides: dict[str, object] = {}
-    for key in ("template_key", "layout_mode", "art_direction", "theme_key", "density", "motion_level"):
+    for key in (
+        "template_key",
+        "layout_mode",
+        "art_direction",
+        "theme_key",
+        "density",
+        "motion_level",
+        "palette_mood",
+        "typography_vibe",
+    ):
         value = str(body.get(key, "")).strip().lower()
         if value:
             overrides[key] = value
@@ -294,7 +316,24 @@ def _collect_overrides(body: dict[str, object]) -> dict[str, object]:
     raw_visibility = body.get("section_visibility")
     if isinstance(raw_visibility, dict):
         overrides["section_visibility"] = {str(key): bool(value) for key, value in raw_visibility.items()}
+    if "taste_keywords" in body or "keywords" in body:
+        overrides["taste_keywords"] = normalize_taste_keywords(
+            body.get("taste_keywords") if "taste_keywords" in body else body.get("keywords")
+        )
     return overrides
+
+
+def _brief_has_user_input(brief: dict[str, object]) -> bool:
+    for key, value in brief.items():
+        if key == "brand_assets":
+            continue
+        if isinstance(value, list):
+            if any(str(item).strip() for item in value):
+                return True
+            continue
+        if str(value or "").strip():
+            return True
+    return False
 
 
 def _brief_payload(body: dict[str, object]) -> dict[str, object]:
@@ -447,6 +486,18 @@ def _normalize_motion_choice(value: object, *, default: str = "moderate") -> str
     return default
 
 
+def _normalize_palette_mood_choice(value: object, *, default: str = "") -> str:
+    return normalize_palette_mood(value, default=default)
+
+
+def _normalize_typography_vibe_choice(value: object, *, default: str = "") -> str:
+    return normalize_typography_vibe(value, default=default)
+
+
+def _taste_keywords_text(value: object) -> str:
+    return ", ".join(normalize_taste_keywords(value))
+
+
 def _requires_onboarding(user: User) -> bool:
     onboarding = getattr(user, "onboarding", None)
     if onboarding is None:
@@ -514,6 +565,9 @@ def _user_defaults() -> dict[str, str]:
         "brand_tone": _clean_text(getattr(current_user, "default_brand_tone", ""), max_length=160),
         "content_density": _normalize_density_choice(getattr(current_user, "default_content_density", "balanced")),
         "motion_level": _normalize_motion_choice(getattr(current_user, "default_motion_level", "moderate")),
+        "palette_mood": _normalize_palette_mood_choice(getattr(current_user, "default_palette_mood", "")),
+        "typography_vibe": _normalize_typography_vibe_choice(getattr(current_user, "default_typography_vibe", "")),
+        "taste_keywords": _taste_keywords_text(getattr(current_user, "default_taste_keywords", "")),
         "icon_style": _clean_text(getattr(current_user, "default_icon_style", ""), max_length=220),
     }
 
@@ -527,6 +581,12 @@ def _apply_user_defaults_to_brief(raw_brief: dict[str, object]) -> dict[str, obj
         brief["content_density"] = defaults["content_density"]
     if not _clean_text(brief.get("motion_level"), max_length=24):
         brief["motion_level"] = defaults["motion_level"]
+    if not _normalize_palette_mood_choice(brief.get("palette_mood"), default=""):
+        brief["palette_mood"] = defaults["palette_mood"]
+    if not _normalize_typography_vibe_choice(brief.get("typography_vibe"), default=""):
+        brief["typography_vibe"] = defaults["typography_vibe"]
+    if not normalize_taste_keywords(brief.get("taste_keywords")):
+        brief["taste_keywords"] = defaults["taste_keywords"]
     if not _clean_text(brief.get("icon_style"), max_length=220):
         brief["icon_style"] = defaults["icon_style"]
     return brief
@@ -541,6 +601,9 @@ def _normalized_brief(body: dict[str, object]) -> tuple[str, dict[str, object]]:
         "brand_tone": _clean_text(raw_brief.get("brand_tone"), max_length=160),
         "content_density": _normalize_density_choice(raw_brief.get("content_density")),
         "motion_level": _normalize_motion_choice(raw_brief.get("motion_level")),
+        "palette_mood": _normalize_palette_mood_choice(raw_brief.get("palette_mood"), default=""),
+        "typography_vibe": _normalize_typography_vibe_choice(raw_brief.get("typography_vibe"), default=""),
+        "taste_keywords": normalize_taste_keywords(raw_brief.get("taste_keywords")),
         "name": _clean_text(raw_brief.get("name"), max_length=120),
         "notes": _clean_text(raw_brief.get("notes"), max_length=600),
         "brand_assets": raw_brief.get("brand_assets") if isinstance(raw_brief.get("brand_assets"), list) else [],
@@ -635,6 +698,8 @@ def _preview_page_context(conversation, manifest):
         "layout_library": {key: list(value.keys()) for key, value in LAYOUT_LIBRARY.items()},
         "density_options": list(_DENSITY_CHOICES),
         "motion_options": list(_MOTION_CHOICES),
+        "palette_mood_options": list(_PALETTE_MOOD_CHOICES),
+        "typography_vibe_options": list(_TYPOGRAPHY_VIBE_CHOICES),
         **_preview_urls(manifest.preview_id),
     }
 
@@ -643,11 +708,20 @@ def _initial_generation_message(prompt: str, brief: dict[str, object]) -> str:
     goal = _clean_text(brief.get("goal"), max_length=220) or prompt
     audience = _clean_text(brief.get("audience"), max_length=120)
     tone = _clean_text(brief.get("brand_tone"), max_length=120)
+    palette_mood = _normalize_palette_mood_choice(brief.get("palette_mood"), default="")
+    typography_vibe = _normalize_typography_vibe_choice(brief.get("typography_vibe"), default="")
+    taste_keywords = normalize_taste_keywords(brief.get("taste_keywords"))
     pieces = [goal or "Create a new website project."]
     if audience:
         pieces.append(f"Audience: {audience}.")
     if tone:
         pieces.append(f"Tone: {tone}.")
+    if palette_mood:
+        pieces.append(f"Palette: {palette_mood.replace('_', ' ')}.")
+    if typography_vibe:
+        pieces.append(f"Typography: {typography_vibe.replace('_', ' ')}.")
+    if taste_keywords:
+        pieces.append(f"Taste keywords: {', '.join(taste_keywords[:4])}.")
     return " ".join(piece for piece in pieces if piece)
 
 
@@ -1016,6 +1090,8 @@ def index():
         status_blueprint=status_blueprint(),
         density_options=list(_DENSITY_CHOICES),
         motion_options=list(_MOTION_CHOICES),
+        palette_mood_options=list(_PALETTE_MOOD_CHOICES),
+        typography_vibe_options=list(_TYPOGRAPHY_VIBE_CHOICES),
         recent_conversations=_recent_conversation_payload(),
         user_defaults=_user_defaults(),
     )
@@ -1039,6 +1115,9 @@ def settings():
             brand_tone = _clean_text(request.form.get("default_brand_tone"), max_length=160)
             density = _normalize_density_choice(request.form.get("default_content_density"))
             motion = _normalize_motion_choice(request.form.get("default_motion_level"))
+            palette_mood = _normalize_palette_mood_choice(request.form.get("default_palette_mood"), default="")
+            typography_vibe = _normalize_typography_vibe_choice(request.form.get("default_typography_vibe"), default="")
+            taste_keywords = _taste_keywords_text(request.form.get("default_taste_keywords"))
             icon_style = _clean_text(request.form.get("default_icon_style"), max_length=220)
 
             existing = User.query.filter_by(email=email).first() if email else None
@@ -1054,6 +1133,9 @@ def settings():
                 current_user.default_brand_tone = brand_tone
                 current_user.default_content_density = density
                 current_user.default_motion_level = motion
+                current_user.default_palette_mood = palette_mood
+                current_user.default_typography_vibe = typography_vibe
+                current_user.default_taste_keywords = taste_keywords
                 current_user.default_icon_style = icon_style
                 db.session.add(current_user)
                 db.session.commit()
@@ -1108,6 +1190,8 @@ def settings():
         "settings.html",
         density_option_cards=_DENSITY_OPTION_CARDS,
         motion_option_cards=_MOTION_OPTION_CARDS,
+        palette_mood_options=list(_PALETTE_MOOD_CHOICES),
+        typography_vibe_options=list(_TYPOGRAPHY_VIBE_CHOICES),
         conversation_count=conversation_count,
         user_defaults=_user_defaults(),
         email_managed_by_google=current_user.is_google_linked,
@@ -1214,7 +1298,7 @@ def generate():
     body = request.get_json(silent=True) or {}
     user_prompt, brief = _normalized_brief(body)
     has_brand_assets = bool(brief.get("brand_assets"))
-    has_text_brief = any(str(value).strip() for key, value in brief.items() if key != "brand_assets")
+    has_text_brief = _brief_has_user_input(brief)
     if not user_prompt and not has_text_brief and not has_brand_assets:
         return jsonify({"error": "Prompt or brief is required."}), 400
 
@@ -1263,10 +1347,9 @@ def update_branding(preview_id: str):
     incoming = _brief_payload(body) if isinstance(body.get("brief"), dict) else body
 
     merged_brief = manifest.brief.to_dict()
-    if "brand_assets" in incoming:
-        merged_brief["brand_assets"] = incoming.get("brand_assets")
-    if "icon_style" in incoming:
-        merged_brief["icon_style"] = incoming.get("icon_style")
+    for key in ("brand_assets", "icon_style", "palette_mood", "typography_vibe", "taste_keywords"):
+        if key in incoming:
+            merged_brief[key] = incoming.get(key)
 
     normalized = normalize_brief(manifest.prompt, merged_brief)
     updated = ProjectManifest(
@@ -1277,8 +1360,38 @@ def update_branding(preview_id: str):
         variants=manifest.variants,
         statuses=manifest.statuses,
     )
+    taste_changed = any(
+        (
+            getattr(normalized, key) != getattr(manifest.brief, key)
+            if key != "taste_keywords"
+            else list(normalized.taste_keywords) != list(manifest.brief.taste_keywords)
+        )
+        for key in ("icon_style", "palette_mood", "typography_vibe", "taste_keywords")
+    )
+    if taste_changed and manifest.variants:
+        selected_variant = next(
+            (item for item in manifest.variants if item.variant_id == manifest.selected_variant_id),
+            manifest.variants[0],
+        )
+        updated = apply_variant_override_to_manifest(
+            updated,
+            variant_id=selected_variant.variant_id,
+            overrides={
+                "template_key": selected_variant.render_plan.template_key,
+                "art_direction": selected_variant.render_plan.art_direction,
+                "layout_mode": selected_variant.render_plan.layout_mode,
+                "density": selected_variant.render_plan.density,
+                "motion_level": selected_variant.render_plan.motion_level,
+            },
+        )
+
     save_manifest(conversation, updated)
-    record_system_event(conversation, "Updated brand assets or icon direction notes.")
+    record_system_event(
+        conversation,
+        "Updated brand assets."
+        if not taste_changed
+        else "Updated taste controls and regenerated the selected design direction.",
+    )
     selected = selected_preview_data(updated).get("selected_variant", {})
 
     return jsonify(
