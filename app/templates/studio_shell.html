@@ -33,7 +33,7 @@
                     </div>
                 </div>
 
-                <!-- Compact Variant Strip -->
+                <!-- Compact Variant Strip (replaces the hero section) -->
                 <nav class="studio-variant-strip" aria-label="Design variants">
                     {% for variant in variants %}
                     <button
@@ -81,12 +81,9 @@
 
             <!-- ── Two-Pane Workspace ── -->
             <section class="studio-workspace">
-
-                <!-- Left Panel: Chat + Editor (tabbed) -->
                 <aside class="studio-panel" id="studio-panel">
-                    <!-- Tab switch header -->
                     <div class="panel-head">
-                        <div class="panel-tabs" role="tablist">
+                        <div class="panel-tabs" role="tablist" aria-label="Studio tools">
                             <button class="panel-tab is-active" type="button" data-panel-tab="chat" role="tab" aria-selected="true" aria-controls="panel-chat-content">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                 Chat
@@ -98,7 +95,6 @@
                         </div>
                     </div>
 
-                    <!-- Chat Tab Content -->
                     <div class="panel-tab-content is-active" id="panel-chat-content" data-panel-content="chat" role="tabpanel">
                         <div id="conversation-messages" class="conversation-messages">
                             {% for message in conversation_messages %}
@@ -117,10 +113,8 @@
                         </form>
                     </div>
 
-                    <!-- Editor Tab Content -->
                     <div class="panel-tab-content" id="panel-editor-content" data-panel-content="editor" role="tabpanel">
                         <div class="panel-editor-scroll">
-                            <!-- Variant Info -->
                             <section class="inspector-card inspector-summary-card">
                                 <h3 id="inspector-variant-title">{{ selected_variant.label }}</h3>
                                 <p id="inspector-variant-summary" class="muted-copy">{{ selected_variant.summary }}</p>
@@ -150,7 +144,6 @@
                                 </div>
                             </section>
 
-                            <!-- Sections / Layers -->
                             <section class="inspector-card">
                                 <div class="section-heading-row">
                                     <h3>Sections</h3>
@@ -169,7 +162,6 @@
                                 </div>
                             </section>
 
-                            <!-- Layout & Style Controls -->
                             <details class="inspector-card advanced-panel" id="advanced-panel">
                                 <summary>
                                     <strong>Layout & style</strong>
@@ -267,7 +259,6 @@
                                 </div>
                             </details>
 
-                            <!-- Actions -->
                             <section class="inspector-card studio-actions-card">
                                 <div class="overflow-menu-wrap" id="overflow-menu-wrap">
                                     <button class="overflow-menu-btn" type="button" id="overflow-toggle">
@@ -282,7 +273,6 @@
                                 </div>
                             </section>
 
-                            <!-- Remix Previews -->
                             <details class="inspector-card advanced-panel">
                                 <summary>
                                     <strong>Remix previews</strong>
@@ -294,7 +284,6 @@
                                 </div>
                             </details>
 
-                            <!-- Pipeline Status -->
                             <details class="inspector-card advanced-panel">
                                 <summary>
                                     <strong>Pipeline</strong>
@@ -314,7 +303,7 @@
                     </div>
                 </aside>
 
-                <!-- Center: Canvas (fills remaining space) -->
+                <!-- Center: Canvas -->
                 <section class="studio-preview-column">
                     <div class="canvas-shell device-desktop" id="canvas-shell">
                         <iframe
@@ -364,15 +353,14 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', () => {
             const target = tab.getAttribute('data-panel-tab');
 
-            /* Switch active tab */
-            tabs.forEach(t => {
-                t.classList.toggle('is-active', t === tab);
-                t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+            tabs.forEach(item => {
+                const isActive = item === tab;
+                item.classList.toggle('is-active', isActive);
+                item.setAttribute('aria-selected', isActive ? 'true' : 'false');
             });
 
-            /* Switch active content */
-            contents.forEach(c => {
-                c.classList.toggle('is-active', c.getAttribute('data-panel-content') === target);
+            contents.forEach(content => {
+                content.classList.toggle('is-active', content.getAttribute('data-panel-content') === target);
             });
         });
     });

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -91,6 +92,8 @@ _DENSITY_CHOICES: tuple[str, ...] = ("airy", "balanced", "dense")
 _MOTION_CHOICES: tuple[str, ...] = ("calm", "moderate", "energetic")
 _PALETTE_MOOD_CHOICES: tuple[str, ...] = PALETTE_MOOD_CHOICES
 _TYPOGRAPHY_VIBE_CHOICES: tuple[str, ...] = TYPOGRAPHY_VIBE_CHOICES
+_PROMPT_MIN_WORDS = 3
+_PROMPT_MAX_WORDS = 80
 _DENSITY_OPTION_CARDS: tuple[dict[str, str], ...] = (
     {
         "value": "airy",
@@ -496,6 +499,21 @@ def _normalize_typography_vibe_choice(value: object, *, default: str = "") -> st
 
 def _taste_keywords_text(value: object) -> str:
     return ", ".join(normalize_taste_keywords(value))
+
+
+def _count_words(value: object) -> int:
+    return len(re.findall(r"[a-z0-9][a-z0-9'’-]*", _clean_text(value, max_length=800).lower()))
+
+
+def _prompt_word_validation_error(value: object) -> str | None:
+    word_count = _count_words(value)
+    if word_count <= 0:
+        return None
+    if word_count < _PROMPT_MIN_WORDS:
+        return f"Prompt must be at least {_PROMPT_MIN_WORDS} words."
+    if word_count > _PROMPT_MAX_WORDS:
+        return f"Prompt must be {_PROMPT_MAX_WORDS} words or fewer."
+    return None
 
 
 def _requires_onboarding(user: User) -> bool:
@@ -1301,6 +1319,18 @@ def generate():
     has_text_brief = _brief_has_user_input(brief)
     if not user_prompt and not has_text_brief and not has_brand_assets:
         return jsonify({"error": "Prompt or brief is required."}), 400
+
+    prompt_candidate = _clean_text(brief.get("goal"), max_length=300) or user_prompt
+    prompt_error = _prompt_word_validation_error(prompt_candidate)
+    if prompt_error:
+        return jsonify(
+            {
+                "error": prompt_error,
+                "word_count": _count_words(prompt_candidate),
+                "min_words": _PROMPT_MIN_WORDS,
+                "max_words": _PROMPT_MAX_WORDS,
+            }
+        ), 400
 
     try:
         manifest = generate_project_manifest(user_prompt, brief=brief)

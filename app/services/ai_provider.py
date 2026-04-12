@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from app.services.taste_engine import clean_json_response
 
 try:
-    from google import genai
+    import google.generativeai as genai
 except Exception:  # pragma: no cover - dependency may be unavailable in test env
     genai = None
 
@@ -34,6 +34,8 @@ _load_environment_files()
 
 _API_KEY_ROTATION_LOCK = Lock()
 _API_KEY_ROTATION_CURSOR = 0
+_GENAI_REQUEST_LOCK = Lock()
+
 
 class AIProvider(Protocol):
     def generate_text(self, prompt: str) -> str:
@@ -86,12 +88,19 @@ class GeminiAIProvider:
         fallback_models: Iterable[str] | None = None,
     ) -> None:
         if genai is None:
-            raise RuntimeError("google.genai is unavailable.")
+            raise RuntimeError("google.generativeai is unavailable.")
         self._api_key = api_key.strip()
         if not self._api_key:
             raise RuntimeError("Gemini API key is empty.")
         self._model_names = _resolve_model_names(model_name=model_name, fallback_models=fallback_models)
-        self._client = genai.Client(api_key=self._api_key)
+        self._models: dict[str, object] = {}
+
+    def _model_for(self, model_name: str) -> object:
+        model = self._models.get(model_name)
+        if model is None:
+            model = genai.GenerativeModel(model_name)
+            self._models[model_name] = model
+        return model
 
     def _promote_model(self, model_name: str) -> None:
         self._model_names = (model_name,) + tuple(name for name in self._model_names if name != model_name)
@@ -101,10 +110,11 @@ class GeminiAIProvider:
         errors: list[tuple[str, Exception]] = []
         for model_name in self._model_names:
             try:
-                response = self._client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                )
+                # google.generativeai keeps the API key in global module state, so
+                # we serialize configure+request to avoid cross-request key bleed.
+                with _GENAI_REQUEST_LOCK:
+                    genai.configure(api_key=self._api_key)
+                    response = self._model_for(model_name).generate_content(prompt)
                 text = str(getattr(response, "text", "")).strip()
                 if not text:
                     raise ValueError("Gemini returned an empty response.")

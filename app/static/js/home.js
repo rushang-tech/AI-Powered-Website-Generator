@@ -20,6 +20,8 @@ if (form) {
     const statusBlueprint = Array.isArray(config.statusBlueprint) ? config.statusBlueprint : [];
 
     const goalInput = document.getElementById("goal-input");
+    const goalValidation = document.getElementById("goal-validation");
+    const goalWordCount = document.getElementById("goal-word-count");
     const audienceInput = document.getElementById("audience-input");
     const toneInput = document.getElementById("tone-input");
     const densityInput = document.getElementById("density-input");
@@ -33,14 +35,89 @@ if (form) {
     const tasteKeywordsInput = document.getElementById("taste-keywords-input");
     const iconStyleInput = document.getElementById("icon-style-input");
     const demoBrief = config.demoBrief || {};
+    const GOAL_MIN_WORDS = Number(goalInput?.dataset.minWords || 3);
+    const GOAL_MAX_WORDS = Number(goalInput?.dataset.maxWords || 80);
 
-    /* ── Details toggle (progressive disclosure, inside prompt box) ── */
+    /* ── Details toggle (progressive disclosure) ── */
     const detailsToggle = document.getElementById("details-toggle");
     const detailsPanel = document.getElementById("details-panel");
-    let detailsRevealed = false;
+    let detailsRevealed = !detailsPanel;
+    let busy = false;
+
+    function countWords(value) {
+        return String(value || "").trim().match(/[a-z0-9][a-z0-9'’-]*/gi)?.length || 0;
+    }
+
+    function getGoalValidation(value) {
+        const wordCount = countWords(value);
+        if (!wordCount) {
+            return {
+                wordCount,
+                isValid: false,
+                message: `Write ${GOAL_MIN_WORDS} to ${GOAL_MAX_WORDS} words so Studio can route the right layout, tone, and structure.`,
+            };
+        }
+        if (wordCount < GOAL_MIN_WORDS) {
+            const remaining = GOAL_MIN_WORDS - wordCount;
+            return {
+                wordCount,
+                isValid: false,
+                message: `${wordCount} word${wordCount === 1 ? "" : "s"} so far. Add ${remaining} more to make the prompt clear enough.`,
+            };
+        }
+        if (wordCount > GOAL_MAX_WORDS) {
+            const overflow = wordCount - GOAL_MAX_WORDS;
+            return {
+                wordCount,
+                isValid: false,
+                message: `${wordCount} words is too long. Trim ${overflow} word${overflow === 1 ? "" : "s"} to stay under ${GOAL_MAX_WORDS}.`,
+            };
+        }
+        return {
+            wordCount,
+            isValid: true,
+            message: `${wordCount} words. Good range for generation.`,
+        };
+    }
+
+    function syncGenerateAvailability() {
+        if (!generateBtn) {
+            return;
+        }
+        const validation = getGoalValidation(goalInput ? goalInput.value : "");
+        generateBtn.disabled = busy || !validation.isValid;
+        generateBtn.style.opacity = generateBtn.disabled ? "0.5" : "";
+    }
+
+    function renderGoalValidation() {
+        const validation = getGoalValidation(goalInput ? goalInput.value : "");
+        const shouldShowInlineMessage = !validation.isValid && validation.wordCount > 0;
+        if (goalValidation) {
+            goalValidation.textContent = shouldShowInlineMessage ? validation.message : "";
+            goalValidation.classList.remove("is-valid");
+            goalValidation.classList.toggle("is-invalid", shouldShowInlineMessage);
+        }
+        if (goalWordCount) {
+            goalWordCount.textContent = `${validation.wordCount} / ${GOAL_MAX_WORDS} words`;
+            goalWordCount.classList.toggle("is-invalid", validation.wordCount > GOAL_MAX_WORDS);
+        }
+        syncGenerateAvailability();
+        return validation;
+    }
+
+    function fillDefaults() {
+        if (audienceInput && !audienceInput.value.trim()) {
+            audienceInput.value = "General audience";
+        }
+        if (toneInput && !toneInput.value.trim()) {
+            toneInput.value = "Clear and modern";
+        }
+    }
 
     function setDetailsOpen(isOpen) {
-        if (!detailsPanel) return;
+        if (!detailsPanel) {
+            return;
+        }
         detailsPanel.classList.toggle("is-open", isOpen);
         if (detailsToggle) {
             detailsToggle.classList.toggle("is-open", isOpen);
@@ -49,22 +126,14 @@ if (form) {
     }
 
     function revealDetailsStep({ focusField = false } = {}) {
-        if (!detailsPanel) return;
+        if (!detailsPanel) {
+            return;
+        }
         setDetailsOpen(true);
         detailsRevealed = true;
         detailsPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
         if (focusField && audienceInput) {
             audienceInput.focus();
-        }
-    }
-
-    /** Fill default values into empty detail fields */
-    function fillDefaults() {
-        if (audienceInput && !audienceInput.value.trim()) {
-            audienceInput.value = "General audience";
-        }
-        if (toneInput && !toneInput.value.trim()) {
-            toneInput.value = "Clear and modern";
         }
     }
 
@@ -183,10 +252,8 @@ if (form) {
     }
 
     function setBusy(isBusy, message) {
-        if (generateBtn) {
-            generateBtn.disabled = isBusy;
-            generateBtn.style.opacity = isBusy ? "0.5" : "";
-        }
+        busy = isBusy;
+        syncGenerateAvailability();
         if (statusText) {
             statusText.textContent = message || "";
         }
@@ -348,8 +415,9 @@ if (form) {
     document.querySelectorAll("[data-sample]").forEach((chip) => {
         chip.addEventListener("click", () => {
             goalInput.value = chip.getAttribute("data-sample");
-            revealDetailsStep();
             fillDefaults();
+            renderGoalValidation();
+            revealDetailsStep();
             goalInput.focus();
         });
     });
@@ -359,6 +427,7 @@ if (form) {
         demoBriefBtn.addEventListener("click", () => {
             goalInput.value = demoBrief.goal || goalInput.value;
             revealDetailsStep();
+            fillDefaults();
             if (audienceInput) audienceInput.value = demoBrief.audience || audienceInput.value;
             if (toneInput) toneInput.value = demoBrief.brand_tone || toneInput.value;
             const densitySelect = densityInput ? densityInput.closest("[data-brief-select]") : null;
@@ -370,12 +439,16 @@ if (form) {
             if (nameInput) nameInput.value = demoBrief.name || nameInput.value;
             if (tasteKeywordsInput) tasteKeywordsInput.value = demoBrief.taste_keywords || tasteKeywordsInput.value;
             if (notesInput) notesInput.value = demoBrief.notes || notesInput.value;
+            renderGoalValidation();
             setBusy(false, "Demo prompt loaded. Hit Run to generate.");
             goalInput.focus();
         });
     }
 
     if (goalInput) {
+        goalInput.addEventListener("input", () => {
+            renderGoalValidation();
+        });
         goalInput.addEventListener("keydown", (event) => {
             if (event.isComposing || event.key !== "Enter" || event.shiftKey) {
                 return;
@@ -415,6 +488,7 @@ if (form) {
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const goal = goalInput.value.trim();
+        const validation = renderGoalValidation();
 
         if (!goal) {
             setBusy(false, "Describe what you want to build.");
@@ -422,15 +496,19 @@ if (form) {
             return;
         }
 
-        /* On first submit: expand details with defaults, let user review */
+        if (!validation.isValid) {
+            setBusy(false, validation.message);
+            goalInput.focus();
+            return;
+        }
+
         if (!detailsRevealed) {
             fillDefaults();
-            revealDetailsStep();
+            revealDetailsStep({ focusField: true });
             setBusy(false, "Review details below, then hit Run again to generate.");
             return;
         }
 
-        /* Fill any remaining empty defaults before generating */
         fillDefaults();
 
         let brandAssets = [];
@@ -479,5 +557,6 @@ if (form) {
         }
     });
 
+    renderGoalValidation();
     renderAssetPreview([]);
 }

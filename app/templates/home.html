@@ -31,20 +31,22 @@
             </div>
 
             <form id="generate-form" class="brief-shell" aria-label="Generate website brief">
-                <!-- ── Unified Prompt Box ── -->
                 <div class="prompt-container" id="prompt-container">
-                    <!-- Textarea area -->
                     <div class="prompt-textarea-wrap">
                         <textarea
                             id="goal-input"
                             name="goal"
                             placeholder="Describe what you want to build..."
-                            rows="2"
+                            rows="1"
                             required
+                            data-min-words="3"
+                            data-max-words="80"
                         ></textarea>
+                        <div class="prompt-textarea-meta" aria-live="polite">
+                            <span id="goal-word-count" class="prompt-word-count">0 / 80 words</span>
+                        </div>
                     </div>
 
-                    <!-- Details panel - extends within prompt box -->
                     <div class="prompt-details-panel" id="details-panel">
                         <div class="prompt-details-inner">
                             <div class="prompt-details-grid">
@@ -183,16 +185,12 @@
                         </div>
                     </div>
 
-                    <!-- Toolbar row - inside prompt box -->
                     <div class="prompt-toolbar">
                         <div class="prompt-toolbar-left">
-                            <!-- Details toggle (like Google AI Studio's Tools button) -->
                             <button class="prompt-tool-btn" type="button" id="details-toggle" aria-expanded="false">
                                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
                                 <span>Details</span>
                             </button>
-
-                            <!-- Demo button -->
                             <button class="prompt-tool-btn prompt-tool-demo" id="demo-brief-btn" type="button">
                                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                                 <span>Try demo</span>
@@ -200,7 +198,6 @@
                         </div>
 
                         <div class="prompt-toolbar-right">
-                            <!-- Submit button -->
                             <button id="generate-btn" class="prompt-submit-btn" type="submit" aria-label="Generate website">
                                 <span class="prompt-submit-label">Run</span>
                                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
@@ -209,7 +206,8 @@
                     </div>
                 </div>
 
-                <!-- Quick-start chips - outside the box -->
+                <p id="goal-validation" class="prompt-validation prompt-validation-outside" aria-live="polite" role="status"></p>
+
                 <div class="quick-start-row">
                     {% for sample in examples %}
                     <button class="chip" type="button" data-sample="{{ sample }}">{{ sample }}</button>

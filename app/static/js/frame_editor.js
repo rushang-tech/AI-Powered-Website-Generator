@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const root = document.querySelector('[data-preview-root="true"]');
-    if (!root || window.parent === window) {
+    const root = document.querySelector('[data-preview-root="true"], .site-preview');
+    const hasEditableNodes = Boolean(document.querySelector("[data-node-id]"));
+    if ((!root && !hasEditableNodes) || window.parent === window) {
         return;
     }
 

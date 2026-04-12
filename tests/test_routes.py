@@ -563,7 +563,7 @@ class RouteTests(unittest.TestCase):
         self.assertIn("data-workspace-nav", studio_response.get_data(as_text=True))
 
     @patch("app.routes.generate_project_manifest")
-    def test_generate_forwards_brand_and_taste_controls(self, mocked_generate):
+    def test_generate_forwards_brand_assets_and_icon_style(self, mocked_generate):
         self._signup_and_login()
         mocked_generate.return_value = ProjectManifest.from_dict(_payload("preview-branding"))
         brand_asset = _brand_asset()
@@ -595,6 +595,25 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(forwarded_brief["taste_keywords"], ["signal-rich", "interface-first"])
         self.assertEqual(len(forwarded_brief["brand_assets"]), 1)
         self.assertEqual(forwarded_brief["brand_assets"][0]["data_url"], brand_asset["data_url"])
+
+    def test_generate_rejects_prompt_that_is_too_short(self):
+        self._signup_and_login()
+
+        response = self.client.post(
+            "/generate",
+            json={
+                "prompt": "Launch",
+                "brief": {
+                    "goal": "Launch",
+                    "brand_tone": "Clear and modern",
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        data = response.get_json()
+        self.assertIn("at least", data["error"])
+        self.assertEqual(data["min_words"], 3)
 
     def test_conversation_list_rename_and_delete(self):
         self._signup_and_login()

@@ -18,9 +18,6 @@ def _manifest() -> ProjectManifest:
                 "brand_tone": "Clear and modern",
                 "content_density": "balanced",
                 "motion_level": "moderate",
-                "palette_mood": "electric",
-                "typography_vibe": "tech",
-                "taste_keywords": ["signal-rich", "interface-first"],
                 "name": "Northstar OS",
                 "notes": "Lean into stronger visual rhythm and product proof.",
                 "prompt": "Create a polished SaaS product page",
@@ -41,8 +38,6 @@ def _manifest() -> ProjectManifest:
                         "layout_mode": "feature_scroll",
                         "density": "balanced",
                         "motion_level": "moderate",
-                        "palette_mood": "electric",
-                        "typography_vibe": "tech",
                         "section_order": ["hero", "features", "pricing", "proof", "cta"],
                         "section_visibility": {
                             "hero": True,
@@ -154,8 +149,6 @@ class ExportServiceTests(unittest.TestCase):
 
         self.assertEqual(selected_variant["render_plan"]["media_direction"], "interface_mockups")
         self.assertEqual(selected_variant["render_plan"]["template_file"], "generated/product.html")
-        self.assertEqual(selected_variant["theme"]["accent"], "#33e7e0")
-        self.assertEqual(selected_variant["theme"]["display_font"], "'Space Grotesk', sans-serif")
         self.assertIn("media-interface_mockups", html)
         self.assertIn("shell-workflow_console", html)
         self.assertIn("product-dashboard-main", html)
