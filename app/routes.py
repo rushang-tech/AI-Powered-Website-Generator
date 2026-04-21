@@ -1310,13 +1310,13 @@ def continue_conversation(conversation_id: int):
 
 
 @main.route("/generate", methods=["POST"])
-@login_required
 @observe_route("generate")
 def generate():
     body = request.get_json(silent=True) or {}
+    raw_brief = _brief_payload(body)
+    has_brand_assets = isinstance(raw_brief.get("brand_assets"), list) and bool(raw_brief.get("brand_assets"))
+    has_text_brief = _brief_has_user_input(raw_brief)
     user_prompt, brief = _normalized_brief(body)
-    has_brand_assets = bool(brief.get("brand_assets"))
-    has_text_brief = _brief_has_user_input(brief)
     if not user_prompt and not has_text_brief and not has_brand_assets:
         return jsonify({"error": "Prompt or brief is required."}), 400
 
@@ -1331,6 +1331,9 @@ def generate():
                 "max_words": _PROMPT_MAX_WORDS,
             }
         ), 400
+
+    if not getattr(current_user, "is_authenticated", False):
+        return jsonify({"error": "Authentication required."}), 401
 
     try:
         manifest = generate_project_manifest(user_prompt, brief=brief)

@@ -9,3 +9,14 @@ venv/
 instance/
 
 .aicodeprep-gui
+
+.ruff_cache/
+
+# Docs/editor temp files
+~$*.docx
+
+# Local scratch files
+diagram.drawio
+diagram.html
+fullcode.txt
+untitled folder/

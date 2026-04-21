@@ -7,7 +7,7 @@ from io import BytesIO
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from flask import render_template
+from flask import current_app, has_request_context, render_template
 
 from app.services.ai_engine import build_preview_variant
 from app.services.contracts import ProjectManifest
@@ -28,14 +28,22 @@ def render_export_site(
 ) -> tuple[str, str, dict[str, object]]:
     selected_variant = build_preview_variant(manifest, variant_id=variant_id or manifest.selected_variant_id)
     brief = manifest.brief.to_dict()
-    rendered_html = render_template(
-        "exported_site.html",
-        page_title=brief.get("name") or "VeloSite Export",
-        brief=brief,
-        selected_variant=selected_variant,
-        css_href=css_href,
-        consumer_mode=True,
-    )
+
+    def _render() -> str:
+        return render_template(
+            "exported_site.html",
+            page_title=brief.get("name") or "VeloSite Export",
+            brief=brief,
+            selected_variant=selected_variant,
+            css_href=css_href,
+            consumer_mode=True,
+        )
+
+    if has_request_context():
+        rendered_html = _render()
+    else:
+        with current_app.test_request_context("/"):
+            rendered_html = _render()
     css_text = EXPORT_CSS_PATH.read_text(encoding="utf-8")
     return rendered_html, css_text, selected_variant
 

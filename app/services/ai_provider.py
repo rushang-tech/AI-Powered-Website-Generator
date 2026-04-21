@@ -285,12 +285,17 @@ def _resolve_api_key_entries() -> tuple[tuple[str, str], ...]:
     entries: list[tuple[str, str]] = []
     seen: set[str] = set()
 
+    # When explicit multi-key lists are present, treat them as authoritative.
+    # This keeps precedence predictable and avoids implicitly appending
+    # single-key aliases in mixed configurations.
     for env_name in _api_keys_env_names():
         for index, item in enumerate(_parse_csv_values(os.getenv(env_name, "")), start=1):
             if _is_placeholder_api_key(item) or item in seen:
                 continue
             seen.add(item)
             entries.append((f"{env_name}[{index}]", item))
+    if entries:
+        return tuple(entries)
 
     for env_name, item in _resolve_numbered_api_key_entries():
         if item in seen:

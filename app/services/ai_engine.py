@@ -638,7 +638,7 @@ def _validate_content(content: object, *, brief: BriefInput, render_plan: Render
             validated[slot] = value.strip()
         else:
             validated[slot] = _slot_fallback(slot, render_plan=render_plan, brief=brief)
-            warnings.append(f"Filled fallback text for '{slot}'.")
+            warnings.append(f"Filled fallback text for '{slot}'")
             fallback_used = True
 
     for list_name, list_cfg in list_slots.items():

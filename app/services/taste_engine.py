@@ -625,22 +625,24 @@ class BriefInput:
 
 @dataclass(frozen=True)
 class RenderPlan:
-    template_key: str
-    template_file: str
-    theme_key: str
-    art_direction: str
-    layout_mode: str
-    density: str
-    motion_level: str
-    section_order: list[str]
-    section_visibility: dict[str, bool]
-    hero_variant: str
-    industry: str
-    vibe: str
-    keywords: list[str]
-    confidence: float
-    reasons: list[str]
-    slot_schema: dict[str, Any]
+    template_key: str = "landing"
+    template_file: str = "generated/site_builder.html"
+    theme_key: str = "modern_editorial"
+    art_direction: str = "modern_editorial"
+    layout_mode: str = "split_hero"
+    density: str = "balanced"
+    motion_level: str = "moderate"
+    section_order: list[str] = field(default_factory=lambda: ["hero", "features", "proof", "cta"])
+    section_visibility: dict[str, bool] = field(
+        default_factory=lambda: {"hero": True, "features": True, "proof": True, "cta": True}
+    )
+    hero_variant: str = "statement"
+    industry: str = "technology"
+    vibe: str = "clean"
+    keywords: list[str] = field(default_factory=list)
+    confidence: float = 0.0
+    reasons: list[str] = field(default_factory=list)
+    slot_schema: dict[str, Any] = field(default_factory=lambda: {"text_slots": [], "list_slots": {}})
     palette_mood: str = ""
     typography_vibe: str = ""
     media_direction: str = "editorial_collage"
